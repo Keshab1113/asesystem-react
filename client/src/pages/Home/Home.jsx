@@ -42,7 +42,9 @@ function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
       {/* Theme toggle */}
-      <ToggleTheme/>
+      <div className="md:top-6 top-2 md:left-6 left-2 absolute">
+        <ToggleTheme />
+      </div>
 
       {/* Language selector */}
       <div className="space-y-2 absolute md:top-6 top-2 md:right-6 right-2">

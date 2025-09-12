@@ -6,7 +6,6 @@ import {
   loginStart,
   loginSuccess,
 } from "../../redux/slices/authSlice";
-import { addUser } from "../../redux/slices/userSlice";
 import { useLanguage } from "@/lib/language-context";
 
 import {
@@ -57,22 +56,23 @@ export default function LoginPage() {
     try {
       dispatch(loginStart());
 
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        }
+      );
 
       const data = await res.json();
-
       if (data.success && data.user) {
-        dispatch(loginSuccess({ user: data.user, token: data.token || "" }));
-        dispatch(addUser(data.user));
+        dispatch(loginSuccess({ user: data.user, token: data.token }));
 
         if (data.user.role === "super_admin") {
-          navigate("/adminDashboard");
+          navigate("/admin-dashboard");
         } else {
-          navigate("/dashboard");
+          navigate("/user-dashboard");
         }
       } else {
         dispatch(loginFailure());
@@ -89,8 +89,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-      <ToggleTheme />
-
+      <div className="md:top-6 top-2 md:left-6 left-2 absolute">
+        <ToggleTheme />
+      </div>
       {/* Language switcher */}
       <div className="space-y-2 absolute md:top-6 top-2 md:right-6 right-2">
         <Select value={language} onValueChange={(value) => setLanguage(value)}>

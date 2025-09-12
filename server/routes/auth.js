@@ -4,7 +4,11 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const router = express.Router();
 const pool = require("../config/database");
+const { changePassword } = require("../controllers/authController");
+const { authenticate } = require("../middleware/authMiddleware");
 
+
+router.post('/change-password', authenticate, changePassword);
 // Register endpoint
 router.post("/register", async (req, res) => {
   try {
@@ -287,7 +291,7 @@ router.post("/login", async (req, res) => {
     }
 
     const [users] = await pool.execute(
-      "SELECT id, name, email, password_hash, role, is_active, otp FROM users WHERE email = ?",
+      "SELECT id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at, phone FROM users WHERE email = ?",
       [email]
     );
 
@@ -314,7 +318,9 @@ router.post("/login", async (req, res) => {
         message: "Invalid email or password",
       });
     }
-
+    await pool.execute("UPDATE users SET last_login = NOW() WHERE id = ?", [
+      user.id,
+    ]);
     const { password_hash, otp, ...userSafe } = user;
 
     // Generate JWT token valid for 1 day

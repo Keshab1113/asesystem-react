@@ -36,7 +36,7 @@ const ToggleTheme = () => {
       variant="ghost"
       size="icon"
       onClick={toggleTheme}
-      className="h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 dark:bg-slate-800 cursor-pointer bg-slate-200 transition-all duration-200 hover:scale-105 absolute overflow-hidden md:top-6 top-2 md:left-6 left-2"
+      className="h-10 w-10 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 dark:bg-slate-800 cursor-pointer bg-slate-200 transition-all duration-200 hover:scale-105 overflow-hidden "
     >
       <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
       <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />

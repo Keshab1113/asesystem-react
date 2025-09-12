@@ -1,0 +1,320 @@
+"use client";
+
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Progress } from "../../components/ui/progress";
+import { Alert, AlertDescription } from "../../components/ui/alert";
+import { Key, Eye, EyeOff, Check, X, Shield } from "lucide-react";
+import { useSelector } from "react-redux";
+
+export function ChangePasswordPage() {
+  const [passwords, setPasswords] = useState({
+    current: "",
+    new: "",
+    confirm: "",
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [errors, setErrors] = useState([]);
+
+  const calculatePasswordStrength = (password) => {
+    let strength = 0;
+    const checks = [
+      password.length >= 8,
+      /[a-z]/.test(password),
+      /[A-Z]/.test(password),
+      /\d/.test(password),
+      /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    ];
+    strength = (checks.filter(Boolean).length / checks.length) * 100;
+    return strength;
+  };
+
+  const validatePassword = (password) => {
+    const newErrors = [];
+    if (password.length < 8) newErrors.push("At least 8 characters");
+    if (!/[a-z]/.test(password)) newErrors.push("One lowercase letter");
+    if (!/[A-Z]/.test(password)) newErrors.push("One uppercase letter");
+    if (!/\d/.test(password)) newErrors.push("One number");
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password))
+      newErrors.push("One special character");
+    return newErrors;
+  };
+
+  const handlePasswordChange = (field, value) => {
+    setPasswords({ ...passwords, [field]: value });
+
+    if (field === "new") {
+      const strength = calculatePasswordStrength(value);
+      setPasswordStrength(strength);
+      const validationErrors = validatePassword(value);
+      setErrors(validationErrors);
+    }
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setShowPasswords({ ...showPasswords, [field]: !showPasswords[field] });
+  };
+
+  const { token } = useSelector((state) => state.auth);
+
+  const handleSubmit = async () => {
+    try {
+      if (!passwords.current || !passwords.new || !passwords.confirm) {
+        alert("Please fill in all fields");
+        return;
+      }
+
+      if (passwords.new !== passwords.confirm) {
+        alert("New passwords do not match");
+        return;
+      }
+
+      if (errors.length > 0) {
+        alert("Please fix password requirements");
+        return;
+      }
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            currentPassword: passwords.current,
+            newPassword: passwords.new,
+            confirmPassword: passwords.confirm,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Password changed successfully!");
+        setPasswords({ current: "", new: "", confirm: "" });
+        setPasswordStrength(0);
+        setErrors([]);
+      } else {
+        alert(data.message || "Failed to change password");
+      }
+    } catch (error) {
+      console.error("Password change error:", error);
+      alert("An error occurred while changing password");
+    }
+  };
+
+  const getStrengthColor = () => {
+    if (passwordStrength < 40) return "bg-red-500";
+    if (passwordStrength < 70) return "bg-yellow-500";
+    return "bg-green-500";
+  };
+
+  const getStrengthText = () => {
+    if (passwordStrength < 40) return "Weak";
+    if (passwordStrength < 70) return "Medium";
+    return "Strong";
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-foreground">Change Password</h1>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Password Form */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Key className="h-5 w-5 mr-2" />
+              Update Password
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="current-password">Current Password</Label>
+              <div className="relative">
+                <Input
+                  id="current-password"
+                  type={showPasswords.current ? "text" : "password"}
+                  value={passwords.current}
+                  onChange={(e) =>
+                    handlePasswordChange("current", e.target.value)
+                  }
+                  placeholder="Enter current password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => togglePasswordVisibility("current")}
+                >
+                  {showPasswords.current ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="new-password">New Password</Label>
+              <div className="relative">
+                <Input
+                  id="new-password"
+                  type={showPasswords.new ? "text" : "password"}
+                  value={passwords.new}
+                  onChange={(e) => handlePasswordChange("new", e.target.value)}
+                  placeholder="Enter new password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => togglePasswordVisibility("new")}
+                >
+                  {showPasswords.new ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {passwords.new && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Password Strength:</span>
+                    <span
+                      className={`font-medium ${
+                        passwordStrength < 40
+                          ? "text-red-500"
+                          : passwordStrength < 70
+                          ? "text-yellow-500"
+                          : "text-green-500"
+                      }`}
+                    >
+                      {getStrengthText()}
+                    </span>
+                  </div>
+                  <Progress value={passwordStrength} progressColor={getStrengthColor()} className="h-2" />
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirm-password">Confirm New Password</Label>
+              <div className="relative">
+                <Input
+                  id="confirm-password"
+                  type={showPasswords.confirm ? "text" : "password"}
+                  value={passwords.confirm}
+                  onChange={(e) =>
+                    handlePasswordChange("confirm", e.target.value)
+                  }
+                  placeholder="Confirm new password"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3"
+                  onClick={() => togglePasswordVisibility("confirm")}
+                >
+                  {showPasswords.confirm ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+
+              {passwords.confirm && passwords.new !== passwords.confirm && (
+                <p className="text-sm text-red-500">Passwords do not match</p>
+              )}
+            </div>
+
+            <Button onClick={handleSubmit} className="w-full">
+              <Shield className="h-4 w-4 mr-2" />
+              Update Password
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Password Requirements */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Password Requirements</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              {[
+                {
+                  text: "At least 8 characters",
+                  check: passwords.new.length >= 8,
+                },
+                {
+                  text: "One lowercase letter",
+                  check: /[a-z]/.test(passwords.new),
+                },
+                {
+                  text: "One uppercase letter",
+                  check: /[A-Z]/.test(passwords.new),
+                },
+                { text: "One number", check: /\d/.test(passwords.new) },
+                {
+                  text: "One special character",
+                  check: /[!@#$%^&*(),.?":{}|<>]/.test(passwords.new),
+                },
+              ].map((requirement, index) => (
+                <div key={index} className="flex items-center space-x-2">
+                  {requirement.check ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <X className="h-4 w-4 text-red-500" />
+                  )}
+                  <span
+                    className={`text-sm ${
+                      requirement.check
+                        ? "text-green-600"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {requirement.text}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <Alert>
+              <Shield className="h-4 w-4" />
+              <AlertDescription>
+                Choose a strong password that you haven't used elsewhere. Avoid
+                common words and personal information.
+              </AlertDescription>
+            </Alert>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
