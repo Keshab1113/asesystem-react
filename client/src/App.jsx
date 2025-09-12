@@ -1,14 +1,22 @@
-import './App.css'
-import { Button } from "./components/ui/button"
+import "./App.css";
+import { Routes, Route } from "react-router-dom";
+import Layout from "./layout";
+import Home from "./pages/Home/Home"
 
 function App() {
+  
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center">
-      <Button>Click me</Button>
-      <h1 className=' bg-red-500 text-green-500'>Hi Keshab</h1>
-    </div>
-  )
+    <>
+    <Routes>
+        <Route path="/" element={<Layout/>}>
+          <Route index element={<Home/>} />
+          {/* <Route path="/login" element={<Login />} /> */}
+          {/* <Route path="/signup" element={<Signup />} /> */}
+        </Route>
+      </Routes>
+    </>
+  );
 }
 
-export default App
+export default App;
