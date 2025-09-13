@@ -34,10 +34,10 @@ import {
   Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import NavItems from "./navItems";
 import { useDispatch, useSelector } from "react-redux";
 import ToggleTheme from "../ToggleTheme";
 import { logout } from "../../redux/slices/authSlice";
+import NavItems from "./navItems";
 
 export function DashboardNav() {
   const router = useNavigate();
