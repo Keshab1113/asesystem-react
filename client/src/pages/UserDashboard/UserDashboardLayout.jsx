@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { Outlet, useNavigate } from "react-router-dom";
 import { DashboardNav } from "../../components/UserDashboard/DashboardNav";
-import NavItems from "../../components/UserDashboard/navItems";
+import NavItems from "../../components/UserDashboard/NavItems";
 
 export default function UserDashboardLayout() {
   const { user, isAuthenticated } = useSelector((state) => state.auth);

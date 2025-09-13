@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils";
 import { useDispatch, useSelector } from "react-redux";
 import ToggleTheme from "../ToggleTheme";
 import { logout } from "../../redux/slices/authSlice";
-import NavItems from "./navItems";
+import NavItems from "./NavItems";
 
 export function DashboardNav() {
   const router = useNavigate();
