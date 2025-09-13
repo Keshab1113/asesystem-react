@@ -26,7 +26,7 @@ function Home() {
   const { language, setLanguage, t } = useLanguage();
   const dispatch = useDispatch();
 
-  const { token } = useSelector((state) => state.auth);
+  const { token, user } = useSelector((state) => state.auth);
 
   useEffect(() => {
     if (token) {
@@ -125,19 +125,29 @@ function Home() {
         <div className="text-center gap-4 flex justify-center items-center">
           <Button
             size="lg"
-            onClick={() => navigate("/register")}
+            onClick={() =>
+              navigate(
+                token
+                  ? user.role === "user"
+                    ? "/user-dashboard"
+                    : "/admin-dashboard"
+                  : "/register"
+              )
+            }
             className="cursor-pointer"
           >
             {t("mainPage.getStarted")}
           </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => navigate("/login")}
-            className="cursor-pointer"
-          >
-            {t("auth.signIn")}
-          </Button>
+          {!token && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => navigate("/login")}
+              className="cursor-pointer"
+            >
+              {t("auth.signIn")}
+            </Button>
+          )}
         </div>
       </div>
     </div>

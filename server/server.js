@@ -10,6 +10,8 @@ const pool = require('./config/database');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const contractorRoutes = require('./routes/contractorRoutes');
+const companyRoutes = require('./routes/companyRoutes');
 
 // Middleware
 app.use(cors());
@@ -30,6 +32,8 @@ app.get('/api/test-db', async (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use("/api/contractors", contractorRoutes);
+app.use("/api/companies", companyRoutes);
 
 // Basic health check endpoint
 app.get('/api/health', (req, res) => {
@@ -66,5 +70,4 @@ app.use((error, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

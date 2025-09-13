@@ -15,17 +15,58 @@ import {
 } from "../../components/ui/avatar";
 import { Badge } from "../../components/ui/badge";
 import { UserCircle, Mail, Phone, Calendar, Edit, Save, X } from "lucide-react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import useToast from "../../hooks/ToastContext"
+import { updateUser } from "../../redux/slices/authSlice";
 
 export function MyAccountPage() {
   const [isEditing, setIsEditing] = useState(false);
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
   const [userData, setUserData] = useState(user);
   const [editData, setEditData] = useState(user);
+  const { toast } = useToast();
+  const dispatch = useDispatch();
 
-  const handleSave = () => {
-    setUserData(editData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/update`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(editData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUserData(editData);
+        setIsEditing(false);
+        dispatch(updateUser(editData));
+        toast({
+          title: "Profile Updated",
+          description: "User updated successfully!",
+        });
+      } else {
+        console.error("Update failed:", data.message || "Unknown error");
+        toast({
+          title: "Update failed",
+          description: data.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Update error:", error);
+      toast({
+        title: "Update error",
+        description: "An error occurred while updating user data",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCancel = () => {
@@ -166,13 +207,13 @@ export function MyAccountPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
+                <Label htmlFor="position">Department</Label>
                 {isEditing ? (
                   <Input
-                    id="department"
+                    id="position"
                     value={editData.position}
                     onChange={(e) =>
-                      setEditData({ ...editData, department: e.target.value })
+                      setEditData({ ...editData, position: e.target.value })
                     }
                   />
                 ) : (

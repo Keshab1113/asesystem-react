@@ -83,8 +83,7 @@ export const translations = {
     "dashboard.averageScore": "Average Score",
     "dashboard.fromLastMonth": "+5% from last month",
     "dashboard.myAssessments": "My Assessments",
-    "dashboard.viewAssignedQuizzes":
-      "View assigned quizzes and past results",
+    "dashboard.viewAssignedQuizzes": "View assigned quizzes and past results",
     "dashboard.viewAssessments": "View Assessments",
     "dashboard.upcomingAssessments": "Upcoming Assessments",
     "dashboard.checkScheduled": "Check your scheduled assessments",
@@ -150,6 +149,8 @@ export const translations = {
     "profile.group": "Group",
     "profile.emailCannotChange":
       "Email address cannot be changed. Contact administrator if needed.",
+    "profile.lastLogInCannotChange":
+      "This is not editable, If the data is wrong then contact to the admin.",
     "profile.accountInfo": "Account Information",
     "profile.memberSince": "Member since:",
     "profile.lastLogin": "Last login:",
@@ -224,7 +225,8 @@ export const translations = {
       "Detailed insights and performance analytics for continuous improvement",
   },
   ar: {
-    "mainPage.heading": "تقييم الصف الخامس عشر على نظام إدارة الصحة والسلامة والبيئة في شركة KOC",
+    "mainPage.heading":
+      "تقييم الصف الخامس عشر على نظام إدارة الصحة والسلامة والبيئة في شركة KOC",
     "mainPage.subHeading": "منصة تقييم احترافية لتقييم وتطوير مهارات الموظفين",
     "mainPage.getStarted": "ابدأ الآن",
 
@@ -268,7 +270,6 @@ export const translations = {
     "nav.quizSystem": "نظام تقييم مجموعة الحفر (N&WK)",
     "nav.AsesSystem": "نظام التقييم",
     "nav.drillGroup": "مجموعة الحفر (N&WK)",
-
 
     // Authentication
     "auth.welcomeBack": "مرحباً بعودتك",
@@ -391,6 +392,8 @@ export const translations = {
     "profile.group": "مجموعة",
     "profile.emailCannotChange":
       "لا يمكن تغيير عنوان البريد الإلكتروني. اتصل بالمسؤول إذا لزم الأمر.",
+    "profile.lastLogInCannotChange":
+      "هذا غير قابل للتعديل، إذا كانت البيانات خاطئة يرجى الاتصال بالمسؤول.",
     "profile.accountInfo": "معلومات الحساب",
     "profile.memberSince": "عضو منذ:",
     "profile.lastLogin": "آخر تسجيل دخول:",

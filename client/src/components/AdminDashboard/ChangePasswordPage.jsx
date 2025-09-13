@@ -14,6 +14,7 @@ import { Progress } from "../../components/ui/progress";
 import { Alert, AlertDescription } from "../../components/ui/alert";
 import { Key, Eye, EyeOff, Check, X, Shield } from "lucide-react";
 import { useSelector } from "react-redux";
+import useToast from "../../hooks/ToastContext";
 
 export function ChangePasswordPage() {
   const [passwords, setPasswords] = useState({
@@ -28,6 +29,7 @@ export function ChangePasswordPage() {
   });
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [errors, setErrors] = useState([]);
+  const { toast } = useToast();
 
   const calculatePasswordStrength = (password) => {
     let strength = 0;
@@ -73,20 +75,32 @@ export function ChangePasswordPage() {
   const handleSubmit = async () => {
     try {
       if (!passwords.current || !passwords.new || !passwords.confirm) {
-        alert("Please fill in all fields");
+        toast({
+          title: "Update failed",
+          description: "Please fill in all fields",
+          variant: "destructive",
+        });
         return;
       }
 
       if (passwords.new !== passwords.confirm) {
-        alert("New passwords do not match");
+        toast({
+          title: "Update failed",
+          description: "New passwords do not match",
+          variant: "destructive",
+        });
         return;
       }
 
       if (errors.length > 0) {
-        alert("Please fix password requirements");
+        toast({
+          title: "Update failed",
+          description: "Please fix password requirements",
+          variant: "destructive",
+        });
         return;
       }
-      
+
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/change-password`,
         {
@@ -106,16 +120,27 @@ export function ChangePasswordPage() {
       const data = await response.json();
 
       if (response.ok) {
-        alert("Password changed successfully!");
+        toast({
+          title: "Password Updated",
+          description: "Password changed successfully!",
+        });
         setPasswords({ current: "", new: "", confirm: "" });
         setPasswordStrength(0);
         setErrors([]);
       } else {
-        alert(data.message || "Failed to change password");
+        toast({
+          title: "Update failed",
+          description: data.message || "Failed to change password",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Password change error:", error);
-      alert("An error occurred while changing password");
+      toast({
+        title: "Update failed",
+        description: "An error occurred while changing password",
+        variant: "destructive",
+      });
     }
   };
 
@@ -216,7 +241,11 @@ export function ChangePasswordPage() {
                       {getStrengthText()}
                     </span>
                   </div>
-                  <Progress value={passwordStrength} progressColor={getStrengthColor()} className="h-2" />
+                  <Progress
+                    value={passwordStrength}
+                    progressColor={getStrengthColor()}
+                    className="h-2"
+                  />
                 </div>
               )}
             </div>

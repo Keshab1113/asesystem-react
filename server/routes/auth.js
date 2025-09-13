@@ -4,11 +4,21 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const router = express.Router();
 const pool = require("../config/database");
-const { changePassword } = require("../controllers/authController");
+const { changePassword, updateUser, uploadProfilePicture } = require("../controllers/authController");
 const { authenticate } = require("../middleware/authMiddleware");
+const multer = require("multer");
+
+const upload = multer();
 
 
 router.post('/change-password', authenticate, changePassword);
+router.put('/update',authenticate, updateUser);
+router.post(
+  "/upload-profile-picture",
+  authenticate,
+  upload.single("profilePic"),
+  uploadProfilePicture
+);
 // Register endpoint
 router.post("/register", async (req, res) => {
   try {
@@ -291,7 +301,7 @@ router.post("/login", async (req, res) => {
     }
 
     const [users] = await pool.execute(
-      "SELECT id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at, phone FROM users WHERE email = ?",
+      "SELECT id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at, phone, \`group\`, controlling_team, employee_id FROM users WHERE email = ?",
       [email]
     );
 

@@ -28,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LogIn, Mail, Lock, Sun, Moon } from "lucide-react";
 import ToggleTheme from "../../components/ToggleTheme";
+import useToast from "../../hooks/ToastContext";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -37,6 +38,7 @@ export default function LoginPage() {
   const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { toast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,6 +69,10 @@ export default function LoginPage() {
 
       const data = await res.json();
       if (data.success && data.user) {
+        toast({
+          title: "Welcome to ASESystem",
+          description: "Logged in successfully",
+        });
         dispatch(loginSuccess({ user: data.user, token: data.token }));
 
         if (data.user.role === "super_admin") {
@@ -80,6 +86,11 @@ export default function LoginPage() {
       }
     } catch (error) {
       dispatch(loginFailure());
+      toast({
+        title: "Login Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
       console.log("Login Error: ", error);
       setError("An unexpected error occurred. Please try again.");
     } finally {

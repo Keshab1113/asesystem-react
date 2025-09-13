@@ -1,13 +1,31 @@
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card"
-import { Button } from "../../components/ui/button"
-import { Input } from "../../components/ui/input"
-import { Label } from "../../components/ui/label"
-import { Textarea } from "../../components/ui/textarea"
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/ui/avatar"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select"
-import { Switch } from "../../components/ui/switch"
-import { Edit, Save, Upload, Bell, Shield, Eye } from "lucide-react"
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Textarea } from "../../components/ui/textarea";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "../../components/ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import { Switch } from "../../components/ui/switch";
+import { Edit, Save, Upload, Bell, Shield, Eye } from "lucide-react";
+import { useDispatch, useSelector } from "react-redux";
+import useToast from "../../hooks/ToastContext";
+import { updateUser } from "../../redux/slices/authSlice";
 
 const mockProfile = {
   personalInfo: {
@@ -33,19 +51,60 @@ const mockProfile = {
     lastPasswordChange: "2024-01-15",
     sessionTimeout: "30",
   },
-}
+};
 
 export function ModifyProfilePage() {
-  const [profile, setProfile] = useState(mockProfile)
-  const [activeTab, setActiveTab] = useState("personal")
+  const { user, token } = useSelector((state) => state.auth);
+  const [userData, setUserData] = useState(user);
+  const [editData, setEditData] = useState(user);
+  const [profile, setProfile] = useState(mockProfile);
+  const [activeTab, setActiveTab] = useState("personal");
+  const { toast } = useToast();
+  const dispatch = useDispatch();
 
-  const handleSave = () => {
-    alert("Profile updated successfully!")
-  }
+  const handleSave = async () => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/update`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(editData),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setUserData(editData);
+        dispatch(updateUser(editData));
+        toast({
+          title: "Profile Updated",
+          description: "User updated successfully!",
+        });
+      } else {
+        toast({
+          title: "Update Failed",
+          description: data.message || "Unknown error",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Update error:", error);
+      toast({
+        title: "Update Error",
+        description: "An error occurred while updating profile data",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleAvatarUpload = () => {
-    alert("Avatar upload functionality would be implemented here")
-  }
+    alert("Avatar upload functionality would be implemented here");
+  };
 
   return (
     <div className="space-y-6">
@@ -95,10 +154,15 @@ export function ModifyProfilePage() {
             <CardContent className="space-y-4">
               <div className="flex flex-col items-center space-y-4">
                 <Avatar className="h-32 w-32">
-                  <AvatarImage src={profile.personalInfo.avatar || "/admin-avatar.png"} alt="Profile" />
+                  <AvatarImage
+                    src={userData.avatar || "/admin-avatar.png"}
+                    alt="Profile"
+                  />
                   <AvatarFallback>
-                    {profile.personalInfo.firstName[0]}
-                    {profile.personalInfo.lastName[0]}
+                    {userData.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <Button onClick={handleAvatarUpload}>
@@ -116,27 +180,27 @@ export function ModifyProfilePage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                  <Label htmlFor="name">Full Name</Label>
                   <Input
-                    id="firstName"
-                    value={profile.personalInfo.firstName}
+                    id="name"
+                    value={editData.name}
                     onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        personalInfo: { ...profile.personalInfo, firstName: e.target.value },
+                      setEditData({
+                        ...editData,
+                        name: e.target.value,
                       })
                     }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                  <Label htmlFor="role">Role</Label>
                   <Input
-                    id="lastName"
-                    value={profile.personalInfo.lastName}
+                    id="role"
+                    value={editData.role}
                     onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        personalInfo: { ...profile.personalInfo, lastName: e.target.value },
+                      setEditData({
+                        ...editData,
+                          role: e.target.value,
                       })
                     }
                   />
@@ -146,11 +210,11 @@ export function ModifyProfilePage() {
                   <Input
                     id="email"
                     type="email"
-                    value={profile.personalInfo.email}
+                    value={editData.email}
                     onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        personalInfo: { ...profile.personalInfo, email: e.target.value },
+                      setEditData({
+                        ...editData,
+                        email: e.target.value,
                       })
                     }
                   />
@@ -159,11 +223,11 @@ export function ModifyProfilePage() {
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
-                    value={profile.personalInfo.phone}
+                    value={editData.phone}
                     onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        personalInfo: { ...profile.personalInfo, phone: e.target.value },
+                      setEditData({
+                        ...editData,
+                        phone: e.target.value,
                       })
                     }
                   />
@@ -172,24 +236,24 @@ export function ModifyProfilePage() {
                   <Label htmlFor="department">Department</Label>
                   <Input
                     id="department"
-                    value={profile.personalInfo.department}
+                    value={editData.department || "IT Department"}
                     onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        personalInfo: { ...profile.personalInfo, department: e.target.value },
+                      setEditData({
+                        ...editData,
+                        department: e.target.value,
                       })
                     }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="jobTitle">Job Title</Label>
+                  <Label htmlFor="position">Position</Label>
                   <Input
-                    id="jobTitle"
-                    value={profile.personalInfo.jobTitle}
+                    id="position"
+                    value={editData.position}
                     onChange={(e) =>
-                      setProfile({
-                        ...profile,
-                        personalInfo: { ...profile.personalInfo, jobTitle: e.target.value },
+                      setEditData({
+                        ...editData,
+                        position: e.target.value,
                       })
                     }
                   />
@@ -200,11 +264,11 @@ export function ModifyProfilePage() {
                 <Textarea
                   id="bio"
                   rows={3}
-                  value={profile.personalInfo.bio}
+                  value={editData.bio || "Experienced system administrator with 10+ years in IT management."}
                   onChange={(e) =>
-                    setProfile({
-                      ...profile,
-                      personalInfo: { ...profile.personalInfo, bio: e.target.value },
+                    setEditData({
+                      ...editData,
+                      bio: e.target.value,
                     })
                   }
                 />
@@ -233,7 +297,10 @@ export function ModifyProfilePage() {
                   onCheckedChange={(checked) =>
                     setProfile({
                       ...profile,
-                      preferences: { ...profile.preferences, emailNotifications: checked },
+                      preferences: {
+                        ...profile.preferences,
+                        emailNotifications: checked,
+                      },
                     })
                   }
                 />
@@ -246,7 +313,10 @@ export function ModifyProfilePage() {
                   onCheckedChange={(checked) =>
                     setProfile({
                       ...profile,
-                      preferences: { ...profile.preferences, smsNotifications: checked },
+                      preferences: {
+                        ...profile.preferences,
+                        smsNotifications: checked,
+                      },
                     })
                   }
                 />
@@ -259,7 +329,10 @@ export function ModifyProfilePage() {
                   onCheckedChange={(checked) =>
                     setProfile({
                       ...profile,
-                      preferences: { ...profile.preferences, weeklyReports: checked },
+                      preferences: {
+                        ...profile.preferences,
+                        weeklyReports: checked,
+                      },
                     })
                   }
                 />
@@ -357,20 +430,27 @@ export function ModifyProfilePage() {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">Add an extra layer of security</p>
+                  <p className="text-sm text-muted-foreground">
+                    Add an extra layer of security
+                  </p>
                 </div>
                 <Switch
                   checked={profile.security.twoFactorEnabled}
                   onCheckedChange={(checked) =>
                     setProfile({
                       ...profile,
-                      security: { ...profile.security, twoFactorEnabled: checked },
+                      security: {
+                        ...profile.security,
+                        twoFactorEnabled: checked,
+                      },
                     })
                   }
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                <Label htmlFor="sessionTimeout">
+                  Session Timeout (minutes)
+                </Label>
                 <Select
                   value={profile.security.sessionTimeout}
                   onValueChange={(value) =>
@@ -418,5 +498,5 @@ export function ModifyProfilePage() {
         </div>
       )}
     </div>
-  )
+  );
 }
