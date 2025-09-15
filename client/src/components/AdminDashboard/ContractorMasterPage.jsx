@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Card,
   CardContent,
@@ -18,6 +18,8 @@ import {
   Building,
   Phone,
   Mail,
+  MoreVertical,
+  Power,
 } from "lucide-react";
 import {
   Select,
@@ -26,8 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import useToast from "../../hooks/ToastContext";
 import { useSelector } from "react-redux";
+import ContractorDeleteButton from "./AlertDialog";
 
 const mockContractors = [
   {
@@ -68,12 +77,14 @@ const mockContractors = [
 export function ContractorMasterPage() {
   const [contractors, setContractors] = useState(mockContractors);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleteContractorId, setDeleteContractorId] = useState(null);
   const [isEditing, setIsEditing] = useState(null);
   const [companies, setCompanies] = useState([]);
   const { toast } = useToast();
-  const { token, user } = useSelector((state) => state.auth);
+  const updateRef = useRef(null);
+  const { user } = useSelector((state) => state.auth);
   const [newContractor, setNewContractor] = useState({
-    contractor_name: "",
+    name: "",
     email: "",
     phone: "",
     company_name: "",
@@ -226,7 +237,7 @@ export function ContractorMasterPage() {
           },
         ]);
         setNewContractor({
-          contractor_name: "",
+          name: "",
           email: "",
           phone: "",
           company_name: "",
@@ -250,10 +261,99 @@ export function ContractorMasterPage() {
       });
     }
   };
+  const handleUpdateContractor = async () => {
+    try {
+      const selectedCompany = companies.find(
+        (c) => c.name === newContractor.company_name
+      );
 
-  const handleDeleteContractor = (id) => {
-    if (confirm("Are you sure you want to delete this contractor?")) {
-      setContractors(contractors.filter((contractor) => contractor.id !== id));
+      if (!selectedCompany) {
+        toast({
+          title: "Failed to update contractor",
+          description: "Please select a valid company",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/contractors/${isEditing}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...newContractor,
+            company_id: selectedCompany.id,
+            created_by: user.id,
+            isActive: 1,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Contractor Updated",
+          description: "Contractor updated successfully",
+        });
+
+        // ✅ Update contractor in state instead of adding new
+        setContractors(
+          contractors.map((c) =>
+            c.id === isEditing
+              ? { ...c, ...newContractor, company_id: selectedCompany.id }
+              : c
+          )
+        );
+
+        setNewContractor({
+          name: "",
+          email: "",
+          phone: "",
+          company_name: "",
+          address: "",
+          specialization: "",
+          license_number: "",
+        });
+        setIsEditing(null); // ✅ Reset edit mode
+      } else {
+        toast({
+          title: "Update Failed",
+          description: data.message || "Unknown error",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating contractor:", error);
+      toast({
+        title: "Update Failed",
+        description: "Failed to update contractor",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteContractor = async (id) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/contractors/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setContractors((prev) => prev.filter((c) => c.id !== id));
+        setDeleteContractorId(null);
+      } else {
+        alert(data.message || "Failed to delete contractor");
+      }
+    } catch (error) {
+      console.error("Error deleting contractor:", error);
+      alert("Server error while deleting contractor");
     }
   };
 
@@ -267,25 +367,40 @@ export function ContractorMasterPage() {
     );
   };
 
+  const handleEditClick = (id) => {
+    updateRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    setIsEditing(id);
+
+    const findContractor = contractors.find(
+      (contractor) => contractor.id === id
+    );
+
+    if (findContractor) {
+      setNewContractor({
+        name: findContractor.name || "",
+        email: findContractor.email || "",
+        phone: findContractor.phone || "",
+        company_name: findContractor.company_name || "",
+        address: findContractor.address || "",
+        specialization: findContractor.specialization || "",
+        license_number: findContractor.license_number || "",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between ">
         <h1 className="text-3xl font-bold text-foreground">
           Contractor Master
         </h1>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search contractors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Add New Contractor */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
@@ -294,7 +409,7 @@ export function ContractorMasterPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contractor-name">Company Name</Label>
                 <Input
@@ -323,7 +438,7 @@ export function ContractorMasterPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contractor-phone">Phone</Label>
                 <Input
@@ -404,9 +519,7 @@ export function ContractorMasterPage() {
             </Button>
           </CardContent>
         </Card>
-
-        {/* Search */}
-        <Card>
+        <Card ref={updateRef}>
           <CardHeader>
             <CardTitle className="flex items-center">
               <Building className="h-5 w-5 mr-2" />
@@ -414,17 +527,17 @@ export function ContractorMasterPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contractor_name">Contact Name</Label>
+                <Label htmlFor="name">Contact Name</Label>
                 <Input
-                  id="contractor_name"
+                  id="name"
                   placeholder="Enter contact name..."
-                  value={newContractor.contractor_name}
+                  value={newContractor.name}
                   onChange={(e) =>
                     setNewContractor({
                       ...newContractor,
-                      contractor_name: e.target.value,
+                      name: e.target.value,
                     })
                   }
                 />
@@ -446,7 +559,7 @@ export function ContractorMasterPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="contractor-phone">Phone</Label>
                 <Input
@@ -465,7 +578,7 @@ export function ContractorMasterPage() {
               <div className="space-y-2">
                 <Label htmlFor="company_name">Company</Label>
                 <Select
-                  value={setNewContractor.company_name}
+                  value={newContractor.company_name}
                   onValueChange={(value) =>
                     setNewContractor({
                       ...newContractor,
@@ -486,7 +599,7 @@ export function ContractorMasterPage() {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="license_number">License Number</Label>
                 <Input
@@ -534,9 +647,12 @@ export function ContractorMasterPage() {
               />
             </div>
 
-            <Button onClick={handleAddContractor} className="w-full">
+            <Button
+              onClick={isEditing ? handleUpdateContractor : handleAddContractor}
+              className="w-full"
+            >
               <Plus className="h-4 w-4 mr-2" />
-              Add Contractor
+              {isEditing ? "Update Contractor" : "Add Contractor"}
             </Button>
           </CardContent>
         </Card>
@@ -546,23 +662,36 @@ export function ContractorMasterPage() {
       <Card>
         <CardHeader>
           <CardTitle>All Contractors ({filteredContractors.length})</CardTitle>
+          <div className="relative mt-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search contractors..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[30rem] overflow-hidden overflow-y-auto">
             {filteredContractors.map((contractor) => (
               <div key={contractor.id} className="p-4 border rounded-lg">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex gap-2 mb-2 md:flex-row flex-col">
                       <h3 className="font-semibold">{contractor.name}</h3>
-                      <Badge
-                        variant={contractor.isActive ? "default" : "secondary"}
-                      >
-                        {contractor.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      <Badge variant="outline">
-                        {contractor.quizCount} quizzes
-                      </Badge>
+                      <div className=" flex gap-2 mb-2">
+                        <Badge
+                          variant={
+                            contractor.isActive ? "default" : "secondary"
+                          }
+                        >
+                          {contractor.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        <Badge variant="outline">
+                          {contractor.quizCount || 10} quizzes
+                        </Badge>
+                      </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground mb-2">
                       <div className="flex items-center">
@@ -578,9 +707,11 @@ export function ContractorMasterPage() {
                         {contractor.phone}
                       </div>
                       <div className="text-xs">
-                        Joined: {" "}
+                        Joined:{" "}
                         {contractor.created_at
-                          ? new Date(contractor.created_at).toLocaleString()
+                          ? new Date(contractor.created_at)
+                              .toISOString()
+                              .split("T")[0]
                           : "Never"}
                       </div>
                     </div>
@@ -589,29 +720,71 @@ export function ContractorMasterPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setIsEditing(contractor.id)}
-                    >
-                      <Edit className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={contractor.isActive ? "destructive" : "default"}
-                      onClick={() => handleToggleStatus(contractor.id)}
-                    >
-                      {contractor.isActive ? "Deactivate" : "Activate"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => handleDeleteContractor(contractor.id)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                    {/* Desktop buttons */}
+                    <div className="hidden sm:flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditClick(contractor.id)}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={
+                          contractor.isActive ? "destructive" : "default"
+                        }
+                        onClick={() => handleToggleStatus(contractor.id)}
+                      >
+                        {contractor.isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => setDeleteContractorId(contractor.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+
+                    {/* Mobile 3-dot menu */}
+                    <div className="sm:hidden">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreVertical className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleEditClick(contractor.id)}
+                          >
+                            <Edit className="h-3 w-3 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleToggleStatus(contractor.id)}
+                          >
+                            <Power className="h-3 w-3 mr-2" />
+                            {contractor.isActive ? "Deactivate" : "Activate"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-red-600"
+                            onClick={() => setDeleteContractorId(contractor.id)}
+                          >
+                            <Trash2 className="h-3 w-3 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </div>
                 </div>
+                {deleteContractorId === contractor.id && (
+                  <ContractorDeleteButton
+                    id={contractor.id}
+                    onDelete={handleDeleteContractor}
+                    handleCancel={() => setDeleteContractorId(null)}
+                  />
+                )}
               </div>
             ))}
             {filteredContractors.length === 0 && (

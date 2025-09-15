@@ -217,7 +217,7 @@ export function MyAccountPage() {
                     }
                   />
                 ) : (
-                  <div className="p-2 bg-muted rounded-md">
+                  <div className="p-2 bg-muted rounded-md max-h-10 truncate overflow-hidden whitespace-nowrap text-ellipsis">
                     {userData.position}
                   </div>
                 )}

@@ -37,7 +37,7 @@ function App() {
             }
           >
             <Route index element={<UserDashboard />} />
-            <Route path="profile" element={<ProfilePage/>} />
+            <Route path="profile" element={<ProfilePage />} />
             <Route path="upcoming" element={<UpcomingAssessmentsPage />} />
             <Route path="assessments" element={<AssessmentsPage />} />
           </Route>
