@@ -4,7 +4,7 @@ const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const router = express.Router();
 const pool = require("../config/database");
-const { changePassword, updateUser, uploadProfilePicture } = require("../controllers/authController");
+const { changePassword, updateUser, uploadProfilePicture, getNormalUsers } = require("../controllers/authController");
 const { authenticate } = require("../middleware/authMiddleware");
 const multer = require("multer");
 
@@ -19,6 +19,7 @@ router.post(
   upload.single("profilePic"),
   uploadProfilePicture
 );
+router.get("/role/user", getNormalUsers);
 // Register endpoint
 router.post("/register", async (req, res) => {
   try {

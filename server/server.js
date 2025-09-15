@@ -12,6 +12,8 @@ const pool = require('./config/database');
 const authRoutes = require('./routes/auth');
 const contractorRoutes = require('./routes/contractorRoutes');
 const companyRoutes = require('./routes/companyRoutes');
+const quizRoutes = require('./routes/quizRoutes');
+const certificateRoutes = require('./routes/certificateRoutes');
 
 // Middleware
 app.use(cors());
@@ -34,6 +36,8 @@ app.get('/api/test-db', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use("/api/contractors", contractorRoutes);
 app.use("/api/companies", companyRoutes);
+app.use("/api/quiz-attempts", quizRoutes);
+app.use("/api/certificates", certificateRoutes);
 
 // Basic health check endpoint
 app.get('/api/health', (req, res) => {

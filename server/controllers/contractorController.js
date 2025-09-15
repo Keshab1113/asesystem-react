@@ -76,7 +76,7 @@ exports.updateContractor = async (req, res) => {
       address,
       license_number,
       specialization,
-      isActive,
+      is_active,
     } = req.body;
 
     const [result] = await pool.execute(
@@ -92,7 +92,7 @@ exports.updateContractor = async (req, res) => {
         address,
         license_number,
         specialization,
-        isActive ?? 1, // default active if not passed
+        is_active ?? 1, // default active if not passed
         id,
       ]
     );
@@ -129,6 +129,41 @@ exports.deleteContractor = async (req, res) => {
     res.json({ success: true, message: "Contractor deleted successfully" });
   } catch (error) {
     console.error("Error deleting contractor:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Update Contractor Status (only is_active field)
+exports.updateContractorStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+
+    if (typeof is_active === "undefined") {
+      return res.status(400).json({
+        success: false,
+        message: "is_active field is required",
+      });
+    }
+
+    const [result] = await pool.execute(
+      `UPDATE contractors SET is_active = ? WHERE id = ?`,
+      [is_active, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Contractor not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Contractor status updated to ${is_active ? "Active" : "Inactive"}`,
+    });
+  } catch (error) {
+    console.error("Error updating contractor status:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

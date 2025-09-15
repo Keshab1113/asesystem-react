@@ -46,7 +46,7 @@ const mockContractors = [
     phone: "+1-555-0123",
     company: "Tech Solutions Inc.",
     address: "123 Business Ave, Tech City, TC 12345",
-    isActive: true,
+    is_active: true,
     joinedDate: "2024-01-15",
     quizCount: 12,
   },
@@ -57,7 +57,7 @@ const mockContractors = [
     phone: "+1-555-0456",
     company: "Digital Learning Corp",
     address: "456 Education Blvd, Learn City, LC 67890",
-    isActive: true,
+    is_active: true,
     joinedDate: "2024-01-20",
     quizCount: 8,
   },
@@ -68,7 +68,7 @@ const mockContractors = [
     phone: "+1-555-0789",
     company: "Training Partners LLC",
     address: "789 Training St, Skill Town, ST 54321",
-    isActive: false,
+    is_active: false,
     joinedDate: "2024-01-10",
     quizCount: 5,
   },
@@ -96,8 +96,9 @@ export function ContractorMasterPage() {
     name: "",
     email: "",
     phone: "",
-    active: true,
+    active: "",
     address: "",
+    profile_pic: null,
   });
 
   const filteredContractors = contractors.filter(
@@ -172,8 +173,9 @@ export function ContractorMasterPage() {
           name: "",
           email: "",
           phone: "",
-          active: true,
+          active: "",
           address: "",
+          profile_pic: null,
         });
       } else {
         toast({
@@ -231,7 +233,7 @@ export function ContractorMasterPage() {
           {
             id: data.contractorId,
             ...newContractor,
-            isActive: true,
+            is_active: true,
             created_at: new Date().toISOString().split("T")[0],
             quizCount: 0,
           },
@@ -285,7 +287,7 @@ export function ContractorMasterPage() {
             ...newContractor,
             company_id: selectedCompany.id,
             created_by: user.id,
-            isActive: 1,
+            is_active: 1,
           }),
         }
       );
@@ -357,14 +359,51 @@ export function ContractorMasterPage() {
     }
   };
 
-  const handleToggleStatus = (id) => {
-    setContractors(
-      contractors.map((contractor) =>
-        contractor.id === id
-          ? { ...contractor, isActive: !contractor.isActive }
-          : contractor
-      )
-    );
+  const handleToggleStatus = async (id, currentStatus) => {
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/contractors/${id}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            is_active: currentStatus ? 0 : 1,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.success) {
+        setContractors(
+          contractors.map((contractor) =>
+            contractor.id === id
+              ? { ...contractor, is_active: !currentStatus }
+              : contractor
+          )
+        );
+
+        toast({
+          title: "Status Updated",
+          description: `Contractor has been ${
+            currentStatus ? "deactivated" : "activated"
+          } successfully.`,
+        });
+      } else {
+        toast({
+          title: "Update Failed",
+          description: data.message || "Unable to update status",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        title: "Update Failed",
+        description: "An error occurred while updating contractor status",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditClick = (id) => {
@@ -392,6 +431,13 @@ export function ContractorMasterPage() {
     }
   };
 
+  const isFormValid =
+    newCompany.name.trim() !== "" &&
+    newCompany.active !== "" &&
+    newCompany.address.trim() !== "";
+  const isFormValid2 =
+    newContractor.name.trim() !== "" && newContractor.company_name !== "";
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between ">
@@ -411,7 +457,7 @@ export function ContractorMasterPage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contractor-name">Company Name</Label>
+                <Label htmlFor="contractor-name">Company Name *</Label>
                 <Input
                   id="company-name"
                   placeholder="Enter Company name..."
@@ -419,22 +465,29 @@ export function ContractorMasterPage() {
                   onChange={(e) =>
                     setNewCompany({ ...newCompany, name: e.target.value })
                   }
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contractor-email">Email</Label>
-                <Input
-                  id="contractor-email"
-                  type="email"
-                  placeholder="Enter email..."
-                  value={newCompany.email}
-                  onChange={(e) =>
+                <Label htmlFor="active">Active *</Label>
+                <Select
+                  value={newCompany.active}
+                  onValueChange={(value) =>
                     setNewCompany({
                       ...newCompany,
-                      email: e.target.value,
+                      active: value,
                     })
                   }
-                />
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={true}>Active</SelectItem>
+                    <SelectItem value={false}>Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -454,24 +507,19 @@ export function ContractorMasterPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="active">Active</Label>
-                <Select
-                  value={newCompany.active}
-                  onValueChange={(value) =>
+                <Label htmlFor="contractor-email">Email</Label>
+                <Input
+                  id="contractor-email"
+                  type="email"
+                  placeholder="Enter email..."
+                  value={newCompany.email}
+                  onChange={(e) =>
                     setNewCompany({
                       ...newCompany,
-                      active: value,
+                      email: e.target.value,
                     })
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={true}>Active</SelectItem>
-                    <SelectItem value={false}>Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                />
               </div>
             </div>
 
@@ -498,7 +546,7 @@ export function ContractorMasterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contractor-address">Address</Label>
+              <Label htmlFor="contractor-address">Address *</Label>
               <Textarea
                 id="contractor-address"
                 placeholder="Enter address..."
@@ -510,10 +558,15 @@ export function ContractorMasterPage() {
                   })
                 }
                 rows={2}
+                required
               />
             </div>
 
-            <Button onClick={handleAddCompany} className="w-full">
+            <Button
+              onClick={handleAddCompany}
+              disabled={!isFormValid}
+              className="w-full"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Company
             </Button>
@@ -529,7 +582,7 @@ export function ContractorMasterPage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Contact Name</Label>
+                <Label htmlFor="name">Contractor Name *</Label>
                 <Input
                   id="name"
                   placeholder="Enter contact name..."
@@ -540,22 +593,32 @@ export function ContractorMasterPage() {
                       name: e.target.value,
                     })
                   }
+                  required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter email..."
-                  value={newContractor.email}
-                  onChange={(e) =>
+                <Label htmlFor="company_name">Company *</Label>
+                <Select
+                  value={newContractor.company_name}
+                  onValueChange={(value) =>
                     setNewContractor({
                       ...newContractor,
-                      email: e.target.value,
+                      company_name: value,
                     })
                   }
-                />
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Company" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {companies?.map((company) => (
+                      <SelectItem value={company.name}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -574,29 +637,20 @@ export function ContractorMasterPage() {
                   }
                 />
               </div>
-
               <div className="space-y-2">
-                <Label htmlFor="company_name">Company</Label>
-                <Select
-                  value={newContractor.company_name}
-                  onValueChange={(value) =>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter email..."
+                  value={newContractor.email}
+                  onChange={(e) =>
                     setNewContractor({
                       ...newContractor,
-                      company_name: value,
+                      email: e.target.value,
                     })
                   }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select Company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((company) => (
-                      <SelectItem value={company.name}>
-                        {company.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
               </div>
             </div>
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
@@ -649,6 +703,7 @@ export function ContractorMasterPage() {
 
             <Button
               onClick={isEditing ? handleUpdateContractor : handleAddContractor}
+              disabled={!isFormValid2}
               className="w-full"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -683,10 +738,10 @@ export function ContractorMasterPage() {
                       <div className=" flex gap-2 mb-2">
                         <Badge
                           variant={
-                            contractor.isActive ? "default" : "secondary"
+                            contractor.is_active ? "default" : "secondary"
                           }
                         >
-                          {contractor.isActive ? "Active" : "Inactive"}
+                          {contractor.is_active ? "Active" : "Inactive"}
                         </Badge>
                         <Badge variant="outline">
                           {contractor.quizCount || 10} quizzes
@@ -698,14 +753,18 @@ export function ContractorMasterPage() {
                         <Building className="h-3 w-3 mr-1" />
                         {contractor.company_name}
                       </div>
-                      <div className="flex items-center">
-                        <Mail className="h-3 w-3 mr-1" />
-                        {contractor.email}
-                      </div>
-                      <div className="flex items-center">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {contractor.phone}
-                      </div>
+                      {contractor.email && (
+                        <div className="flex items-center">
+                          <Mail className="h-3 w-3 mr-1" />
+                          {contractor.email}
+                        </div>
+                      )}
+                      {contractor.phone && (
+                        <div className="flex items-center">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {contractor.phone}
+                        </div>
+                      )}
                       <div className="text-xs">
                         Joined:{" "}
                         {contractor.created_at
@@ -715,9 +774,11 @@ export function ContractorMasterPage() {
                           : "Never"}
                       </div>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {contractor.address}
-                    </p>
+                    {contractor.address && (
+                      <p className="text-xs text-muted-foreground">
+                        {contractor.address}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     {/* Desktop buttons */}
@@ -732,11 +793,13 @@ export function ContractorMasterPage() {
                       <Button
                         size="sm"
                         variant={
-                          contractor.isActive ? "destructive" : "default"
+                          contractor.is_active ? "destructive" : "default"
                         }
-                        onClick={() => handleToggleStatus(contractor.id)}
+                        onClick={() =>
+                          handleToggleStatus(contractor.id, contractor.is_active)
+                        }
                       >
-                        {contractor.isActive ? "Deactivate" : "Activate"}
+                        {contractor.is_active ? "Deactivate" : "Activate"}
                       </Button>
                       <Button
                         size="sm"
@@ -762,10 +825,15 @@ export function ContractorMasterPage() {
                             <Edit className="h-3 w-3 mr-2" /> Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleToggleStatus(contractor.id)}
+                            onClick={() =>
+                              handleToggleStatus(
+                                contractor.id,
+                                contractor.is_active
+                              )
+                            }
                           >
                             <Power className="h-3 w-3 mr-2" />
-                            {contractor.isActive ? "Deactivate" : "Activate"}
+                            {contractor.is_active ? "Deactivate" : "Activate"}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-red-600"
