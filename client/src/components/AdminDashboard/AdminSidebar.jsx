@@ -25,14 +25,13 @@ import {
   Key,
   Home,
 } from "lucide-react";
-
-
+import { useLocation, useNavigate } from "react-router-dom";
 
 const navigationItems = [
   {
     title: "Dashboard",
     icon: Home,
-    page: "dashboard",
+    page: "",
     items: [],
   },
   {
@@ -79,14 +78,11 @@ const navigationItems = [
   },
 ];
 
-export function AdminSidebar({
-  isOpen,
-  onClose,
-  currentPage,
-  onPageChange,
-}) {
+export function AdminSidebar({ isOpen, onClose }) {
   const [openSections, setOpenSections] = useState(["Reports"]);
-
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname.split("/").pop();
   const toggleSection = (title) => {
     setOpenSections((prev) =>
       prev.includes(title)
@@ -94,6 +90,7 @@ export function AdminSidebar({
         : [...prev, title]
     );
   };
+
 
   return (
     <>
@@ -120,12 +117,15 @@ export function AdminSidebar({
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start text-sidebar-foreground hover:bg-[#6366f1] hover:text-white",
-                      currentPage === section.page && "bg-[#6366f1] text-white"
+                      "w-full justify-start rounded-lg px-3 py-2 font-medium transition-colors",
+                      "hover:bg-primary hover:text-white",
+                      currentPath === section.page || currentPath === "admin-dashboard"
+                        ? "bg-slate-800 text-white shadow-sm"
+                        : "text-muted-foreground"
                     )}
-                    onClick={() => onPageChange(section.page)}
+                    onClick={() => navigate(section.page)}
                   >
-                    <section.icon className="mr-2 h-4 w-4" />
+                    <section.icon className="mr-3 h-5 w-5" />
                     {section.title}
                   </Button>
                 ) : (
@@ -153,13 +153,15 @@ export function AdminSidebar({
                           key={item.title}
                           variant="ghost"
                           className={cn(
-                            "w-full justify-start pl-8 text-sm text-muted-foreground hover:bg-[#6366f1]/80 hover:text-white rounded-md",
-                            currentPage === item.page &&
-                              "bg-[#6366f1] text-white"
+                            "w-full justify-start pl-10 rounded-md text-sm font-normal transition-colors",
+                            "hover:bg-primary/90 hover:text-white",
+                            currentPath === item.page
+                              ? "bg-slate-800 text-white shadow-sm"
+                              : "text-muted-foreground"
                           )}
-                          onClick={() => onPageChange(item.page)}
+                          onClick={() => navigate(item.page)}
                         >
-                          <item.icon className="mr-2 h-3 w-3" />
+                          <item.icon className="mr-2 h-4 w-4" />
                           {item.title}
                         </Button>
                       ))}

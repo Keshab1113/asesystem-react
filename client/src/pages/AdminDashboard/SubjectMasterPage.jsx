@@ -13,6 +13,7 @@ import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
 import { Search, Plus, Edit, Trash2, BookOpen } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const mockSubjects = [
   {
@@ -94,11 +95,10 @@ const mockSubjects = [
     questionCount: 38,
     isActive: true,
     createdDate: "2024-04-15",
-  }
+  },
 ];
 
-
-export function SubjectMasterPage({ onPageChange }) {
+export function SubjectMasterPage() {
   const [subjects, setSubjects] = useState(mockSubjects);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(null);
@@ -106,15 +106,13 @@ export function SubjectMasterPage({ onPageChange }) {
     name: "",
     description: "",
   });
-  
+  const navigate = useNavigate();
 
   const filteredSubjects = subjects.filter(
     (subject) =>
       subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       subject.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
- 
 
   const handleDeleteSubject = (id) => {
     if (confirm("Are you sure you want to delete this subject?")) {
@@ -132,18 +130,13 @@ export function SubjectMasterPage({ onPageChange }) {
     );
   };
 
-
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Subject Master</h1>
       </div>
 
-      
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-         
-
         <div className="flex flex-col md:flex-row md:items-center gap-20 w-full md:w-auto">
           <CardTitle className="flex items-center ">
             <BookOpen className="h-5 w-5 mr-2" />
@@ -156,14 +149,14 @@ export function SubjectMasterPage({ onPageChange }) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
-              />
+            />
           </div>
         </div>
-             
 
         <Button
-          onClick={() => onPageChange("add-subject")}
-          className="self-start md:self-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 ">
+          onClick={() => navigate("add-subject")}
+          className="self-start md:self-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 "
+        >
           ➕ Add New Subject
         </Button>
       </div>
@@ -184,7 +177,8 @@ export function SubjectMasterPage({ onPageChange }) {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold">{subject.name}</h3>
                         <Badge
-                          variant={subject.isActive ? "default" : "secondary"}>
+                          variant={subject.isActive ? "default" : "secondary"}
+                        >
                           {subject.isActive ? "Active" : "Inactive"}
                         </Badge>
                         <Badge variant="outline">
@@ -202,19 +196,22 @@ export function SubjectMasterPage({ onPageChange }) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setIsEditing(subject.id)}>
+                        onClick={() => setIsEditing(subject.id)}
+                      >
                         <Edit className="h-3 w-3" />
                       </Button>
                       <Button
                         size="sm"
                         variant={subject.isActive ? "destructive" : "default"}
-                        onClick={() => handleToggleStatus(subject.id)}>
+                        onClick={() => handleToggleStatus(subject.id)}
+                      >
                         {subject.isActive ? "Deactivate" : "Activate"}
                       </Button>
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleDeleteSubject(subject.id)}>
+                        onClick={() => handleDeleteSubject(subject.id)}
+                      >
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>

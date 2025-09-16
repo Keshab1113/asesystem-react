@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "../../components/ui/radio-group";
 import { Badge } from "../../components/ui/badge";
 import { Plus, Trash2, Save, Eye, Loader2 } from "lucide-react";
 import useToast from "../../hooks/ToastContext";
-import { ConfirmationDialog } from "./ConfirmationDialog";
+import { ConfirmationDialog } from "../../components/AdminDashboard/ConfirmationDialog";
 
 export function AddQuestionsPage() {
   const [questions, setQuestions] = useState([]);

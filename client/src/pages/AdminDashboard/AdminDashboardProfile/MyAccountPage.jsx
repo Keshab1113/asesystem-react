@@ -4,20 +4,20 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../components/ui/card";
-import { Button } from "../../components/ui/button";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
+} from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
 import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "../../components/ui/avatar";
-import { Badge } from "../../components/ui/badge";
+} from "../../../components/ui/avatar";
+import { Badge } from "../../../components/ui/badge";
 import { UserCircle, Mail, Phone, Calendar, Edit, Save, X } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import useToast from "../../hooks/ToastContext"
-import { updateUser } from "../../redux/slices/authSlice";
+import useToast from "../../../hooks/ToastContext"
+import { updateUser } from "../../../redux/slices/authSlice";
 
 export function MyAccountPage() {
   const [isEditing, setIsEditing] = useState(false);

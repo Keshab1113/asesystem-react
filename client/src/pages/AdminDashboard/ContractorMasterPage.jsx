@@ -27,16 +27,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "../../components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "../../components/ui/dropdown-menu";
 import useToast from "../../hooks/ToastContext";
 import { useSelector } from "react-redux";
-import ContractorDeleteButton from "./AlertDialog";
+import ContractorDeleteButton from "../../components/AdminDashboard/AlertDialog";
 
 const mockContractors = [
   {

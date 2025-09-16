@@ -1,15 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Badge } from "../ui/badge";
-import { Textarea } from "../ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import { Badge } from "../../components/ui/badge";
+import { Textarea } from "../../components/ui/textarea";
 import { Plus, ArrowLeft, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-export default function AddSubjectPage({ onPageChange }) {
+export default function AddSubjectPage() {
   const [newSubject, setNewSubject] = useState({
     name: "",
     description: "",
@@ -24,11 +25,10 @@ export default function AddSubjectPage({ onPageChange }) {
   const [loading, setLoading] = useState(false);
   const [questions, setQuestions] = useState([]);
   const [subjects, setSubjects] = useState();
+  const navigate = useNavigate();
 
   const handleBack = () => {
-    if (onPageChange) {
-      onPageChange("subject-master");
-    }
+    navigate(-1);
   };
 
   const handleAddSubject = () => {
@@ -439,7 +439,7 @@ export default function AddSubjectPage({ onPageChange }) {
                   Save Test
                 </Button>
                 <Button
-                  onClick={() => setShowCreateTest(false)}
+                  // onClick={() => setShowCreateTest(false)}
                   className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700">
                   Cancel
                 </Button>

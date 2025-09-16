@@ -6,12 +6,12 @@ import { QuizReportPage } from "../../components/AdminDashboard/QuizReportPage";
 import { IssueCertificatePage } from "../../components/AdminDashboard/IssueCertificatePage";
 import { UserGroupPrivilegePage } from "../../components/AdminDashboard/UserGroupPrivilegePage";
 import { AddQuestionsPage } from "../../components/AdminDashboard/AddQuestionsPage";
-import { SubjectMasterPage } from "../../components/AdminDashboard/SubjectMasterPage";
+import { SubjectMasterPage } from "./SubjectMasterPage";
 import { ContractorMasterPage } from "../../components/AdminDashboard/ContractorMasterPage";
 import { MyAccountPage } from "../../components/AdminDashboard/MyAccountPage";
-import { UserLogsPage } from "../../components/AdminDashboard/UserLogsPage";
+import { UserLogsPage } from "./UserLogsPage";
 import { ModifyProfilePage } from "../../components/AdminDashboard/ModifyProfilePage";
-import { ChangePasswordPage } from "../../components/AdminDashboard/ChangePasswordPage";
+import { ChangePasswordPage } from "./AdminDashboardProfile/ChangePasswordPage";
 import AddSubjectPage from "../../components/AdminDashboard/AddSubject";
 
 export default function AdminDashboard() {
