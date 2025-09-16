@@ -33,3 +33,25 @@ exports.getAllQuizAttempts = async (req, res) => {
     });
   }
 };
+
+exports.getAllQuizTitles = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT id, title 
+       FROM quizzes 
+       WHERE is_active = 1
+       ORDER BY created_at DESC`
+    );
+
+    res.status(200).json({
+      success: true,
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Error fetching quiz titles:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};

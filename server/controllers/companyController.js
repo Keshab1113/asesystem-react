@@ -4,9 +4,9 @@ const pool = require("../config/database");
 // Create Company
 exports.createCompany = async (req, res) => {
   try {
-    const { name, email, phone, address, is_active } = req.body;
+    const { company_name, email, phone, address, is_active } = req.body;
 
-    if (!name) {
+    if (!company_name) {
       return res.status(400).json({
         success: false,
         message: "Company name is required",
@@ -17,7 +17,7 @@ exports.createCompany = async (req, res) => {
       `INSERT INTO companies 
        (name, email, phone, address, is_active) 
        VALUES (?, ?, ?, ?, ?)`,
-      [name, email, phone, address, is_active ?? true]
+      [company_name, email, phone, address, is_active ?? true]
     );
 
     return res.status(201).json({

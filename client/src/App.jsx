@@ -13,6 +13,7 @@ import NoPage from "./pages/NoPage";
 import AssessmentsPage from "./pages/UserDashboard/AssessmentsPage";
 import UpcomingAssessmentsPage from "./pages/UserDashboard/UpcomingAssessmentsPage";
 import ProfilePage from "./pages/UserDashboard/ProfilePage";
+import CertificateView from "./pages/CertificateView/CertificateView";
 
 function App() {
   return (
@@ -25,6 +26,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/certificate-view"
+            element={
+              <ProtectedRoute>
+                <CertificateView />
               </ProtectedRoute>
             }
           />

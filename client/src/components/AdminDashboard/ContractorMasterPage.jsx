@@ -93,7 +93,7 @@ export function ContractorMasterPage() {
     license_number: "",
   });
   const [newCompany, setNewCompany] = useState({
-    name: "",
+    company_name: "",
     email: "",
     phone: "",
     active: "",
@@ -149,7 +149,7 @@ export function ContractorMasterPage() {
   }, []);
 
   const handleAddCompany = async () => {
-    if (!newCompany.name.trim() || !newCompany.email.trim()) return;
+    if (!newCompany.company_name.trim()) return;
 
     try {
       const response = await fetch(
@@ -170,7 +170,7 @@ export function ContractorMasterPage() {
           description: "New Company added successfully",
         });
         setNewCompany({
-          name: "",
+          company_name: "",
           email: "",
           phone: "",
           active: "",
@@ -432,9 +432,7 @@ export function ContractorMasterPage() {
   };
 
   const isFormValid =
-    newCompany.name.trim() !== "" &&
-    newCompany.active !== "" &&
-    newCompany.address.trim() !== "";
+    newCompany.company_name.trim() !== "";
   const isFormValid2 =
     newContractor.name.trim() !== "" && newContractor.company_name !== "";
 
@@ -457,19 +455,19 @@ export function ContractorMasterPage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="contractor-name">Company Name *</Label>
+                <Label htmlFor="company_name">Company Name *</Label>
                 <Input
-                  id="company-name"
+                  id="company_name"
                   placeholder="Enter Company name..."
-                  value={newCompany.name}
+                  value={newCompany.company_name}
                   onChange={(e) =>
-                    setNewCompany({ ...newCompany, name: e.target.value })
+                    setNewCompany({ ...newCompany, company_name: e.target.value })
                   }
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="active">Active *</Label>
+                <Label htmlFor="active">Active</Label>
                 <Select
                   value={newCompany.active}
                   onValueChange={(value) =>
@@ -478,7 +476,6 @@ export function ContractorMasterPage() {
                       active: value,
                     })
                   }
-                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select Status" />
@@ -546,7 +543,7 @@ export function ContractorMasterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contractor-address">Address *</Label>
+              <Label htmlFor="contractor-address">Address</Label>
               <Textarea
                 id="contractor-address"
                 placeholder="Enter address..."
@@ -558,7 +555,6 @@ export function ContractorMasterPage() {
                   })
                 }
                 rows={2}
-                required
               />
             </div>
 
