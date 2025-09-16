@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
+import { useSelector } from "react-redux";
+
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -26,6 +33,14 @@ export default function AddSubjectPage() {
   const [questions, setQuestions] = useState([]);
   const [subjects, setSubjects] = useState();
   const navigate = useNavigate();
+  const [companyId, setCompanyId] = useState(1); // example, replace with actual company ID
+  const [timeLimit, setTimeLimit] = useState(60);
+  const [passingScore, setPassingScore] = useState(70);
+  const [maxAttempts, setMaxAttempts] = useState(3);
+
+
+  const token = useSelector((state) => state.auth.token);
+  // console.log("Auth Token:", token);
 
   const handleBack = () => {
     navigate(-1);
@@ -93,8 +108,8 @@ export default function AddSubjectPage() {
   };
 
   const handleSave = async () => {
-    if (questions.length === 0) {
-      alert("No questions to save!");
+    if (!newSubject.name.trim() || questions.length === 0) {
+      alert("Please enter quiz title and add some questions!");
       return;
     }
 
@@ -107,41 +122,46 @@ export default function AddSubjectPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            // "Authorization": `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`, // if needed
           },
           body: JSON.stringify({
-            testId: Date.now(), // Replace with actual test ID if available
-            questions: questions.map((q) => ({
-              subject: newSubject.name,
-              question: q.question || q,
-              type: q.type || "multiple-choice",
-              options: q.options || [
-                "Option A",
-                "Option B",
-                "Option C",
-                "Option D",
-              ],
-              correctAnswer: q.correctAnswer || "",
-              difficulty: q.difficulty || difficulty,
-            })),
+            title: newSubject.name,
+            description: newSubject.description || "",
+            subjectId: null,
+            companyId: null,
+
+            timeLimit: timeLimit,
+            passingScore: passingScore,
+            maxAttempts: maxAttempts,
+          questions: questions.map((q) => ({
+  question: q.question ?? "",
+  type: q.type ?? "multiple_choice",
+  options: Array.isArray(q.options) ? q.options : ["Option A", "Option B", "Option C", "Option D"],
+  correctAnswer: q.correctAnswer ?? "",
+  explanation: q.explanation ?? "",
+  difficulty: q.difficulty ?? "medium",
+}))
+
+
           }),
         }
       );
 
       const data = await response.json();
       if (response.ok) {
-        alert("Questions saved successfully!");
+        alert("Quiz and questions saved successfully!");
+        // Clear state or navigate away if needed
         setQuestions([]);
         setNewSubject({ name: "", description: "" });
         setUploadedFiles([]);
         setUploadedFileIds([]);
       } else {
         console.error(data.message);
-        alert(data.message || "Failed to save questions.");
+        alert(data.message || "Failed to save quiz and questions.");
       }
     } catch (err) {
-      console.error("Error saving questions:", err);
-      alert("Error saving questions.");
+      console.error("Error saving quiz:", err);
+      alert("Error saving quiz.");
     } finally {
       setLoading(false);
     }

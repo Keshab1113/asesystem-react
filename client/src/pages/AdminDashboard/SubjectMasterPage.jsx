@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+// import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+
 import {
   Card,
   CardContent,
@@ -99,7 +102,8 @@ const mockSubjects = [
 ];
 
 export function SubjectMasterPage() {
-  const [subjects, setSubjects] = useState(mockSubjects);
+ const [subjects, setSubjects] = useState([]);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(null);
   // const [newSubject, setNewSubject] = useState({
@@ -107,6 +111,29 @@ export function SubjectMasterPage() {
   //   description: "",
   // });
   const navigate = useNavigate();
+
+useEffect(() => {
+  const fetchSubjects = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`);
+      // Map backend fields to frontend display fields
+      const quizzes = response.data.data.map((q) => ({
+  id: q.id,
+  name: q.title,
+  description: q.description || "",
+  questionCount: q.question_count || 0, // now using real count
+  isActive: q.is_active === 1,
+  createdDate: new Date(q.created_at).toLocaleDateString(),
+}));
+
+      setSubjects(quizzes);
+    } catch (error) {
+      console.error("Error fetching quizzes:", error);
+    }
+  };
+  fetchSubjects();
+}, []);
+
 
   const filteredSubjects = subjects.filter(
     (subject) =>

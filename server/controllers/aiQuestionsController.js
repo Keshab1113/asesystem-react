@@ -12,10 +12,9 @@ const deepseek = new OpenAI({
 exports.generateQuestionsFromDescription = async (req, res) => {
   try {
     const { difficulty, fileIds, subjectId, description } = req.body;
-console.log("Request body:", req.body);
+    console.log("Request body:", req.body);
     // const userId = req.userId; // From your authenticate middleware
     const userId = null;
-
 
     if (!description || !subjectId) {
       return res.status(400).json({
@@ -24,7 +23,7 @@ console.log("Request body:", req.body);
     }
 
     // Get user info from DB
-   
+
     const user = { id: null, role: "user", company_id: null }; // dummy user
 
     // Fetch file contents if fileIds provided
@@ -49,21 +48,19 @@ console.log("Request body:", req.body);
             .map(() => "?")
             .join(",")})`;
           const bindParams = [...sanitizedIds];
-        //   if (user.role === "company") {
-        //     query += " AND company_id = ?";
-        //     bindParams.push(user.company_id ?? null);
-        //   } else {
-        //     query += " AND user_id = ?";
-        //     bindParams.push(user.id ?? null);
-        //   }
+          //   if (user.role === "company") {
+          //     query += " AND company_id = ?";
+          //     bindParams.push(user.company_id ?? null);
+          //   } else {
+          //     query += " AND user_id = ?";
+          //     bindParams.push(user.id ?? null);
+          //   }
           const [files] = await db.execute(query, bindParams);
           extraContext = files
             .map((f) => (f.extracted_text || "").trim())
             .filter((text) => text.length > 0)
             .join("\n\n");
         }
-
-        
       }
     }
 
@@ -102,53 +99,52 @@ Return only the questions in a numbered list format, with options, but without a
     });
 
     const rawOutput = response.choices[0].message.content;
-console.log("AI Raw Output:", rawOutput);
+    console.log("AI Raw Output:", rawOutput);
     // Parse questions
     const questions = [];
-const lines = rawOutput.split("\n").map((line) => line.trim());
+    const lines = rawOutput.split("\n").map((line) => line.trim());
 
-let currentQuestion = null;
+    let currentQuestion = null;
 
-for (let line of lines) {
-  if (/^\d+[\.\)]/.test(line)) {
-    // Start of a new question
+    for (let line of lines) {
+      if (/^\d+[\.\)]/.test(line)) {
+        // Start of a new question
+        if (currentQuestion) {
+          questions.push(currentQuestion);
+        }
+        currentQuestion = {
+          id: questions.length + 1,
+          question: line.replace(/^\d+[\.\)]\s*/, "").trim(),
+          type: "multiple-choice",
+          options: ["", "", "", ""],
+          correctAnswer: "",
+          difficulty: difficulty || "medium",
+          subject: subjectId,
+        };
+      } else if (/^[a-dA-D][\)\.]/.test(line) && currentQuestion) {
+        // Option line
+        const match = line.match(/^([a-dA-D])[\)\.]\s*(.+)$/);
+        if (match) {
+          const optionIndex = match[1].toLowerCase().charCodeAt(0) - 97;
+          currentQuestion.options[optionIndex] = match[2].trim();
+        }
+      }
+    }
+
+    // Push the last question if exists
     if (currentQuestion) {
       questions.push(currentQuestion);
     }
-    currentQuestion = {
-      id: questions.length + 1,
-      question: line.replace(/^\d+[\.\)]\s*/, "").trim(),
-      type: "multiple-choice",
-      options: ["", "", "", ""],
-      correctAnswer: "",
-      difficulty: difficulty || "medium",
-      subject: subjectId,
-    };
-  } else if (/^[a-dA-D][\)\.]/.test(line) && currentQuestion) {
-    // Option line
-    const match = line.match(/^([a-dA-D])[\)\.]\s*(.+)$/);
-    if (match) {
-      const optionIndex = match[1].toLowerCase().charCodeAt(0) - 97;
-      currentQuestion.options[optionIndex] = match[2].trim();
+
+    if (questions.length === 0) {
+      return res.status(500).json({ message: "No questions generated." });
     }
-  }
-}
 
-// Push the last question if exists
-if (currentQuestion) {
-  questions.push(currentQuestion);
-}
-
- if (questions.length === 0) {
-  return res.status(500).json({ message: "No questions generated." });
-}
-
-// ✅ Return parsed questions to frontend
-return res.json({
-  message: "Questions generated successfully.",
-  questions: questions,
-});
-
+    // ✅ Return parsed questions to frontend
+    return res.json({
+      message: "Questions generated successfully.",
+      questions: questions,
+    });
   } catch (error) {
     console.error("AI error:", error);
     return res
@@ -157,56 +153,93 @@ return res.json({
   }
 };
 
+ 
 exports.saveQuestions = async (req, res) => {
   try {
-    const { testId, questions } = req.body;
+    const {
+      title,
+      description,
+      subjectId,
+      companyId,
+      timeLimit,
+      passingScore,
+      maxAttempts,
+      questions,
+    } = req.body;
     const userId = req.userId;
 
-    if (!testId || !Array.isArray(questions) || questions.length === 0) {
-      return res
-        .status(400)
-        .json({ message: "Test ID and questions are required." });
+    if (!title || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({
+        message: "Title and questions are required.",
+      });
     }
 
     const connection = await db.getConnection();
     try {
       await connection.beginTransaction();
 
+      // ✅ 1. Insert into quizzes table
+      const [quizResult] = await connection.execute(
+        `INSERT INTO quizzes (title, description, subject_id, company_id, time_limit, passing_score, max_attempts, is_active, created_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
+        [
+          title,
+          description || "",
+          subjectId || null, // ✅ provide default 0 instead of null
+          companyId || null,
+          timeLimit || 60,
+          passingScore || 70,
+          maxAttempts || 3,
+          userId,
+        ]
+      );
+      const quizId = quizResult.insertId;
+
+      // ✅ 2. Insert each question into questions table
       const savedQuestions = [];
       for (const q of questions) {
         const [result] = await connection.execute(
-          `INSERT INTO questions (test_id, subject_id, question_text, question_type, options, correct_answer, difficulty_level, created_by, is_active, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, true, NOW(), NOW())`,
+          `INSERT INTO questions (quiz_id, question_text, question_type, options, correct_answer, explanation, difficulty_level, is_active, created_by, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())
+
+`,
           [
-            testId,
-            q.subject,
-            q.question,
-            q.type,
-            JSON.stringify(q.options || []),
-            q.correctAnswer || "",
-            q.difficulty || "medium",
+             quizId, // ✅ use the quiz ID here
+            q.question ?? "",
+            q.type ?? "multiple_choice",
+            JSON.stringify(Array.isArray(q.options) ? q.options : []),
+            q.correctAnswer ?? "",
+            q.explanation ?? "",
+            q.difficulty ?? "medium",
             userId,
           ]
         );
         savedQuestions.push({ id: result.insertId, question_text: q.question });
       }
 
+      // ✅ 3. Commit transaction
       await connection.commit();
+
       return res.json({
-        message: "Questions saved successfully.",
+        message: "Quiz and questions saved successfully.",
+        quizId,
         questions: savedQuestions,
       });
     } catch (error) {
       await connection.rollback();
-      console.error("Save transaction error:", error);
-      return res.status(500).json({ message: "Failed to save questions." });
+      console.error("Transaction error:", error);
+      return res.status(500).json({
+        message: "Failed to save quiz and questions.",
+        error: error.message,
+      });
     } finally {
       connection.release();
     }
   } catch (error) {
     console.error("Unexpected error:", error);
-    return res
-      .status(500)
-      .json({ message: "Server error", error: error.message });
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
