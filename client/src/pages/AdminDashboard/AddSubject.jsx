@@ -206,7 +206,7 @@ export default function AddSubjectPage() {
 
       <div className="add-subject grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Add New Subject */}
-        <Card className="h-[70vh]">
+        <Card className="h-fit">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Plus className="h-5 w-5 mr-2" />
@@ -361,7 +361,7 @@ export default function AddSubjectPage() {
                 questions.map((q, i) => (
                   <div
                     key={i}
-                    className="p-4 border rounded-lg hover:shadow-sm transition-shadow bg-gray-50">
+                    className="p-4 border rounded-lg hover:shadow-sm transition-shadow bg-gray-50 dark:bg-slate-800">
                     <div className="flex justify-between items-center mb-3">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">Q{i + 1}</span>

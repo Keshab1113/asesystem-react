@@ -22,10 +22,7 @@ export default function CertificateView() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Certificate Preview</h1>
-
-      {/* PDF Preview */}
-      <div className="w-full h-[80vh] border rounded-lg overflow-hidden">
+      <div className="w-full h-[88vh] border rounded-lg overflow-hidden">
         <iframe
           src={certificateURL}
           title="Certificate Preview"
@@ -34,7 +31,7 @@ export default function CertificateView() {
       </div>
 
       {/* Download Button */}
-      <Button onClick={handleDownload} className="mt-4">
+      <Button onClick={handleDownload} className="mt-2">
         <Download className="h-4 w-4 mr-2" />
         Download Certificate ({certificateNumber})
       </Button>

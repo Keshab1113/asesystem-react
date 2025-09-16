@@ -18,7 +18,7 @@ import { DashboardContent } from "./components/AdminDashboard/DashboardContent";
 import { QuizReportPage } from "./pages/AdminDashboard/QuizReportPage";
 import { IssueCertificatePage } from "./pages/AdminDashboard/IssueCertificatePage";
 import { UserGroupPrivilegePage } from "./pages/AdminDashboard/UserGroupPrivilegePage";
-import { AddQuestionsPage } from "./pages/AdminDashboard/AddQuestionsPage";
+// import { AddQuestionsPage } from "./pages/AdminDashboard/AddQuestionsPage";
 import { SubjectMasterPage } from "./pages/AdminDashboard/SubjectMasterPage";
 import AddSubjectPage from "./pages/AdminDashboard/AddSubject";
 import { ContractorMasterPage } from "./pages/AdminDashboard/ContractorMasterPage";
@@ -45,7 +45,7 @@ function App() {
             <Route path="quiz-report" element={<QuizReportPage/>} />
             <Route path="issue-certificate" element={<IssueCertificatePage/>} />
             <Route path="user-group-privilege" element={<UserGroupPrivilegePage/>} />
-            <Route path="add-questions" element={<AddQuestionsPage/>} />
+            {/* <Route path="add-questions" element={<AddQuestionsPage/>} /> */}
             <Route path="subject-master" element={<SubjectMasterPage/>} />
             <Route path="subject-master/add-subject" element={<AddSubjectPage/>} />
             <Route path="contractor-master" element={<ContractorMasterPage/>} />

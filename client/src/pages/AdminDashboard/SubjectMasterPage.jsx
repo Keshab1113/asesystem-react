@@ -102,10 +102,10 @@ export function SubjectMasterPage() {
   const [subjects, setSubjects] = useState(mockSubjects);
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(null);
-  const [newSubject, setNewSubject] = useState({
-    name: "",
-    description: "",
-  });
+  // const [newSubject, setNewSubject] = useState({
+  //   name: "",
+  //   description: "",
+  // });
   const navigate = useNavigate();
 
   const filteredSubjects = subjects.filter(

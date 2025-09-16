@@ -61,13 +61,13 @@ const navigationItems = [
     title: "Master",
     icon: Database,
     items: [
-      { title: "Add Questions", icon: Plus, page: "add-questions" },
+      // { title: "Add Questions", icon: Plus, page: "add-questions" },
       { title: "Subject Master", icon: FileText, page: "subject-master" },
       { title: "Contractor Master", icon: Building, page: "contractor-master" },
     ],
   },
   {
-    title: "Users",
+    title: "My Profile",
     icon: Users,
     items: [
       { title: "My Account", icon: UserCircle, page: "my-account" },
