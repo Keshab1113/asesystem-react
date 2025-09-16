@@ -12,6 +12,7 @@ import { MyAccountPage } from "../../components/AdminDashboard/MyAccountPage";
 import { UserLogsPage } from "../../components/AdminDashboard/UserLogsPage";
 import { ModifyProfilePage } from "../../components/AdminDashboard/ModifyProfilePage";
 import { ChangePasswordPage } from "../../components/AdminDashboard/ChangePasswordPage";
+import AddSubjectPage from "../../components/AdminDashboard/AddSubject";
 
 export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,7 +39,9 @@ export default function AdminDashboard() {
       case "add-questions":
         return <AddQuestionsPage />;
       case "subject-master":
-        return <SubjectMasterPage />;
+        return <SubjectMasterPage onPageChange={handlePageChange} />;
+      case "add-subject":
+        return <AddSubjectPage onPageChange={handlePageChange} />;
       case "contractor-master":
         return <ContractorMasterPage />;
       case "my-account":

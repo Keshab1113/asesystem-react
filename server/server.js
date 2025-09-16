@@ -12,9 +12,12 @@ const pool = require('./config/database');
 const authRoutes = require('./routes/auth');
 const contractorRoutes = require('./routes/contractorRoutes');
 const companyRoutes = require('./routes/companyRoutes');
+const aiQuestionsRoutes = require('./routes/aiQuestionsRoutes');
+const fileRoutes = require('./routes/fileRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const certificateRoutes = require('./routes/certificateRoutes');
 
+ 
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -32,12 +35,17 @@ app.get('/api/test-db', async (req, res) => {
   }
 });
 
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use("/api/contractors", contractorRoutes);
 app.use("/api/companies", companyRoutes);
-app.use("/api/quiz-attempts", quizRoutes);
+app.use('/api/ai-questions', aiQuestionsRoutes);
+app.use('/api/files',  fileRoutes);
 app.use("/api/certificates", certificateRoutes);
+app.use("/api/quiz-attempts", quizRoutes);
+
+
 
 // Basic health check endpoint
 app.get('/api/health', (req, res) => {
