@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import axios from "axios";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "../../components/ui/dialog"
 import { Button } from "../../components/ui/button"
 import { Input } from "../../components/ui/input"
@@ -37,32 +38,70 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
 
   const [newTag, setNewTag] = useState("")
 
-  const handleSave = () => {
-    if (!formData.name.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Quiz name is required",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const quizData = {
-      ...formData,
-      id: quiz?.id || Date.now(),
-      participants: quiz?.participants || 0,
-      status: quiz?.status || "Not Active",
-      createdDate: quiz?.createdDate || new Date().toISOString().split("T")[0],
-    }
-
-    onSave(quizData)
-    onOpenChange(false)
-
+  const handleSave = async () => {
+  if (!formData.name.trim()) {
     toast({
-      title: isEditing ? "Quiz Updated" : "Quiz Created",
-      description: `Quiz "${formData.name}" has been ${isEditing ? "updated" : "created"} successfully.`,
-    })
+      title: "Validation Error",
+      description: "Quiz name is required",
+      variant: "destructive",
+    });
+    return;
   }
+  
+  // Log quiz object and quiz.id to debug
+  console.log("quiz object:", quiz);
+  console.log("quiz id:", quiz?.id);
+
+  const quizData = {
+  name: formData.name,                        // matches backend
+  description: formData.description,
+  subject_id: formData.subject || null,
+  difficulty_level: formData.difficulty || "medium",
+  timeLimit: formData.timeLimit,              // matches backend
+  passingScore: formData.passingScore,        // matches backend
+  maxAttempts: formData.maxAttempts,          // matches backend
+  scheduleStartDate: formData.scheduleStartDate || null,
+  scheduleStartTime: formData.scheduleStartTime || null,
+  scheduleEndDate: formData.scheduleEndDate || null,
+  scheduleEndTime: formData.scheduleEndTime || null,
+};
+
+  try {
+    if (isEditing && quiz?.id) {
+       console.log("Editing quiz with id:", quiz.id);
+      // Update existing quiz
+      await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/edit/${quiz.id}`, quizData);
+      toast({
+        title: "Quiz Updated",
+        description: `Quiz "${formData.name}" has been updated successfully.`,
+      });
+    } else {
+      // Create new quiz
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/create`, quizData);
+      toast({
+        title: "Quiz Created",
+        description: `Quiz "${formData.name}" has been created successfully.`,
+      });
+    }
+
+    // Call onSave callback to update frontend state if needed
+    onSave({
+  ...quizData,
+  id: quiz?.id,
+  isActive: quiz?.isActive ?? true,           // preserve active state
+  questionCount: quiz?.questionCount || 0,    // preserve question count
+});
+
+    onOpenChange(false);
+  } catch (error) {
+    console.error("Error saving quiz:", error);
+    toast({
+      title: "Error",
+      description: error.response?.data?.message || "Failed to save quiz",
+      variant: "destructive",
+    });
+  }
+};
 
   const addTag = () => {
     if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
@@ -83,16 +122,23 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
             {isEditing ? <Settings className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
             {isEditing ? "Edit Quiz" : "Create New Quiz"}
           </DialogTitle>
-          <DialogDescription>
-            {isEditing ? "Modify the quiz settings and configuration" : "Set up a new quiz with questions and settings"}
-          </DialogDescription>
+         <DialogDescription>
+  {isEditing ? "Modify the quiz settings and configuration" : "Set up a new quiz with questions and settings"}
+</DialogDescription>
+
+{isEditing && quiz?.name && (
+  <div className="text-sm text-muted-foreground mt-2 px-1">
+    Selected Quiz: <span className="font-medium">{quiz.name}</span>
+  </div>
+)}
+
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            {/* <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger> */}
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
@@ -107,41 +153,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject *</Label>
-                <Select
-                  value={formData.subject}
-                  onValueChange={(value) => setFormData({ ...formData, subject: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subject" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Programming">Programming</SelectItem>
-                    <SelectItem value="Database">Database</SelectItem>
-                    <SelectItem value="Security">Security</SelectItem>
-                    <SelectItem value="Networking">Networking</SelectItem>
-                    <SelectItem value="Design">Design</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="difficulty">Difficulty Level</Label>
-                <Select
-                  value={formData.difficulty}
-                  onValueChange={(value) => setFormData({ ...formData, difficulty: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="easy">Easy</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="hard">Hard</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+             
 
               <div className="space-y-2">
                 <Label htmlFor="time-limit">Time Limit (minutes)</Label>
@@ -154,45 +166,56 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {/* Existing fields */}
+  
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  {/* Schedule Start */}
+  <div className="space-y-2">
+    <Label htmlFor="schedule-start-date">Start Date</Label>
+    <Input
+      id="schedule-start-date"
+      type="date"
+      value={formData.scheduleStartDate || ""}
+      onChange={(e) => setFormData({ ...formData, scheduleStartDate: e.target.value })}
+    />
+  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                placeholder="Enter quiz description..."
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={3}
-              />
-            </div>
+  <div className="space-y-2">
+    <Label htmlFor="schedule-start-time">Start Time</Label>
+    <Input
+      id="schedule-start-time"
+      type="time"
+      value={formData.scheduleStartTime || ""}
+      onChange={(e) => setFormData({ ...formData, scheduleStartTime: e.target.value })}
+    />
+  </div>
 
-            <div className="space-y-2">
-              <Label>Tags</Label>
-              <div className="flex gap-2 mb-2">
-                <Input
-                  placeholder="Add a tag..."
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && addTag()}
-                />
-                <Button type="button" onClick={addTag}>
-                  Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {formData.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="cursor-pointer" onClick={() => removeTag(tag)}>
-                    {tag}
-                    <X className="h-3 w-3 ml-1" />
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
+  {/* Schedule End */}
+  <div className="space-y-2">
+    <Label htmlFor="schedule-end-date">End Date</Label>
+    <Input
+      id="schedule-end-date"
+      type="date"
+      value={formData.scheduleEndDate || ""}
+      onChange={(e) => setFormData({ ...formData, scheduleEndDate: e.target.value })}
+    />
+  </div>
 
-          <TabsContent value="settings" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
+  <div className="space-y-2">
+    <Label htmlFor="schedule-end-time">End Time</Label>
+    <Input
+      id="schedule-end-time"
+      type="time"
+      value={formData.scheduleEndTime || ""}
+      onChange={(e) => setFormData({ ...formData, scheduleEndTime: e.target.value })}
+    />
+  </div>
+</div>
+
+</div>
+
+<Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
@@ -240,65 +263,9 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                   </div>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Participant Settings
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="show-results">Show Results After Completion</Label>
-                    <Switch
-                      id="show-results"
-                      checked={formData.showResults}
-                      onCheckedChange={(checked) => setFormData({ ...formData, showResults: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="allow-review">Allow Answer Review</Label>
-                    <Switch
-                      id="allow-review"
-                      checked={formData.allowReview}
-                      onCheckedChange={(checked) => setFormData({ ...formData, allowReview: checked })}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="is-public">Public Quiz</Label>
-                    <Switch
-                      id="is-public"
-                      checked={formData.isPublic}
-                      onCheckedChange={(checked) => setFormData({ ...formData, isPublic: checked })}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            
           </TabsContent>
-
-          <TabsContent value="advanced" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Advanced Configuration</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="text-sm text-muted-foreground">
-                  Advanced settings will be available after the quiz is created. You can configure:
-                </div>
-                <ul className="text-sm text-muted-foreground space-y-1 ml-4">
-                  <li>• Question pools and randomization rules</li>
-                  <li>• Custom scoring algorithms</li>
-                  <li>• Integration with external systems</li>
-                  <li>• Advanced analytics and reporting</li>
-                  <li>• Automated grading rules</li>
-                </ul>
-              </CardContent>
-            </Card>
-          </TabsContent>
+ 
         </Tabs>
 
         <div className="flex justify-end gap-2 pt-4 border-t">

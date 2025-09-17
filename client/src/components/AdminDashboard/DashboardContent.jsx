@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from "react";
+
+import React, { useState, useMemo,useEffect } from "react";
+import axios from "axios";
 import {
   Card,
   CardContent,
@@ -28,63 +30,7 @@ import { QuizFormModal } from "./QuizFormModal";
 import { BulkActionsToolbar } from "./BulkActionsToolbar";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
 
-// Mock data for quizzes
-const initialQuizzes = [
-  {
-    id: 1,
-    name: "JavaScript Fundamentals",
-    participants: 245,
-    status: "Active",
-    subject: "Programming",
-    createdDate: "2024-01-15",
-    difficulty: "medium",
-  },
-  {
-    id: 2,
-    name: "React Development",
-    participants: 189,
-    status: "Active",
-    subject: "Programming",
-    createdDate: "2024-01-20",
-    difficulty: "hard",
-  },
-  {
-    id: 3,
-    name: "Node.js Backend",
-    participants: 156,
-    status: "Not Active",
-    subject: "Programming",
-    createdDate: "2024-01-10",
-    difficulty: "medium",
-  },
-  {
-    id: 4,
-    name: "Database Design",
-    participants: 203,
-    status: "Active",
-    subject: "Database",
-    createdDate: "2024-01-25",
-    difficulty: "easy",
-  },
-  {
-    id: 5,
-    name: "TypeScript Advanced",
-    participants: 98,
-    status: "Not Active",
-    subject: "Programming",
-    createdDate: "2024-01-05",
-    difficulty: "hard",
-  },
-  {
-    id: 6,
-    name: "Web Security",
-    participants: 167,
-    status: "Active",
-    subject: "Security",
-    createdDate: "2024-01-30",
-    difficulty: "medium",
-  },
-];
+ 
 
 const defaultFilters = {
   search: "",
@@ -98,7 +44,7 @@ const defaultFilters = {
 };
 
 export function DashboardContent() {
-  const [quizzes, setQuizzes] = useState(initialQuizzes);
+  const [quizzes, setQuizzes] = useState([]);
   const [filters, setFilters] = useState(defaultFilters);
   const [savedPresets, setSavedPresets] = useState([
     {
@@ -125,6 +71,34 @@ export function DashboardContent() {
     quiz: null,
   });
   const { toast } = useToast();
+
+   useEffect(() => {
+    const fetchQuizzes = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`);
+        console.log(response.data);
+        const fetchedQuizzes = response.data.data.map((q) => ({
+          id: q.id,
+          name: q.title,
+          participants: q.participants || 0,
+          status: q.is_active === 1 ? "Active" : "Not Active",
+          subject: q.subject || "General",
+          difficulty: q.difficulty_level || "medium",
+          createdDate: new Date(q.created_at).toLocaleDateString(),
+        }));
+        setQuizzes(fetchedQuizzes);
+      } catch (error) {
+        console.error("Error fetching quizzes:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load quizzes from the server.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchQuizzes();
+  }, []);
 
   const debouncedSearch = useDebouncedValue(filters.search, 300);
 

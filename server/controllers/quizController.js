@@ -60,23 +60,25 @@ exports.getAllQuizzes = async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT 
-         q.id,
-         q.title,
-         q.description,
-         q.subject_id,
-         q.time_limit,
-         q.passing_score,
-         q.max_attempts,
-         q.is_active,
-         q.created_by,
-         q.created_at,
-         q.updated_at,
-         COUNT(ques.id) AS question_count
-       FROM quizzes q
-       LEFT JOIN questions ques ON ques.quiz_id = q.id
-       WHERE q.is_active = 1
-       GROUP BY q.id
-       ORDER BY q.created_at DESC`
+   q.id,
+   q.title,
+   q.description,
+   q.subject_id,
+   q.time_limit,
+   q.passing_score,
+   q.max_attempts,
+   q.difficulty_level,  -- ✅ added
+   q.is_active,
+   q.created_by,
+   q.created_at,
+   q.updated_at,
+   COUNT(ques.id) AS question_count
+FROM quizzes q
+LEFT JOIN questions ques ON ques.quiz_id = q.id
+WHERE q.is_active = 1
+GROUP BY q.id
+ORDER BY q.created_at DESC
+`
     );
 
     res.status(200).json({
@@ -89,5 +91,59 @@ exports.getAllQuizzes = async (req, res) => {
       success: false,
       message: "Server error",
     });
+  }
+};
+
+exports.updateQuiz = async (req, res) => {
+  const { id } = req.params;
+  const {
+    name,
+    timeLimit,
+    passingScore,
+    maxAttempts,
+    scheduleStartDate,
+    scheduleStartTime,
+    scheduleEndDate,
+    scheduleEndTime,
+  } = req.body;
+
+  if (!name || !timeLimit || !passingScore || !maxAttempts) {
+    return res.status(400).json({ success: false, message: "Missing required fields" });
+  }
+
+  try {
+    const [result] = await db.query(
+      `UPDATE quizzes SET 
+        title = ?,
+        time_limit = ?,
+        passing_score = ?,
+        max_attempts = ?,
+        schedule_start_date = ?,
+        schedule_start_time = ?,
+        schedule_end_date = ?,
+        schedule_end_time = ?,
+        updated_at = NOW()
+      WHERE id = ?`,
+      [
+        name,
+        timeLimit,
+        passingScore,
+        maxAttempts,
+        scheduleStartDate,
+        scheduleStartTime,
+        scheduleEndDate,
+        scheduleEndTime,
+        id,
+      ]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Quiz not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Quiz updated successfully" });
+  } catch (error) {
+    console.error("Error updating quiz:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

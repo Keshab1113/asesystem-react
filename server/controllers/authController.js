@@ -3,6 +3,9 @@ const db = require("../config/database");
 const uploadToFTP = require("../config/uploadToFTP.js");
 const nodemailer = require("nodemailer");
 const crypto = require("crypto");
+const jwt = require("jsonwebtoken");
+const { sendOtpEmail } = require("../utils/mailer.js");
+const pool = require("../config/database");
 
 const OTP_TTL_MINUTES = 10;
 const otpExpiryStore = new Map();
@@ -285,12 +288,10 @@ const resetPasswordLogin = async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Email, OTP and newPassword are required",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "Email, OTP and newPassword are required",
+      });
     }
 
     const [rows] = await db.execute(
@@ -303,21 +304,15 @@ const resetPasswordLogin = async (req, res) => {
         .json({ success: false, message: "Email not found" });
     }
     const user = rows[0];
-
-    // match OTP
     if (!user.otp || user.otp !== otp) {
       return res.status(400).json({ success: false, message: "Invalid OTP" });
     }
-
-    // check expiry from memory
     const expiry = otpExpiryStore.get(user.id);
     if (!expiry || Date.now() > expiry) {
       return res
         .status(400)
         .json({ success: false, message: "OTP has expired" });
     }
-
-    // hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(newPassword, salt);
 
@@ -339,6 +334,227 @@ const resetPasswordLogin = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+// Register
+const register = async (req, res) => {
+  try {
+    const {
+      fullName,
+      position,
+      employeeId,
+      email,
+      controllingTeam,
+      group,
+      password,
+      userLocationType,
+    } = req.body;
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required",
+      });
+    }
+
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+
+    await pool.execute(
+      `INSERT INTO users 
+        (name, position, employee_id, email, controlling_team, userLocationType, \`group\`, otp, role, is_active, password_hash) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', FALSE, ?)`,
+      [
+        fullName,
+        position,
+        employeeId,
+        email,
+        controllingTeam,
+        userLocationType,
+        group,
+        otp,
+        passwordHash,
+      ]
+    );
+
+    await sendOtpEmail(email, fullName, otp, "register");
+
+    res.json({
+      success: true,
+      message: "User registered. OTP sent.",
+    });
+  } catch (error) {
+    console.error("Register error:", error);
+
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        success: false,
+        message: "Email already exists",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Registration failed.",
+    });
+  }
+};
+
+// Verify OTP
+const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const [users] = await pool.execute(
+      "SELECT id, otp FROM users WHERE email = ? LIMIT 1",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const user = users[0];
+
+    if (user.otp === otp) {
+      await pool.execute(
+        "UPDATE users SET is_active = TRUE, otp = NULL, updated_at = NOW() WHERE id = ?",
+        [user.id]
+      );
+
+      return res.json({
+        success: true,
+        message: "OTP verified successfully",
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      message: "Invalid OTP",
+    });
+  } catch (error) {
+    console.error("Verify OTP error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+// Resend OTP
+const resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const [users] = await pool.execute("SELECT * FROM users WHERE email = ?", [
+      email,
+    ]);
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const user = users[0];
+    const otp = crypto.randomInt(100000, 999999).toString();
+
+    await pool.execute("UPDATE users SET otp = ? WHERE email = ?", [
+      otp,
+      email,
+    ]);
+
+    await sendOtpEmail(email, user.name, otp, "resend");
+
+    res.json({
+      success: true,
+      message: "New OTP sent successfully",
+    });
+  } catch (error) {
+    console.error("Resend OTP error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to resend OTP",
+    });
+  }
+};
+
+// Login
+const login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required",
+      });
+    }
+
+    const [users] = await pool.execute(
+      "SELECT id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at, phone, `group`, controlling_team, employee_id FROM users WHERE email = ?",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    const user = users[0];
+
+    if (!user.is_active) {
+      return res.status(403).json({
+        success: false,
+        message: "Account not active. Please verify OTP first.",
+      });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid email or password",
+      });
+    }
+
+    await pool.execute("UPDATE users SET last_login = NOW() WHERE id = ?", [
+      user.id,
+    ]);
+
+    const { password_hash, otp, ...userSafe } = user;
+
+    const token = jwt.sign(
+      { id: user.id, role: user.role, email: user.email },
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      success: true,
+      user: userSafe,
+      token,
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Login failed",
+    });
+  }
+};
 
 module.exports = {
   changePassword,
@@ -347,4 +563,8 @@ module.exports = {
   getNormalUsers,
   forgotPasswordLogin,
   resetPasswordLogin,
+  register,
+  verifyOtp,
+  resendOtp,
+  login,
 };
