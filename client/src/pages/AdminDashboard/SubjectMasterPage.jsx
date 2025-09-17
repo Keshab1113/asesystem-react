@@ -17,100 +17,23 @@ import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
 import { Search, Plus, Edit, Trash2, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { QuizFormModal } from "../../components/AdminDashboard/QuizFormModal";
+import useToast from "../../hooks/ToastContext";
 
-const mockSubjects = [
-  {
-    id: 1,
-    name: "JavaScript Programming",
-    description: "Fundamentals of JavaScript programming language",
-    questionCount: 45,
-    isActive: true,
-    createdDate: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "Database Management",
-    description: "SQL and database design principles",
-    questionCount: 32,
-    isActive: true,
-    createdDate: "2024-01-20",
-  },
-  {
-    id: 3,
-    name: "Web Security",
-    description: "Security best practices for web applications",
-    questionCount: 28,
-    isActive: false,
-    createdDate: "2024-01-10",
-  },
-  {
-    id: 4,
-    name: "Python Programming",
-    description: "Introduction to Python for automation and scripting",
-    questionCount: 50,
-    isActive: true,
-    createdDate: "2024-02-05",
-  },
-  {
-    id: 5,
-    name: "Machine Learning",
-    description: "Supervised and unsupervised learning algorithms",
-    questionCount: 40,
-    isActive: false,
-    createdDate: "2024-02-15",
-  },
-  {
-    id: 6,
-    name: "Cloud Computing",
-    description: "Basics of cloud infrastructure and services",
-    questionCount: 36,
-    isActive: true,
-    createdDate: "2024-03-01",
-  },
-  {
-    id: 7,
-    name: "Data Structures",
-    description: "Core data structures and their applications",
-    questionCount: 42,
-    isActive: true,
-    createdDate: "2024-03-10",
-  },
-  {
-    id: 8,
-    name: "DevOps Practices",
-    description: "CI/CD pipelines and deployment strategies",
-    questionCount: 30,
-    isActive: false,
-    createdDate: "2024-03-20",
-  },
-  {
-    id: 9,
-    name: "UI/UX Design",
-    description: "Design principles for engaging user interfaces",
-    questionCount: 25,
-    isActive: true,
-    createdDate: "2024-04-05",
-  },
-  {
-    id: 10,
-    name: "Mobile App Development",
-    description: "Developing cross-platform mobile applications",
-    questionCount: 38,
-    isActive: true,
-    createdDate: "2024-04-15",
-  },
-];
+ 
 
 export function SubjectMasterPage() {
  const [subjects, setSubjects] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(null);
-  // const [newSubject, setNewSubject] = useState({
-  //   name: "",
-  //   description: "",
-  // });
+  const [formModal, setFormModal] = useState({
+    open: false,
+    quiz: null,
+  });
+   
   const navigate = useNavigate();
+  const { toast } = useToast();
 
 useEffect(() => {
   const fetchSubjects = async () => {
@@ -121,7 +44,7 @@ useEffect(() => {
   id: q.id,
   name: q.title,
   description: q.description || "",
-  questionCount: q.question_count || 0, // now using real count
+  questionCount: q.question_count ?? 0, // now using real count
   isActive: q.is_active === 1,
   createdDate: new Date(q.created_at).toLocaleDateString(),
 }));
@@ -155,6 +78,53 @@ useEffect(() => {
           : subject
       )
     );
+  };
+
+  const handleEditQuiz = (quiz) => {
+    setFormModal({ open: true, quiz });
+    console.log("Editing quiz:", quiz);
+  };
+
+  const handleSaveQuiz = (quizData) => {
+    // if (quizData.id && subjects.find((q) => q.id === quizData.id)) {
+    //   // Update existing quiz
+    //   setSubjects((prev) =>
+    //     prev.map((quiz) => (quiz.id === quizData.id ? quizData : quiz))
+    //   );
+    //   toast({
+    //     title: "Quiz Updated",
+    //     description: `Quiz "${quizData.name}" has been updated successfully.`,
+    //   });
+    // } else {
+    //   // Add new quiz
+    //   setSubjects((prev) => [...prev, quizData]);
+    //   toast({
+    //     title: "Quiz Created",
+    //     description: `Quiz "${quizData.name}" has been created successfully.`,
+    //   });
+    // }
+    if (quizData.id && subjects.find((q) => q.id === quizData.id)) {
+  // Update existing quiz while preserving isActive & questionCount
+  setSubjects((prev) =>
+    prev.map((quiz) =>
+      quiz.id === quizData.id
+        ? { ...quiz, ...quizData, isActive: quiz.isActive ?? true, questionCount: quiz.questionCount }
+        : quiz
+    )
+  );
+   toast({
+        title: "Quiz Updated",
+        description: `Quiz "${quizData.name}" has been updated successfully.`,
+      });
+} else {
+  // Add new quiz with default isActive and questionCount
+  setSubjects((prev) => [...prev, { ...quizData, isActive: true, questionCount: 0 }]);
+   toast({
+        title: "Quiz Created",
+        description: `Quiz "${quizData.name}" has been created successfully.`,
+      });
+}
+
   };
 
   return (
@@ -223,7 +193,7 @@ useEffect(() => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setIsEditing(subject.id)}
+                        onClick={() => handleEditQuiz(subject)}
                       >
                         <Edit className="h-3 w-3" />
                       </Button>
@@ -254,6 +224,19 @@ useEffect(() => {
           </CardContent>
         </Card>
       </div>
+
+      <QuizFormModal
+  quiz={formModal.quiz}
+  open={formModal.open}
+  onOpenChange={(open) =>
+    setFormModal((prev) => ({
+      open,
+      quiz: open ? prev.quiz : null, // clear quiz only when closing
+    }))
+  }
+  onSave={handleSaveQuiz}
+/>
+
     </div>
   );
 }

@@ -106,7 +106,7 @@ export function AdvancedSearchFilters({
         {/* Quick Filters */}
         <div className="flex flex-wrap gap-2">
           <Select value={filters.status} onValueChange={(value) => updateFilter("status", value)}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[180px]">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -118,7 +118,7 @@ export function AdvancedSearchFilters({
             </SelectContent>
           </Select>
 
-          <Select value={filters.subject} onValueChange={(value) => updateFilter("subject", value)}>
+          {/* <Select value={filters.subject} onValueChange={(value) => updateFilter("subject", value)}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Subject" />
             </SelectTrigger>
@@ -129,7 +129,7 @@ export function AdvancedSearchFilters({
               <SelectItem value="Security">Security</SelectItem>
               <SelectItem value="Networking">Networking</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
 
           {showDifficultyFilter && (
             <Select value={filters.difficulty} onValueChange={(value) => updateFilter("difficulty", value)}>

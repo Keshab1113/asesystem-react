@@ -11,7 +11,8 @@ const deepseek = new OpenAI({
 // Controller function – now only generates and returns questions
 exports.generateQuestionsFromDescription = async (req, res) => {
   try {
-    const { difficulty, fileIds, subjectId, description } = req.body;
+   const { difficulty, fileIds, subjectId, description, numberOfQuestions } = req.body;
+
     console.log("Request body:", req.body);
     // const userId = req.userId; // From your authenticate middleware
     const userId = null;
@@ -66,10 +67,12 @@ exports.generateQuestionsFromDescription = async (req, res) => {
 
     // Build prompt
     // Build prompt
+    const numQ = Math.min(parseInt(numberOfQuestions) || 25, 150); // enforce max 150
+
     const prompt = `
 You are an expert HR and technical interviewer.
 
-Generate 25 multiple-choice questions (with 4 options each), at ${
+Generate ${numQ} multiple-choice questions (with 4 options each), at ${
       difficulty || "medium"
     } difficulty level. The questions should cover theoretical knowledge, practical skills, and real-world applications.
 
@@ -84,31 +87,68 @@ ${
 
 Prioritize scenario-based, problem-solving, and applied questions over simple definitions. Avoid repetition and ensure each question is unique.
 
-Return only the questions in a numbered list format, with options, but without answers or explanations.
+Return only the questions in a numbered list format, with options. After the options, clearly specify the correct answer in this format:  
+ Correct Answer: A.
 `;
 
     // ✅ Call DeepSeek API
-    const response = await deepseek.chat.completions.create({
-      model: "deepseek-chat",
-      messages: [
-        { role: "system", content: "You are an expert interviewer." },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 8000,
-    });
+      // ✅ Parallel batch requests to DeepSeek
+    const batchSize = 20; // number of questions per API call
+    const tasks = [];
 
-    const rawOutput = response.choices[0].message.content;
-    console.log("AI Raw Output:", rawOutput);
+    for (let i = 0; i < numQ; i += batchSize) {
+      const thisBatchSize = Math.min(batchSize, numQ - i);
+
+      const batchPrompt = `
+You are an expert HR and technical interviewer.
+
+Generate ${thisBatchSize} multiple-choice questions (with 4 options each), at ${
+        difficulty || "medium"
+      } difficulty level. The questions should cover theoretical knowledge, practical skills, and real-world applications.
+
+Reference Content:
+${description}
+
+${
+  extraContext
+    ? "Additional information from uploaded files:\n" + extraContext
+    : ""
+}
+
+Prioritize scenario-based, problem-solving, and applied questions over simple definitions. Avoid repetition and ensure each question is unique.
+
+Return only the questions in a numbered list format, with options. After the options, clearly specify the correct answer in this format:  
+ Correct Answer: A
+`;
+
+      tasks.push(
+        deepseek.chat.completions.create({
+          model: "deepseek-chat",
+          messages: [
+            { role: "system", content: "You are an expert interviewer." },
+            { role: "user", content: batchPrompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 8000,
+        })
+      );
+    }
+
+    const responses = await Promise.all(tasks);
+    const mergedOutput = responses
+      .map((r) => r.choices[0].message.content)
+      .join("\n");
+
+    console.log("AI Raw Output:", mergedOutput);
+
     // Parse questions
     const questions = [];
-    const lines = rawOutput.split("\n").map((line) => line.trim());
+    const lines = mergedOutput.split("\n").map((line) => line.trim());
 
     let currentQuestion = null;
 
     for (let line of lines) {
       if (/^\d+[\.\)]/.test(line)) {
-        // Start of a new question
         if (currentQuestion) {
           questions.push(currentQuestion);
         }
@@ -121,17 +161,25 @@ Return only the questions in a numbered list format, with options, but without a
           difficulty: difficulty || "medium",
           subject: subjectId,
         };
-      } else if (/^[a-dA-D][\)\.]/.test(line) && currentQuestion) {
-        // Option line
-        const match = line.match(/^([a-dA-D])[\)\.]\s*(.+)$/);
-        if (match) {
-          const optionIndex = match[1].toLowerCase().charCodeAt(0) - 97;
-          currentQuestion.options[optionIndex] = match[2].trim();
-        }
-      }
+      } else if (/^[A-D][\.\)]\s+/i.test(line) && currentQuestion) {
+  // Matches options like "A. text" or "B) text"
+  const optMatch = line.match(/^([A-D])[\.\)]\s+(.*)/i);
+  if (optMatch) {
+    const idx = optMatch[1].toUpperCase().charCodeAt(0) - 65; // A=0, B=1, etc.
+    currentQuestion.options[idx] = optMatch[2].trim();
+  }
+} else if (/^Correct Answer[:\-]/i.test(line) && currentQuestion) {
+
+      const match = line.match(/^Correct Answer[:\-]\s*([A-D])/i);
+      if (match) {
+  const answerLetter = match[1].toUpperCase();
+  const idx = answerLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
+  currentQuestion.correctAnswer = currentQuestion.options[idx] || answerLetter;
+}
+
+     }
     }
 
-    // Push the last question if exists
     if (currentQuestion) {
       questions.push(currentQuestion);
     }
@@ -163,6 +211,7 @@ exports.saveQuestions = async (req, res) => {
       companyId,
       timeLimit,
       passingScore,
+      difficulty,
       maxAttempts,
       questions,
     } = req.body;
@@ -180,19 +229,22 @@ exports.saveQuestions = async (req, res) => {
 
       // ✅ 1. Insert into quizzes table
       const [quizResult] = await connection.execute(
-        `INSERT INTO quizzes (title, description, subject_id, company_id, time_limit, passing_score, max_attempts, is_active, created_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
-        [
-          title,
-          description || "",
-          subjectId || null, // ✅ provide default 0 instead of null
-          companyId || null,
-          timeLimit || 60,
-          passingScore || 70,
-          maxAttempts || 3,
-          userId,
-        ]
-      );
+  `INSERT INTO quizzes 
+     (title, description, subject_id, company_id, time_limit, passing_score, max_attempts, difficulty_level, is_active, created_by, created_at, updated_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
+  [
+    title,
+    description || "",
+    subjectId || null,
+    companyId || null,
+    timeLimit || 60,
+    passingScore || 70,
+    maxAttempts || 3,
+    difficulty || "medium",  // ✅ save quiz difficulty
+    userId,
+  ]
+);
+
       const quizId = quizResult.insertId;
 
       // ✅ 2. Insert each question into questions table
