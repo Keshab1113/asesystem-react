@@ -43,6 +43,7 @@ export default function RegisterPage() {
     password: "",
     group: "",
     controllingTeam: "",
+    userLocationType: "",
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -68,21 +69,21 @@ export default function RegisterPage() {
   }, []);
 
   const fetchContractor = async () => {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/contractors`
-        );
-        const data = await res.json();
-        if (data.success) {
-          setContractors(data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching companies:", error);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/contractors`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setContractors(data.data);
       }
-    };
-    useEffect(() => {
-      fetchContractor();
-    }, []);
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+    }
+  };
+  useEffect(() => {
+    fetchContractor();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -98,6 +99,10 @@ export default function RegisterPage() {
     }
     if (!formData.controllingTeam.trim()) {
       newErrors.controllingTeam = t("profile.controllingTeam") + " is required";
+    }
+    if (!formData.userLocationType.trim()) {
+      newErrors.userLocationType =
+        t("profile.userLocationType") + " is required";
     }
     if (!formData.group.trim()) {
       newErrors.group = t("profile.group") + " is required";
@@ -164,12 +169,13 @@ export default function RegisterPage() {
     }
   };
 
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4 pt-10 md:pt-4">
       <div className="md:top-6 top-2 md:left-6 left-2 absolute">
         <ToggleTheme />
       </div>
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-xl">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center mb-0">
             <Globe className="h-8 w-8 text-primary mx-2" />
@@ -283,11 +289,9 @@ export default function RegisterPage() {
                         {company.name}
                       </SelectItem>
                     ))}
-                    
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-2 w-full ">
                 <Label htmlFor="controllingTeam">
                   <MonitorCog className="h-4 w-4 inline mr-2" />
@@ -301,20 +305,56 @@ export default function RegisterPage() {
                       controllingTeam: value,
                     }))
                   }
+                  disabled={!formData.group}
                 >
                   <SelectTrigger className=" w-full ">
                     <SelectValue placeholder="Select your Controlling Team" />
                   </SelectTrigger>
                   <SelectContent>
-                    {contractors?.map((company) => (
-                      <SelectItem value={company.name}>
-                        {company.name}
-                      </SelectItem>
-                    ))}
-                    
+                    {formData.group &&
+                      contractors
+                        .filter(
+                          (contractor) =>
+                            contractor.company_name === formData.group
+                        )
+                        .map((contractor) => (
+                          <SelectItem
+                            key={contractor.id}
+                            value={contractor.name}
+                          >
+                            {contractor.name}
+                          </SelectItem>
+                        ))}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2 w-full ">
+              <Label htmlFor="userLocationType">
+                <MonitorCog className="h-4 w-4 inline mr-2" />
+                {t("profile.userLocationType")}
+              </Label>
+              <Select
+                value={formData.userLocationType}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    userLocationType: value,
+                  }))
+                }
+              >
+                <SelectTrigger className=" w-full ">
+                  <SelectValue placeholder="Select your location type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={"Rig Based Employee (ROE)"}>
+                    Rig Based Employee (ROE)
+                  </SelectItem>
+                  <SelectItem value={"Office Based Employee"}>
+                    Office Based Employee
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Email */}

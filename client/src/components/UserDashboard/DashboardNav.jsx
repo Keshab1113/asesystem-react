@@ -78,7 +78,8 @@ export function DashboardNav() {
                     <LayoutDashboard className="h-5 w-5" />
                   </div>
                   <h1 className=" flex flex-col">
-                    {t("nav.drillGroup")}
+                    {/* {t("nav.drillGroup")} */}
+                    {user?.name}
                     <span className=" text-xs">{t("nav.AsesSystem")}</span>
                   </h1>
                 </SheetTitle>
@@ -125,7 +126,8 @@ export function DashboardNav() {
               <LayoutDashboard className="h-5 w-5" />
             </div>
             <h4 className="font-bold sm:flex flex-col text-base bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent hidden">
-              {t("nav.drillGroup")}
+              {/* {t("nav.drillGroup")} */}
+              {user?.name}
               <span className=" text-xs">{t("nav.AsesSystem")}</span>
             </h4>
           </Link>
@@ -262,7 +264,7 @@ export function DashboardNav() {
               <div className="p-2 space-y-1">
                 <DropdownMenuItem asChild>
                   <Link
-                    to="/dashboard/profile"
+                    to="/user-dashboard/profile"
                     className="flex items-center gap-3 rounded-lg p-3 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950 transition-all duration-200"
                   >
                     <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
@@ -276,7 +278,7 @@ export function DashboardNav() {
                     </div>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                {/* <DropdownMenuItem asChild>
                   <Link
                     to="/dashboard/settings"
                     className="flex items-center gap-3 rounded-lg p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
@@ -291,7 +293,7 @@ export function DashboardNav() {
                       </span>
                     </div>
                   </Link>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
               </div>
               <DropdownMenuSeparator className="my-2 bg-slate-200 dark:bg-slate-700" />
               <div className="p-2">

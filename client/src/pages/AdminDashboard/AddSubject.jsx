@@ -80,7 +80,7 @@ export default function AddSubjectPage() {
           headers: {
             "Content-Type": "application/json",
             // Add authorization if your backend requires it
-            // "Authorization": `Bearer ${token}`,
+            "Authorization": `Bearer ${token}`,
           },
           body: JSON.stringify({
             subjectId: Date.now() ?? null,

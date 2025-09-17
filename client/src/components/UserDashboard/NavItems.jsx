@@ -15,18 +15,18 @@ const NavItems = ({ mobile }) => {
       icon: LayoutDashboard,
       badge: null,
     },
-    {
-      name: t("nav.myAssessments"),
-      href: "/user-dashboard/assessments",
-      icon: FileText,
-      badge: "8",
-    },
-    {
-      name: t("nav.upcomingAssessments"),
-      href: "/user-dashboard/upcoming",
-      icon: Calendar,
-      badge: "3",
-    },
+    // {
+    //   name: t("nav.myAssessments"),
+    //   href: "/user-dashboard/assessments",
+    //   icon: FileText,
+    //   badge: "8",
+    // },
+    // {
+    //   name: t("nav.upcomingAssessments"),
+    //   href: "/user-dashboard/upcoming",
+    //   icon: Calendar,
+    //   badge: "3",
+    // },
     {
       name: t("nav.profile"),
       href: "/user-dashboard/profile",

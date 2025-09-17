@@ -146,6 +146,7 @@ export const translations = {
     "profile.position": "Position / Designation",
     "profile.employeeId": "Employee ID",
     "profile.controllingTeam": "Controlling Team",
+    "profile.userLocationType": "Location Type",
     "profile.group": "Group",
     "profile.emailCannotChange":
       "Email address cannot be changed. Contact administrator if needed.",
@@ -389,6 +390,7 @@ export const translations = {
     "profile.position": "المنصب / التسمية الوظيفية",
     "profile.employeeId": "رقم الموظف",
     "profile.controllingTeam": "فريق التحكم",
+    "profile.userLocationType": "نوع الموقع",
     "profile.group": "مجموعة",
     "profile.emailCannotChange":
       "لا يمكن تغيير عنوان البريد الإلكتروني. اتصل بالمسؤول إذا لزم الأمر.",

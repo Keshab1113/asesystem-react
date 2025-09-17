@@ -28,6 +28,7 @@ export default function VerifyOTPPage() {
   // Extract email from query string
   const searchParams = new URLSearchParams(location.search);
   const email = searchParams.get("email") || "";
+  const needFor = searchParams.get("needFor") || "";
 
   useEffect(() => {
     if (!email) {
@@ -57,11 +58,14 @@ export default function VerifyOTPPage() {
 
     try {
       // Replace with your API call
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/verify-otp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp }),
+        }
+      );
 
       const data = await res.json();
 
@@ -71,7 +75,11 @@ export default function VerifyOTPPage() {
           description:
             "Your account has been verified successfully. Please log in.",
         });
-        navigate("/login");
+        if (needFor === "") {
+          navigate("/login");
+        } else {
+          window.location.href = `/change-password?email=${encodeURIComponent(email)}`;
+        }
       } else {
         setError("Invalid OTP code. Please try again.");
       }
@@ -86,11 +94,14 @@ export default function VerifyOTPPage() {
   const handleResendOTP = async () => {
     setTimer(30);
     try {
-      const res = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/auth/resend-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/resend-otp`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        }
+      );
       if (res.ok) {
         toast({
           title: "OTP Sent",

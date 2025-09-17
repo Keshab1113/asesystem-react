@@ -1,7 +1,6 @@
 // backend/controllers/contractorController.js
 const pool = require("../config/database");
 
-// Create Contractor
 exports.createContractor = async (req, res) => {
   try {
     const {
@@ -23,8 +22,21 @@ exports.createContractor = async (req, res) => {
       });
     }
 
+    // 🔍 Check if contractor with same name exists in same company
+    const [existing] = await pool.execute(
+      `SELECT id FROM teams WHERE name = ? AND company_id = ?`,
+      [name, company_id]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Team with this name already exists in this group",
+      });
+    }
+
     const [result] = await pool.execute(
-      `INSERT INTO contractors 
+      `INSERT INTO teams 
        (name, email, phone, company_name, address, license_number, specialization, company_id, created_by) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -47,15 +59,24 @@ exports.createContractor = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating contractor:", error);
+
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({
+        success: false,
+        message: "Contractor with this name already exists in the company",
+      });
+    }
+
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 // Get All Contractors
 exports.getContractors = async (req, res) => {
   try {
     const [rows] = await pool.execute(
-      `SELECT * FROM contractors ORDER BY created_at DESC`
+      `SELECT * FROM teams ORDER BY created_at DESC`
     );
     res.json({ success: true, data: rows });
   } catch (error) {
@@ -80,7 +101,7 @@ exports.updateContractor = async (req, res) => {
     } = req.body;
 
     const [result] = await pool.execute(
-      `UPDATE contractors 
+      `UPDATE teams 
        SET name = ?, email = ?, phone = ?, company_name = ?, address = ?, 
            license_number = ?, specialization = ?, is_active = ?
        WHERE id = ?`,
@@ -116,7 +137,7 @@ exports.deleteContractor = async (req, res) => {
     const { id } = req.params;
 
     const [result] = await pool.execute(
-      `DELETE FROM contractors WHERE id = ?`,
+      `DELETE FROM teams WHERE id = ?`,
       [id]
     );
 
@@ -147,7 +168,7 @@ exports.updateContractorStatus = async (req, res) => {
     }
 
     const [result] = await pool.execute(
-      `UPDATE contractors SET is_active = ? WHERE id = ?`,
+      `UPDATE teams SET is_active = ? WHERE id = ?`,
       [is_active, id]
     );
 

@@ -20,6 +20,7 @@ import {
   Mail,
   MoreVertical,
   Power,
+  PhoneCall,
 } from "lucide-react";
 import {
   Select,
@@ -38,6 +39,7 @@ import useToast from "../../hooks/ToastContext";
 import { useSelector } from "react-redux";
 import ContractorDeleteButton from "../../components/AdminDashboard/AlertDialog";
 import axios from "axios";
+import { SearchableSelect } from "../../components/SearchableSelect";
 
 export function ContractorMasterPage() {
   const [contractors, setContractors] = useState([]);
@@ -48,6 +50,7 @@ export function ContractorMasterPage() {
   const { toast } = useToast();
   const updateRef = useRef(null);
   const [selectedTeam, setSelectedTeam] = useState("");
+  const [selectedGroup, setSelectedGroup] = useState("");
   const { user } = useSelector((state) => state.auth);
   const [newContractor, setNewContractor] = useState({
     name: "",
@@ -68,18 +71,21 @@ export function ContractorMasterPage() {
   });
   const [allUsers, setAllUsers] = useState([]);
 
-  const filteredContractors = contractors.filter(
-    (contractor) =>
-      (contractor.name || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (contractor.email || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      (contractor.company_name || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
-  );
+  const filteredContractors = contractors.filter((contractor) => {
+    const search = searchTerm.toLowerCase();
+
+    const matchesSearch =
+      (contractor.name || "").toLowerCase().includes(search) ||
+      (contractor.email || "").toLowerCase().includes(search) ||
+      (contractor.company_name || "").toLowerCase().includes(search);
+
+    const matchesCompany = selectedGroup
+      ? contractor.company_name === selectedGroup
+      : true;
+
+    return matchesSearch && matchesCompany;
+  });
+
   const fetchAttempts = async () => {
     try {
       const res = await axios.get(
@@ -172,11 +178,11 @@ export function ContractorMasterPage() {
 
   const handleAddContractor = async () => {
     try {
-      const selectedCompany = companies.find(
+      const selectedGroup = companies.find(
         (c) => c.name === newContractor.company_name
       );
 
-      if (!selectedCompany) {
+      if (!selectedGroup) {
         toast({
           title: "Failed to add team",
           description: "Please select a valid company",
@@ -191,7 +197,7 @@ export function ContractorMasterPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...newContractor,
-            company_id: selectedCompany.id,
+            company_id: selectedGroup.id,
             created_by: user.id,
           }),
         }
@@ -241,11 +247,11 @@ export function ContractorMasterPage() {
   };
   const handleUpdateContractor = async () => {
     try {
-      const selectedCompany = companies.find(
+      const selectedGroup = companies.find(
         (c) => c.name === newContractor.company_name
       );
 
-      if (!selectedCompany) {
+      if (!selectedGroup) {
         toast({
           title: "Failed to update Team",
           description: "Please select a valid group",
@@ -261,7 +267,7 @@ export function ContractorMasterPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             ...newContractor,
-            company_id: selectedCompany.id,
+            company_id: selectedGroup.id,
             created_by: user.id,
             is_active: 1,
           }),
@@ -280,7 +286,7 @@ export function ContractorMasterPage() {
         setContractors(
           contractors.map((c) =>
             c.id === isEditing
-              ? { ...c, ...newContractor, company_id: selectedCompany.id }
+              ? { ...c, ...newContractor, company_id: selectedGroup.id }
               : c
           )
         );
@@ -412,12 +418,13 @@ export function ContractorMasterPage() {
     newContractor.name.trim() !== "" && newContractor.company_name !== "";
 
   const filteredUsers = selectedTeam
-    ? allUsers.filter((user) => user.controlling_team === selectedTeam)
+    ? allUsers.filter(
+        (user) =>
+          user.controlling_team === selectedTeam && user.group === selectedGroup
+      )
     : allUsers;
 
-  console.log("filteredUsers: ", filteredUsers);
-  console.log("selectedTeam: ", selectedTeam);
-  console.log("allUsers: ", allUsers);
+  const AllGroupOption = [...new Set(contractors.map((c) => c.company_name))];
 
   return (
     <div className="space-y-6">
@@ -562,34 +569,20 @@ export function ContractorMasterPage() {
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Team Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="Enter Team name..."
-                  value={newContractor.name}
-                  onChange={(e) =>
-                    setNewContractor({
-                      ...newContractor,
-                      name: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="company_name">Group *</Label>
                 <Select
                   value={newContractor.company_name}
-                  onValueChange={(value) =>
+                  onValueChange={(value) => {
                     setNewContractor({
                       ...newContractor,
                       company_name: value,
-                    })
-                  }
+                    });
+                    setSelectedGroup(value);
+                  }}
                   required
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Company" />
+                    <SelectValue placeholder="Select Group" />
                   </SelectTrigger>
                   <SelectContent>
                     {companies?.map((company) => (
@@ -599,6 +592,17 @@ export function ContractorMasterPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="name">Team Name *</Label>
+                <SearchableSelect
+                  options={filteredContractors.map((c) => c.name)}
+                  value={newContractor.name}
+                  onChange={(val) =>
+                    setNewContractor({ ...newContractor, name: val })
+                  }
+                  placeholder="Select or type team"
+                />
               </div>
             </div>
 
@@ -695,14 +699,30 @@ export function ContractorMasterPage() {
         <Card>
           <CardHeader className=" flex md:flex-row flex-col justify-between items-center">
             <CardTitle>All Teams ({filteredContractors.length})</CardTitle>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search Team..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex gap-2 items-center md:mt-0 mt-4">
+              <div className="relative max-w-40 min-w-40">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search Team..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select
+                value={selectedGroup}
+                onValueChange={(e) => setSelectedGroup(e)}
+                className="border rounded-md p-2 text-sm"
+              >
+                <SelectTrigger className="max-w-40 min-w-40">
+                  <SelectValue placeholder="Select Group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {AllGroupOption.map((company) => (
+                    <SelectItem value={company}>{company}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
@@ -714,7 +734,10 @@ export function ContractorMasterPage() {
                     contractor.name === selectedTeam &&
                     "border-2 border-slate-700"
                   }`}
-                  onClick={() => setSelectedTeam(contractor.name)}
+                  onClick={() => {
+                    setSelectedGroup(contractor.company_name);
+                    setSelectedTeam(contractor.name);
+                  }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -862,14 +885,24 @@ export function ContractorMasterPage() {
               {filteredUsers.map((user) => (
                 <div
                   key={user.id}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors`}
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors flex justify-between md:flex-row flex-col`}
                 >
-                  <div className="font-medium">{user.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {user.email}
+                  <div className=" flex flex-col">
+                    <div className="font-medium">{user.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {user.email}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs">Score: {user.score || 0}%</span>
+                  <div className="  flex flex-row md:justify-center justify-between items-center gap-10 ">
+                    <p className=" text-xs">Profile Completed: 100%</p>
+                    <div className="  flex flex-row justify-center items-center gap-2">
+                      <Button>
+                        <Edit className="h-5 w-5" />
+                      </Button>
+                      <Button className=" bg-green-800 hover:bg-green-700">
+                        <PhoneCall className="h-5 w-5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}

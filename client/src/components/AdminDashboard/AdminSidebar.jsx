@@ -73,7 +73,6 @@ const navigationItems = [
       { title: "My Account", icon: UserCircle, page: "my-account" },
       { title: "User Logs", icon: History, page: "user-logs" },
       { title: "Modify Profile", icon: Edit, page: "modify-profile" },
-      { title: "Change Password", icon: Key, page: "change-password" },
     ],
   },
 ];

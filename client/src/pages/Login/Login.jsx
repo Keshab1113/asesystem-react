@@ -156,7 +156,9 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-
+            <div className=" flex gap-1 text-sm -mt-2">
+              <Link to={"/forgot-password"} className=" hover:text-blue-500">Forgot Password?</Link>
+            </div>
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>

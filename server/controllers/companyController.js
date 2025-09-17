@@ -13,8 +13,21 @@ exports.createCompany = async (req, res) => {
       });
     }
 
+    // 🔍 Check if company already exists
+    const [existing] = await pool.execute(
+      "SELECT id FROM groups WHERE name = ?",
+      [company_name]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Group with this name already exists",
+      });
+    }
+
     const [result] = await pool.execute(
-      `INSERT INTO companies 
+      `INSERT INTO groups 
        (name, email, phone, address, is_active) 
        VALUES (?, ?, ?, ?, ?)`,
       [company_name, email, phone, address, is_active ?? true]
@@ -34,7 +47,9 @@ exports.createCompany = async (req, res) => {
 // Get All Companies
 exports.getCompanies = async (req, res) => {
   try {
-    const [rows] = await pool.execute(`SELECT * FROM companies ORDER BY created_at DESC`);
+    const [rows] = await pool.execute(
+      `SELECT * FROM groups ORDER BY created_at DESC`
+    );
     res.json({ success: true, data: rows });
   } catch (error) {
     console.error("Error fetching companies:", error);

@@ -1,15 +1,33 @@
 const bcrypt = require("bcryptjs");
 const db = require("../config/database");
 const uploadToFTP = require("../config/uploadToFTP.js");
+const nodemailer = require("nodemailer");
+const crypto = require("crypto");
+
+const OTP_TTL_MINUTES = 10;
+const otpExpiryStore = new Map();
+
+const createTransporter = () =>
+  nodemailer.createTransport({
+    host: process.env.MAILTRAP_HOST,
+    port: 587,
+    secure: false,
+    auth: {
+      user: process.env.MAIL_USER_NOREPLY,
+      pass: process.env.MAIL_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
+    },
+  });
 
 // Change password controller
 const changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword, confirmPassword } = req.body;
-    const userId = req.userId;
+    const { newPassword, confirmPassword, email } = req.body;
 
     // Validation
-    if (!currentPassword || !newPassword || !confirmPassword) {
+    if (!email || !newPassword || !confirmPassword) {
       return res.status(400).json({
         success: false,
         message: "Please fill in all fields",
@@ -35,8 +53,8 @@ const changePassword = async (req, res) => {
 
     // Find user with password hash
     const [users] = await db.execute(
-      "SELECT id, password_hash FROM users WHERE id = ?",
-      [userId]
+      "SELECT id, password_hash FROM users WHERE email = ?",
+      [email]
     );
 
     if (users.length === 0) {
@@ -47,18 +65,6 @@ const changePassword = async (req, res) => {
     }
 
     const user = users[0];
-
-    // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(
-      currentPassword,
-      user.password_hash
-    );
-    if (!isCurrentPasswordValid) {
-      return res.status(400).json({
-        success: false,
-        message: "Current password is incorrect",
-      });
-    }
 
     // Check if new password is the same as current password
     const isSamePassword = await bcrypt.compare(
@@ -78,8 +84,8 @@ const changePassword = async (req, res) => {
 
     // Update password in MySQL
     await db.execute(
-      "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?",
-      [hashedPassword, userId]
+      "UPDATE users SET password_hash = ?, updated_at = NOW() WHERE email = ?",
+      [hashedPassword, email]
     );
 
     // Send success response
@@ -196,9 +202,149 @@ const getNormalUsers = async (req, res) => {
   }
 };
 
+const forgotPasswordLogin = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Email is required" });
+    }
+
+    const [rows] = await db.execute(
+      "SELECT id, name FROM users WHERE email = ?",
+      [email]
+    );
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Email not found" });
+    }
+    const user = rows[0];
+
+    // generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+
+    // store OTP in DB
+    await db.execute("UPDATE users SET otp = ? WHERE id = ?", [otp, user.id]);
+
+    // store expiry in memory
+    otpExpiryStore.set(user.id, Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+    // send email
+    const transporter = createTransporter();
+    await transporter.sendMail({
+      from: `"ASESystem - No Reply" <${process.env.MAIL_USER_NOREPLY_VIEW}>`,
+      to: email,
+      replyTo: process.env.MAIL_USER_NOREPLY_VIEW,
+      subject: "ASESystem - Your One-Time Password (OTP)",
+      text: `Hello ${user.name || ""},
+
+Your One-Time Password (OTP) is: ${otp}
+
+⚠️ This code is valid for ${OTP_TTL_MINUTES} minutes only. 
+Do not share this code with anyone.
+
+Best regards,
+ASESystem Team`,
+      html: `
+  <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+      <h2 style="color: #2563eb; text-align: center; margin-bottom: 20px;">ASESystem</h2>
+      <p style="font-size: 16px; color: #333;">Hello <b>${
+        user.name || ""
+      }</b>,</p>
+      <p style="font-size: 16px; color: #333;">Please use the following One-Time Password (OTP) to reset your password:</p>
+      
+      <div style="text-align: center; margin: 30px 0;">
+        <span style="display: inline-block; font-size: 24px; font-weight: bold; color: #2563eb; background: #e0f2fe; padding: 12px 24px; border-radius: 6px; letter-spacing: 4px;">
+          ${otp}
+        </span>
+      </div>
+      
+      <p style="font-size: 15px; color: #555;">⚠️ This code is valid for <b>${OTP_TTL_MINUTES} minutes</b> only. Please do not share it with anyone.</p>
+      
+      <p style="margin-top: 30px; font-size: 14px; color: #777;">Best regards,</p>
+      <p style="font-size: 14px; font-weight: bold; color: #333;">ASESystem Team</p>
+    </div>
+    <p style="text-align: center; font-size: 12px; color: #999; margin-top: 15px;">
+      © ${new Date().getFullYear()} ASESystem. All rights reserved.
+    </p>
+  </div>
+  `,
+    });
+
+    return res.json({ success: true, message: "OTP sent to email" });
+  } catch (error) {
+    console.error("forgotPassword error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+const resetPasswordLogin = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    if (!email || !otp || !newPassword) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Email, OTP and newPassword are required",
+        });
+    }
+
+    const [rows] = await db.execute(
+      "SELECT id, otp FROM users WHERE email = ?",
+      [email]
+    );
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Email not found" });
+    }
+    const user = rows[0];
+
+    // match OTP
+    if (!user.otp || user.otp !== otp) {
+      return res.status(400).json({ success: false, message: "Invalid OTP" });
+    }
+
+    // check expiry from memory
+    const expiry = otpExpiryStore.get(user.id);
+    if (!expiry || Date.now() > expiry) {
+      return res
+        .status(400)
+        .json({ success: false, message: "OTP has expired" });
+    }
+
+    // hash password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    // update DB
+    await db.execute(
+      "UPDATE users SET password_hash = ?, otp = NULL, updated_at = NOW() WHERE id = ?",
+      [passwordHash, user.id]
+    );
+
+    // clear expiry
+    otpExpiryStore.delete(user.id);
+
+    return res.json({
+      success: true,
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    console.error("resetPassword error:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 module.exports = {
   changePassword,
   updateUser,
   uploadProfilePicture,
   getNormalUsers,
+  forgotPasswordLogin,
+  resetPasswordLogin,
 };

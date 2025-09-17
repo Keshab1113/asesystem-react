@@ -26,6 +26,7 @@ import { MyAccountPage } from "./pages/AdminDashboard/AdminDashboardProfile/MyAc
 import { UserLogsPage } from "./pages/AdminDashboard/UserLogsPage";
 import { ModifyProfilePage } from "./pages/AdminDashboard/AdminDashboardProfile/ModifyProfilePage";
 import { ChangePasswordPage } from "./pages/AdminDashboard/AdminDashboardProfile/ChangePasswordPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage/ForgotPasswordPage";
 
 function App() {
   return (
@@ -41,18 +42,30 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<DashboardContent/>} />
-            <Route path="quiz-report" element={<QuizReportPage/>} />
-            <Route path="issue-certificate" element={<IssueCertificatePage/>} />
-            <Route path="user-group-privilege" element={<UserGroupPrivilegePage/>} />
+            <Route index element={<DashboardContent />} />
+            <Route path="quiz-report" element={<QuizReportPage />} />
+            <Route
+              path="issue-certificate"
+              element={<IssueCertificatePage />}
+            />
+            <Route
+              path="user-group-privilege"
+              element={<UserGroupPrivilegePage />}
+            />
             {/* <Route path="add-questions" element={<AddQuestionsPage/>} /> */}
-            <Route path="subject-master" element={<SubjectMasterPage/>} />
-            <Route path="subject-master/add-subject" element={<AddSubjectPage/>} />
-            <Route path="contractor-master" element={<ContractorMasterPage/>} />
-            <Route path="my-account" element={<MyAccountPage/>} />
-            <Route path="user-logs" element={<UserLogsPage/>} />
-            <Route path="modify-profile" element={<ModifyProfilePage/>} />
-            <Route path="change-password" element={<ChangePasswordPage/>} />
+            <Route path="subject-master" element={<SubjectMasterPage />} />
+            <Route
+              path="subject-master/add-subject"
+              element={<AddSubjectPage />}
+            />
+            <Route
+              path="contractor-master"
+              element={<ContractorMasterPage />}
+            />
+            <Route path="my-account" element={<MyAccountPage />} />
+            <Route path="user-logs" element={<UserLogsPage />} />
+            <Route path="modify-profile" element={<ModifyProfilePage />} />
+            
           </Route>
           <Route
             path="/certificate-view"
@@ -79,6 +92,8 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-otp" element={<VerifyOTPPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage/>} />
+          <Route path="/change-password" element={<ChangePasswordPage />} />
         </Route>
       </Routes>
     </>

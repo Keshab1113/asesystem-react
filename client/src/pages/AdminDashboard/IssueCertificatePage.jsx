@@ -122,7 +122,7 @@ export function IssueCertificatePage() {
     const fetchAttempts = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts`
+          `${import.meta.env.VITE_BACKEND_URL}/api/auth/role/user`
         );
         if (res.data.success) {
           setAllUsers(res.data.data);
@@ -313,12 +313,12 @@ export function IssueCertificatePage() {
                   }`}
                   onClick={() => handleUserSelect(user)}
                 >
-                  <div className="font-medium">{user.user_name}</div>
+                  <div className="font-medium">{user.name}</div>
                   <div className="text-sm text-muted-foreground">
                     {user.email}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline">{user.quiz_title}</Badge>
+                    <Badge variant="outline">{user.quiz_title || "Undefined"}</Badge>
                     <span className="text-xs">Score: {user.score || 0}%</span>
                   </div>
                 </div>

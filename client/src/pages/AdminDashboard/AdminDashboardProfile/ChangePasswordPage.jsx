@@ -13,23 +13,25 @@ import { Label } from "../../../components/ui/label";
 import { Progress } from "../../../components/ui/progress";
 import { Alert, AlertDescription } from "../../../components/ui/alert";
 import { Key, Eye, EyeOff, Check, X, Shield } from "lucide-react";
-import { useSelector } from "react-redux";
 import useToast from "../../../hooks/ToastContext";
+import ToggleTheme from "../../../components/ToggleTheme";
+import { useNavigate } from "react-router-dom";
 
 export function ChangePasswordPage() {
   const [passwords, setPasswords] = useState({
-    current: "",
     new: "",
     confirm: "",
   });
   const [showPasswords, setShowPasswords] = useState({
-    current: false,
     new: false,
     confirm: false,
   });
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [errors, setErrors] = useState([]);
   const { toast } = useToast();
+  const searchParams = new URLSearchParams(location.search);
+  const email = searchParams.get("email") || "";
+  const navigate = useNavigate();
 
   const calculatePasswordStrength = (password) => {
     let strength = 0;
@@ -70,11 +72,10 @@ export function ChangePasswordPage() {
     setShowPasswords({ ...showPasswords, [field]: !showPasswords[field] });
   };
 
-  const { token } = useSelector((state) => state.auth);
 
   const handleSubmit = async () => {
     try {
-      if (!passwords.current || !passwords.new || !passwords.confirm) {
+      if ( !passwords.new || !passwords.confirm) {
         toast({
           title: "Update failed",
           description: "Please fill in all fields",
@@ -107,10 +108,9 @@ export function ChangePasswordPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            currentPassword: passwords.current,
+            email: email,
             newPassword: passwords.new,
             confirmPassword: passwords.confirm,
           }),
@@ -120,11 +120,12 @@ export function ChangePasswordPage() {
       const data = await response.json();
 
       if (response.ok) {
+        navigate("/login");
         toast({
           title: "Password Updated",
           description: "Password changed successfully!",
         });
-        setPasswords({ current: "", new: "", confirm: "" });
+        setPasswords({ new: "", confirm: "" });
         setPasswordStrength(0);
         setErrors([]);
       } else {
@@ -157,7 +158,10 @@ export function ChangePasswordPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full md:h-screen h-full flex flex-col justify-center items-center px-4 py-4">
+      <div className="md:top-6 top-2 md:left-6 left-2 absolute">
+        <ToggleTheme />
+      </div>
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Change Password</h1>
       </div>
@@ -172,34 +176,6 @@ export function ChangePasswordPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
-              <div className="relative">
-                <Input
-                  id="current-password"
-                  type={showPasswords.current ? "text" : "password"}
-                  value={passwords.current}
-                  onChange={(e) =>
-                    handlePasswordChange("current", e.target.value)
-                  }
-                  placeholder="Enter current password"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3"
-                  onClick={() => togglePasswordVisibility("current")}
-                >
-                  {showPasswords.current ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="new-password">New Password</Label>
               <div className="relative">
