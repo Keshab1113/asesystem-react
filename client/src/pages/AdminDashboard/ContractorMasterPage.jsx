@@ -37,51 +37,17 @@ import {
 import useToast from "../../hooks/ToastContext";
 import { useSelector } from "react-redux";
 import ContractorDeleteButton from "../../components/AdminDashboard/AlertDialog";
-
-const mockContractors = [
-  {
-    id: 1,
-    name: "Tech Solutions Inc.",
-    email: "contact@techsolutions.com",
-    phone: "+1-555-0123",
-    company: "Tech Solutions Inc.",
-    address: "123 Business Ave, Tech City, TC 12345",
-    is_active: true,
-    joinedDate: "2024-01-15",
-    quizCount: 12,
-  },
-  {
-    id: 2,
-    name: "Digital Learning Corp",
-    email: "info@digitallearning.com",
-    phone: "+1-555-0456",
-    company: "Digital Learning Corp",
-    address: "456 Education Blvd, Learn City, LC 67890",
-    is_active: true,
-    joinedDate: "2024-01-20",
-    quizCount: 8,
-  },
-  {
-    id: 3,
-    name: "Training Partners LLC",
-    email: "hello@trainingpartners.com",
-    phone: "+1-555-0789",
-    company: "Training Partners LLC",
-    address: "789 Training St, Skill Town, ST 54321",
-    is_active: false,
-    joinedDate: "2024-01-10",
-    quizCount: 5,
-  },
-];
+import axios from "axios";
 
 export function ContractorMasterPage() {
-  const [contractors, setContractors] = useState(mockContractors);
+  const [contractors, setContractors] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteContractorId, setDeleteContractorId] = useState(null);
   const [isEditing, setIsEditing] = useState(null);
   const [companies, setCompanies] = useState([]);
   const { toast } = useToast();
   const updateRef = useRef(null);
+  const [selectedTeam, setSelectedTeam] = useState("");
   const { user } = useSelector((state) => state.auth);
   const [newContractor, setNewContractor] = useState({
     name: "",
@@ -100,6 +66,7 @@ export function ContractorMasterPage() {
     address: "",
     profile_pic: null,
   });
+  const [allUsers, setAllUsers] = useState([]);
 
   const filteredContractors = contractors.filter(
     (contractor) =>
@@ -113,7 +80,31 @@ export function ContractorMasterPage() {
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
   );
-
+  const fetchAttempts = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/role/user`
+      );
+      if (res.data.success) {
+        setAllUsers(res.data.data);
+      }
+    } catch (err) {
+      console.error("Error fetching user:", err);
+    }
+  };
+  const fetchContractor = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/contractors`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setContractors(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+    }
+  };
   const fetchCompanies = async () => {
     try {
       const res = await fetch(
@@ -128,24 +119,9 @@ export function ContractorMasterPage() {
     }
   };
   useEffect(() => {
-    fetchCompanies();
-  }, []);
-
-  const fetchContractor = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/contractors`
-      );
-      const data = await res.json();
-      if (data.success) {
-        setContractors(data.data);
-      }
-    } catch (error) {
-      console.error("Error fetching companies:", error);
-    }
-  };
-  useEffect(() => {
+    fetchAttempts();
     fetchContractor();
+    fetchCompanies();
   }, []);
 
   const handleAddCompany = async () => {
@@ -166,8 +142,8 @@ export function ContractorMasterPage() {
       if (data.success) {
         fetchCompanies();
         toast({
-          title: "Company Added",
-          description: "New Company added successfully",
+          title: "Group Added",
+          description: "New Group added successfully",
         });
         setNewCompany({
           company_name: "",
@@ -179,7 +155,7 @@ export function ContractorMasterPage() {
         });
       } else {
         toast({
-          title: "Company added Failed",
+          title: "Group added Failed",
           description: data.message || "Unknown error",
           variant: "destructive",
         });
@@ -187,8 +163,8 @@ export function ContractorMasterPage() {
     } catch (error) {
       console.error("Error adding contractor:", error);
       toast({
-        title: "Company added Failed",
-        description: "Failed to add Company",
+        title: "Group added Failed",
+        description: "Failed to add Group",
         variant: "destructive",
       });
     }
@@ -202,7 +178,7 @@ export function ContractorMasterPage() {
 
       if (!selectedCompany) {
         toast({
-          title: "Failed to add contractor",
+          title: "Failed to add team",
           description: "Please select a valid company",
           variant: "destructive",
         });
@@ -225,8 +201,8 @@ export function ContractorMasterPage() {
 
       if (data.success) {
         toast({
-          title: "Contractor Added",
-          description: "New Contractor added successfully",
+          title: "Team Added",
+          description: "New Team added successfully",
         });
         setContractors([
           ...contractors,
@@ -249,16 +225,16 @@ export function ContractorMasterPage() {
         });
       } else {
         toast({
-          title: "Contractor added Failed",
+          title: "Team added Failed",
           description: data.message || "Unknown error",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Error adding contractor:", error);
+      console.error("Error adding Team:", error);
       toast({
-        title: "Contractor added Failed",
-        description: "Failed to add contractor",
+        title: "Team added Failed",
+        description: "Failed to add Team",
         variant: "destructive",
       });
     }
@@ -271,8 +247,8 @@ export function ContractorMasterPage() {
 
       if (!selectedCompany) {
         toast({
-          title: "Failed to update contractor",
-          description: "Please select a valid company",
+          title: "Failed to update Team",
+          description: "Please select a valid group",
           variant: "destructive",
         });
         return;
@@ -296,8 +272,8 @@ export function ContractorMasterPage() {
 
       if (data.success) {
         toast({
-          title: "Contractor Updated",
-          description: "Contractor updated successfully",
+          title: "Team Updated",
+          description: "Team updated successfully",
         });
 
         // ✅ Update contractor in state instead of adding new
@@ -327,10 +303,10 @@ export function ContractorMasterPage() {
         });
       }
     } catch (error) {
-      console.error("Error updating contractor:", error);
+      console.error("Error updating Team:", error);
       toast({
         title: "Update Failed",
-        description: "Failed to update contractor",
+        description: "Failed to update Team",
         variant: "destructive",
       });
     }
@@ -351,11 +327,11 @@ export function ContractorMasterPage() {
         setContractors((prev) => prev.filter((c) => c.id !== id));
         setDeleteContractorId(null);
       } else {
-        alert(data.message || "Failed to delete contractor");
+        alert(data.message || "Failed to delete Team");
       }
     } catch (error) {
-      console.error("Error deleting contractor:", error);
-      alert("Server error while deleting contractor");
+      console.error("Error deleting Team:", error);
+      alert("Server error while deleting Team");
     }
   };
 
@@ -385,7 +361,7 @@ export function ContractorMasterPage() {
 
         toast({
           title: "Status Updated",
-          description: `Contractor has been ${
+          description: `Team has been ${
             currentStatus ? "deactivated" : "activated"
           } successfully.`,
         });
@@ -431,17 +407,22 @@ export function ContractorMasterPage() {
     }
   };
 
-  const isFormValid =
-    newCompany.company_name.trim() !== "";
+  const isFormValid = newCompany.company_name.trim() !== "";
   const isFormValid2 =
     newContractor.name.trim() !== "" && newContractor.company_name !== "";
+
+  const filteredUsers = selectedTeam
+    ? allUsers.filter((user) => user.controlling_team === selectedTeam)
+    : allUsers;
+
+  console.log("filteredUsers: ", filteredUsers);
+  console.log("selectedTeam: ", selectedTeam);
+  console.log("allUsers: ", allUsers);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between ">
-        <h1 className="text-3xl font-bold text-foreground">
-          Contractor Master
-        </h1>
+        <h1 className="text-3xl font-bold text-foreground">Group Master</h1>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -449,19 +430,22 @@ export function ContractorMasterPage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Plus className="h-5 w-5 mr-2" />
-              Add New Company
+              Add New Group
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="company_name">Company Name *</Label>
+                <Label htmlFor="company_name">Group Name *</Label>
                 <Input
                   id="company_name"
-                  placeholder="Enter Company name..."
+                  placeholder="Enter Group name..."
                   value={newCompany.company_name}
                   onChange={(e) =>
-                    setNewCompany({ ...newCompany, company_name: e.target.value })
+                    setNewCompany({
+                      ...newCompany,
+                      company_name: e.target.value,
+                    })
                   }
                   required
                 />
@@ -521,7 +505,7 @@ export function ContractorMasterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="profile-pic">Company Logo (URL)</Label>
+              <Label htmlFor="profile-pic">Group Logo (URL)</Label>
               <Input
                 id="profile-pic"
                 type="file"
@@ -542,7 +526,7 @@ export function ContractorMasterPage() {
               )}
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="contractor-address">Address</Label>
               <Textarea
                 id="contractor-address"
@@ -556,7 +540,7 @@ export function ContractorMasterPage() {
                 }
                 rows={2}
               />
-            </div>
+            </div> */}
 
             <Button
               onClick={handleAddCompany}
@@ -564,7 +548,7 @@ export function ContractorMasterPage() {
               className="w-full"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Company
+              Add Group
             </Button>
           </CardContent>
         </Card>
@@ -572,16 +556,16 @@ export function ContractorMasterPage() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <Building className="h-5 w-5 mr-2" />
-              Add New Contractor
+              Add New Team
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid md:grid-cols-2 grid-cols-1 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Contractor Name *</Label>
+                <Label htmlFor="name">Team Name *</Label>
                 <Input
                   id="name"
-                  placeholder="Enter contact name..."
+                  placeholder="Enter Team name..."
                   value={newContractor.name}
                   onChange={(e) =>
                     setNewContractor({
@@ -593,7 +577,7 @@ export function ContractorMasterPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="company_name">Company *</Label>
+                <Label htmlFor="company_name">Group *</Label>
                 <Select
                   value={newContractor.company_name}
                   onValueChange={(value) =>
@@ -681,7 +665,7 @@ export function ContractorMasterPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="contractor-address">Address</Label>
               <Textarea
                 id="contractor-address"
@@ -695,7 +679,7 @@ export function ContractorMasterPage() {
                 }
                 rows={2}
               />
-            </div>
+            </div> */}
 
             <Button
               onClick={isEditing ? handleUpdateContractor : handleAddContractor}
@@ -703,162 +687,196 @@ export function ContractorMasterPage() {
               className="w-full"
             >
               <Plus className="h-4 w-4 mr-2" />
-              {isEditing ? "Update Contractor" : "Add Contractor"}
+              {isEditing ? "Update Team" : "Add Team"}
             </Button>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Contractors List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>All Contractors ({filteredContractors.length})</CardTitle>
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contractors..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 max-h-[30rem] overflow-hidden overflow-y-auto">
-            {filteredContractors.map((contractor) => (
-              <div key={contractor.id} className="p-4 border rounded-lg">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex gap-2 mb-2 md:flex-row flex-col">
-                      <h3 className="font-semibold">{contractor.name}</h3>
-                      <div className=" flex gap-2 mb-2">
-                        <Badge
-                          variant={
-                            contractor.is_active ? "default" : "secondary"
-                          }
-                        >
-                          {contractor.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                        <Badge variant="outline">
-                          {contractor.quizCount || 10} quizzes
-                        </Badge>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground mb-2">
-                      <div className="flex items-center">
-                        <Building className="h-3 w-3 mr-1" />
-                        {contractor.company_name}
-                      </div>
-                      {contractor.email && (
-                        <div className="flex items-center">
-                          <Mail className="h-3 w-3 mr-1" />
-                          {contractor.email}
-                        </div>
-                      )}
-                      {contractor.phone && (
-                        <div className="flex items-center">
-                          <Phone className="h-3 w-3 mr-1" />
-                          {contractor.phone}
-                        </div>
-                      )}
-                      <div className="text-xs">
-                        Joined:{" "}
-                        {contractor.created_at
-                          ? new Date(contractor.created_at)
-                              .toISOString()
-                              .split("T")[0]
-                          : "Never"}
-                      </div>
-                    </div>
-                    {contractor.address && (
-                      <p className="text-xs text-muted-foreground">
-                        {contractor.address}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {/* Desktop buttons */}
-                    <div className="hidden sm:flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditClick(contractor.id)}
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={
-                          contractor.is_active ? "destructive" : "default"
-                        }
-                        onClick={() =>
-                          handleToggleStatus(contractor.id, contractor.is_active)
-                        }
-                      >
-                        {contractor.is_active ? "Deactivate" : "Activate"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setDeleteContractorId(contractor.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-
-                    {/* Mobile 3-dot menu */}
-                    <div className="sm:hidden">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={() => handleEditClick(contractor.id)}
-                          >
-                            <Edit className="h-3 w-3 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() =>
-                              handleToggleStatus(
-                                contractor.id,
-                                contractor.is_active
-                              )
+        <Card>
+          <CardHeader className=" flex md:flex-row flex-col justify-between items-center">
+            <CardTitle>All Teams ({filteredContractors.length})</CardTitle>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search Team..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-[30rem] overflow-hidden overflow-y-auto">
+              {filteredContractors.map((contractor) => (
+                <div
+                  key={contractor.id}
+                  className={`p-4 border rounded-lg hover:cursor-pointer hover:border-blue-600 ${
+                    contractor.name === selectedTeam &&
+                    "border-2 border-slate-700"
+                  }`}
+                  onClick={() => setSelectedTeam(contractor.name)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex gap-2 mb-2 md:flex-row flex-col">
+                        <h3 className="font-semibold">{contractor.name}</h3>
+                        <div className=" flex gap-2 mb-2">
+                          <Badge
+                            variant={
+                              contractor.is_active ? "default" : "secondary"
                             }
                           >
-                            <Power className="h-3 w-3 mr-2" />
-                            {contractor.is_active ? "Deactivate" : "Activate"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() => setDeleteContractorId(contractor.id)}
-                          >
-                            <Trash2 className="h-3 w-3 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            {contractor.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                          <Badge variant="outline">
+                            {contractor.quizCount || 10} quizzes
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground mb-2">
+                        <div className="flex items-center">
+                          <Building className="h-3 w-3 mr-1" />
+                          {contractor.company_name}
+                        </div>
+                        {contractor.email && (
+                          <div className="flex items-center">
+                            <Mail className="h-3 w-3 mr-1" />
+                            {contractor.email}
+                          </div>
+                        )}
+                        {contractor.phone && (
+                          <div className="flex items-center">
+                            <Phone className="h-3 w-3 mr-1" />
+                            {contractor.phone}
+                          </div>
+                        )}
+                        <div className="text-xs">
+                          Joined:{" "}
+                          {contractor.created_at
+                            ? new Date(contractor.created_at)
+                                .toISOString()
+                                .split("T")[0]
+                            : "Never"}
+                        </div>
+                      </div>
+                      {contractor.address && (
+                        <p className="text-xs text-muted-foreground">
+                          {contractor.address}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      {/* Desktop buttons */}
+                      <div className="hidden sm:flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditClick(contractor.id)}
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={
+                            contractor.is_active ? "destructive" : "default"
+                          }
+                          onClick={() =>
+                            handleToggleStatus(
+                              contractor.id,
+                              contractor.is_active
+                            )
+                          }
+                        >
+                          {contractor.is_active ? "Deactivate" : "Activate"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setDeleteContractorId(contractor.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {/* Mobile 3-dot menu */}
+                      <div className="sm:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleEditClick(contractor.id)}
+                            >
+                              <Edit className="h-3 w-3 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleToggleStatus(
+                                  contractor.id,
+                                  contractor.is_active
+                                )
+                              }
+                            >
+                              <Power className="h-3 w-3 mr-2" />
+                              {contractor.is_active ? "Deactivate" : "Activate"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() =>
+                                setDeleteContractorId(contractor.id)
+                              }
+                            >
+                              <Trash2 className="h-3 w-3 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
+                  {deleteContractorId === contractor.id && (
+                    <ContractorDeleteButton
+                      id={contractor.id}
+                      onDelete={handleDeleteContractor}
+                      handleCancel={() => setDeleteContractorId(null)}
+                    />
+                  )}
                 </div>
-                {deleteContractorId === contractor.id && (
-                  <ContractorDeleteButton
-                    id={contractor.id}
-                    onDelete={handleDeleteContractor}
-                    handleCancel={() => setDeleteContractorId(null)}
-                  />
-                )}
-              </div>
-            ))}
-            {filteredContractors.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No contractors found matching your criteria.
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+              {filteredContractors.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No contractors found matching your criteria.
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className=" flex md:flex-row flex-col justify-between items-center">
+            <CardTitle>All Members ({filteredUsers.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2 max-h-[30rem] overflow-y-auto">
+              {filteredUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors`}
+                >
+                  <div className="font-medium">{user.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {user.email}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs">Score: {user.score || 0}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

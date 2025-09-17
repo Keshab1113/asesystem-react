@@ -30,7 +30,7 @@ function ContractorDeleteButton({ id, onDelete, handleCancel }) {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Delete Contractor
+                  Delete Team
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
                   This action cannot be undone

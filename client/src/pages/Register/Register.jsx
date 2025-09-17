@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Globe,
   User,
@@ -47,6 +47,42 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [companies, setCompanies] = useState([]);
+  const [contractors, setContractors] = useState([]);
+
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/companies`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setCompanies(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+    }
+  };
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  const fetchContractor = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/contractors`
+        );
+        const data = await res.json();
+        if (data.success) {
+          setContractors(data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      }
+    };
+    useEffect(() => {
+      fetchContractor();
+    }, []);
 
   const validateForm = () => {
     const newErrors = {};
@@ -99,7 +135,6 @@ export default function RegisterPage() {
       );
 
       const data = await res.json();
-      console.log("data: ", data);
 
       if (data.success) {
         toast({
@@ -243,9 +278,12 @@ export default function RegisterPage() {
                     <SelectValue placeholder="Select your group" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="group1">Group 1</SelectItem>
-                    <SelectItem value="group2">Group 2</SelectItem>
-                    <SelectItem value="group3">Group 3</SelectItem>
+                    {companies?.map((company) => (
+                      <SelectItem value={company.name}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                    
                   </SelectContent>
                 </Select>
               </div>
@@ -268,9 +306,12 @@ export default function RegisterPage() {
                     <SelectValue placeholder="Select your Controlling Team" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EMP001">EMP001</SelectItem>
-                    <SelectItem value="EMP002">EMP002</SelectItem>
-                    <SelectItem value="EMP003">EMP003</SelectItem>
+                    {contractors?.map((company) => (
+                      <SelectItem value={company.name}>
+                        {company.name}
+                      </SelectItem>
+                    ))}
+                    
                   </SelectContent>
                 </Select>
               </div>

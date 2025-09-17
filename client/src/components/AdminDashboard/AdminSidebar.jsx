@@ -62,8 +62,8 @@ const navigationItems = [
     icon: Database,
     items: [
       // { title: "Add Questions", icon: Plus, page: "add-questions" },
-      { title: "Subject Master", icon: FileText, page: "subject-master" },
-      { title: "Contractor Master", icon: Building, page: "contractor-master" },
+      { title: "Assessment Master", icon: FileText, page: "subject-master" },
+      { title: "Group Master", icon: Building, page: "contractor-master" },
     ],
   },
   {

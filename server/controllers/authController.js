@@ -186,7 +186,7 @@ const uploadProfilePicture = async (req, res) => {
 const getNormalUsers = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT id, name, email, role, phone, position, bio, is_active, profile_pic_url, created_at, updated_at FROM users WHERE role = 'user' ORDER BY created_at DESC"
+      "SELECT id, name, controlling_team, `group`, email, role, phone, position, bio, is_active, profile_pic_url, created_at, updated_at FROM users WHERE role = 'user' ORDER BY created_at DESC"
     );
 
     res.json({ success: true, data: rows });
