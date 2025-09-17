@@ -361,7 +361,7 @@ const register = async (req, res) => {
 
     await pool.execute(
       `INSERT INTO users 
-        (name, position, employee_id, email, controlling_team, userLocationType, \`group\`, otp, role, is_active, password_hash) 
+        (name, position, employee_id, email, controlling_team, location, \`group\`, otp, role, is_active, password_hash) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', FALSE, ?)`,
       [
         fullName,
