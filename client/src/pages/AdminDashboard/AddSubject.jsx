@@ -590,6 +590,7 @@ export default function AddSubjectPage() {
 
                     <textarea
                       value={q.question}
+                      
                       onChange={(e) => {
                         const updated = [...questions];
                         updated[i] = {

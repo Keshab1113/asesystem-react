@@ -18,45 +18,76 @@ import { Badge } from "../../components/ui/badge";
 import { Search, Plus, Edit, Trash2, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { QuizFormModal } from "../../components/AdminDashboard/QuizFormModal";
+import AssignQuizModal from "../../components/AdminDashboard/AssignQuizModal";
+import ViewQuestionsModal from "../../components/AdminDashboard/ViewQuestionsModal";
 import useToast from "../../hooks/ToastContext";
-
- 
+import { Eye,Users } from "lucide-react";
 
 export function SubjectMasterPage() {
- const [subjects, setSubjects] = useState([]);
-
+  const [subjects, setSubjects] = useState([]);
+  const [assignModal, setAssignModal] = useState({ open: false, quizId: null });
   const [searchTerm, setSearchTerm] = useState("");
   const [isEditing, setIsEditing] = useState(null);
   const [formModal, setFormModal] = useState({
     open: false,
     quiz: null,
   });
-   
+  const [viewQuestionsModal, setViewQuestionsModal] = useState({
+    open: false,
+    quizId: null,
+  });
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
-useEffect(() => {
-  const fetchSubjects = async () => {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`);
-      // Map backend fields to frontend display fields
-      const quizzes = response.data.data.map((q) => ({
-  id: q.id,
-  name: q.title,
-  description: q.description || "",
-  questionCount: q.question_count ?? 0, // now using real count
-  isActive: q.is_active === 1,
-  createdDate: new Date(q.created_at).toLocaleDateString(),
-}));
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`
+        );
+        // Map backend fields to frontend display fields
+        const quizzes = response.data.data.map((q) => ({
+          id: q.id,
+          name: q.title,
+          description: q.description || "",
+          questionCount: q.question_count ?? 0,
+          isActive: q.is_active === 1,
+          createdDate: new Date(q.created_at).toLocaleDateString(),
 
-      setSubjects(quizzes);
-    } catch (error) {
-      console.error("Error fetching quizzes:", error);
-    }
-  };
-  fetchSubjects();
-}, []);
+          // extra columns
+          subjectId: q.subject_id,
+          companyId: q.company_id,
+          difficultyLevel: q.difficulty_level,
+          passingScore: q.passing_score,
+          maxAttempts: q.max_attempts,
+          timeLimit: q.time_limit,
 
+          scheduleStartDate: q.schedule_start_date
+            ? new Date(q.schedule_start_date).toLocaleDateString()
+            : null,
+          scheduleStartTime: q.schedule_start_time
+            ? q.schedule_start_time.slice(0, 5)
+            : null,
+          scheduleEndDate: q.schedule_end_date
+            ? new Date(q.schedule_end_date).toLocaleDateString()
+            : null,
+          scheduleEndTime: q.schedule_end_time
+            ? q.schedule_end_time.slice(0, 5)
+            : null,
+
+          createdBy: q.created_by,
+          updatedAt: new Date(q.updated_at).toLocaleString(),
+        }));
+
+        setSubjects(quizzes);
+        console.log("Fetched quizzes:", quizzes);
+      } catch (error) {
+        console.error("Error fetching quizzes:", error);
+      }
+    };
+    fetchSubjects();
+  }, []);
 
   const filteredSubjects = subjects.filter(
     (subject) =>
@@ -80,64 +111,64 @@ useEffect(() => {
     );
   };
 
+  const handleViewQuestions = (quizId) => {
+    setViewQuestionsModal({ open: true, quizId });
+  };
+
+  const handleAssignQuiz = (quiz) => {
+    setAssignModal({ open: true, quizId: quiz.id, quizName: quiz.name });
+    console.log("Assigning quiz:", quiz);
+};
+
+
   const handleEditQuiz = (quiz) => {
     setFormModal({ open: true, quiz });
     console.log("Editing quiz:", quiz);
   };
 
   const handleSaveQuiz = (quizData) => {
-    // if (quizData.id && subjects.find((q) => q.id === quizData.id)) {
-    //   // Update existing quiz
-    //   setSubjects((prev) =>
-    //     prev.map((quiz) => (quiz.id === quizData.id ? quizData : quiz))
-    //   );
-    //   toast({
-    //     title: "Quiz Updated",
-    //     description: `Quiz "${quizData.name}" has been updated successfully.`,
-    //   });
-    // } else {
-    //   // Add new quiz
-    //   setSubjects((prev) => [...prev, quizData]);
-    //   toast({
-    //     title: "Quiz Created",
-    //     description: `Quiz "${quizData.name}" has been created successfully.`,
-    //   });
-    // }
     if (quizData.id && subjects.find((q) => q.id === quizData.id)) {
-  // Update existing quiz while preserving isActive & questionCount
-  setSubjects((prev) =>
-    prev.map((quiz) =>
-      quiz.id === quizData.id
-        ? { ...quiz, ...quizData, isActive: quiz.isActive ?? true, questionCount: quiz.questionCount }
-        : quiz
-    )
-  );
-   toast({
+      // Update existing quiz while preserving isActive & questionCount
+      setSubjects((prev) =>
+        prev.map((quiz) =>
+          quiz.id === quizData.id
+            ? {
+                ...quiz,
+                ...quizData,
+                isActive: quiz.isActive ?? true,
+                questionCount: quiz.questionCount,
+              }
+            : quiz
+        )
+      );
+      toast({
         title: "Quiz Updated",
         description: `Quiz "${quizData.name}" has been updated successfully.`,
       });
-} else {
-  // Add new quiz with default isActive and questionCount
-  setSubjects((prev) => [...prev, { ...quizData, isActive: true, questionCount: 0 }]);
-   toast({
+    } else {
+      // Add new quiz with default isActive and questionCount
+      setSubjects((prev) => [
+        ...prev,
+        { ...quizData, isActive: true, questionCount: 0 },
+      ]);
+      toast({
         title: "Quiz Created",
         description: `Quiz "${quizData.name}" has been created successfully.`,
       });
-}
-
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Subject Master</h1>
+        <h1 className="text-3xl font-bold text-foreground">Assesment Master</h1>
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-center gap-20 w-full md:w-auto">
           <CardTitle className="flex items-center ">
             <BookOpen className="h-5 w-5 mr-2" />
-            Subject Management
+            Quiz Management
           </CardTitle>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -152,9 +183,8 @@ useEffect(() => {
 
         <Button
           onClick={() => navigate("add-subject")}
-          className="self-start md:self-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 "
-        >
-          ➕ Add New Subject
+          className="self-start md:self-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 ">
+          ➕ Add New Quiz
         </Button>
       </div>
 
@@ -174,17 +204,42 @@ useEffect(() => {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold">{subject.name}</h3>
                         <Badge
-                          variant={subject.isActive ? "default" : "secondary"}
-                        >
+                          variant={subject.isActive ? "default" : "secondary"}>
                           {subject.isActive ? "Active" : "Inactive"}
                         </Badge>
                         <Badge variant="outline">
-                          {subject.questionCount} questions
+                          {subject.questionCount} question Bank
+                        </Badge>
+                        <Badge variant="outline">
+                          {" "}
+                          {subject.difficultyLevel}
+                        </Badge>
+                        <Badge variant="outline">
+                          {" "}
+                          Max Attempts: {subject.maxAttempts}
+                        </Badge>
+                        <Badge variant="outline">
+                          {" "}
+                          Time Limit: {subject.timeLimit} mins
                         </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
                         {subject.description}
                       </p>
+                      <p className="text-xs mb-1">
+                        Starting:{" "}
+                        {subject.scheduleStartDate && subject.scheduleStartTime
+                          ? `${subject.scheduleStartDate} ${subject.scheduleStartTime}`
+                          : "Not Scheduled"}
+                      </p>
+
+                      <p className="text-xs mb-1">
+                        Ending:{" "}
+                        {subject.scheduleEndDate && subject.scheduleEndTime
+                          ? `${subject.scheduleEndDate} ${subject.scheduleEndTime}`
+                          : "Not Scheduled"}
+                      </p>
+
                       <p className="text-xs text-muted-foreground">
                         Created: {subject.createdDate}
                       </p>
@@ -193,22 +248,37 @@ useEffect(() => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => handleEditQuiz(subject)}
-                      >
+                        onClick={() => handleViewQuestions(subject.id)}
+                        className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        View 
+                      </Button>
+                      <Button
+  size="sm"
+  variant="outline"
+  onClick={() => handleAssignQuiz(subject)} // pass full subject object
+  className="flex items-center gap-2"
+>
+  <Users className="h-4 w-4" />
+  Assign
+</Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditQuiz(subject)}>
                         <Edit className="h-3 w-3" />
                       </Button>
                       <Button
                         size="sm"
                         variant={subject.isActive ? "destructive" : "default"}
-                        onClick={() => handleToggleStatus(subject.id)}
-                      >
+                        onClick={() => handleToggleStatus(subject.id)}>
                         {subject.isActive ? "Deactivate" : "Activate"}
                       </Button>
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleDeleteSubject(subject.id)}
-                      >
+                        onClick={() => handleDeleteSubject(subject.id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
@@ -226,17 +296,28 @@ useEffect(() => {
       </div>
 
       <QuizFormModal
-  quiz={formModal.quiz}
-  open={formModal.open}
-  onOpenChange={(open) =>
-    setFormModal((prev) => ({
-      open,
-      quiz: open ? prev.quiz : null, // clear quiz only when closing
-    }))
-  }
-  onSave={handleSaveQuiz}
+        quiz={formModal.quiz}
+        open={formModal.open}
+        onOpenChange={(open) =>
+          setFormModal((prev) => ({
+            open,
+            quiz: open ? prev.quiz : null, // clear quiz only when closing
+          }))
+        }
+        onSave={handleSaveQuiz}
+      />
+     <AssignQuizModal
+  quizId={assignModal.quizId}
+  quizName={assignModal.quizName} // <- pass the quiz name here
+  open={assignModal.open}
+  onClose={() => setAssignModal({ open: false, quizId: null, quizName: null })}
 />
 
+      <ViewQuestionsModal
+        quizId={viewQuestionsModal.quizId}
+        open={viewQuestionsModal.open}
+        onClose={() => setViewQuestionsModal({ open: false, quizId: null })}
+      />
     </div>
   );
 }
