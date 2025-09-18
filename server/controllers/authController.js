@@ -131,6 +131,10 @@ const updateUser = async (req, res) => {
       bio,
       is_active,
       profile_pic_url,
+      employee_id,
+      group,
+      controlling_team,
+      location,
     } = req.body;
 
     if (!id) {
@@ -142,9 +146,23 @@ const updateUser = async (req, res) => {
 
     await db.execute(
       `UPDATE users 
-       SET name = ?, email = ?, role = ?, phone = ?, position = ?, bio = ?, is_active = ?, profile_pic_url = ?, updated_at = NOW()
+       SET name = ?, email = ?, role = ?, phone = ?, position = ?, bio = ?, is_active = ?, \`group\` = ?,employee_id = ? ,controlling_team = ?,location= ?, profile_pic_url = ?, updated_at = NOW()
        WHERE id = ?`,
-      [name, email, role, phone, position, bio, is_active, profile_pic_url, id]
+      [
+        name,
+        email,
+        role,
+        phone,
+        position,
+        bio,
+        is_active,
+        group,
+        employee_id,
+        controlling_team,
+        location,
+        profile_pic_url,
+        id,
+      ]
     );
 
     res.status(200).json({
@@ -195,7 +213,7 @@ const uploadProfilePicture = async (req, res) => {
 const getNormalUsers = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT id, name, controlling_team, `group`, email, role, phone, position, bio, is_active, profile_pic_url, created_at, updated_at FROM users WHERE role = 'user' ORDER BY created_at DESC"
+      "SELECT id, name,location,employee_id, controlling_team, `group`, email, role, phone, position, bio, is_active, profile_pic_url, created_at, updated_at FROM users WHERE role = 'user' ORDER BY created_at DESC"
     );
 
     res.json({ success: true, data: rows });
@@ -340,12 +358,12 @@ const register = async (req, res) => {
     const {
       fullName,
       position,
-      employeeId,
+      employee_id,
       email,
-      controllingTeam,
+      controlling_team,
       group,
       password,
-      userLocationType,
+      location,
     } = req.body;
 
     if (!password) {
@@ -366,10 +384,10 @@ const register = async (req, res) => {
       [
         fullName,
         position,
-        employeeId,
+        employee_id,
         email,
-        controllingTeam,
-        userLocationType,
+        controlling_team,
+        location,
         group,
         otp,
         passwordHash,
@@ -502,7 +520,7 @@ const login = async (req, res) => {
     }
 
     const [users] = await pool.execute(
-      "SELECT id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at, phone, `group`, controlling_team, employee_id FROM users WHERE email = ?",
+      "SELECT id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at,location, phone, `group`, controlling_team, employee_id FROM users WHERE email = ?",
       [email]
     );
 

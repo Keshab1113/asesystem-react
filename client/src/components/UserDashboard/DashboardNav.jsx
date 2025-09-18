@@ -50,7 +50,7 @@ export function DashboardNav() {
 
   const handleLogout = () => {
     dispatch(logout())
-    router.push("/login");
+    router("/login");
   };
 
   return (

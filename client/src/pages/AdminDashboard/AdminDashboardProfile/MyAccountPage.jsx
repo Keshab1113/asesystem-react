@@ -50,13 +50,14 @@ export function MyAccountPage() {
         toast({
           title: "Profile Updated",
           description: "User updated successfully!",
+          variant: "success"
         });
       } else {
         console.error("Update failed:", data.message || "Unknown error");
         toast({
           title: "Update failed",
           description: data.message,
-          variant: "destructive",
+          variant: "error"
         });
       }
     } catch (error) {
@@ -64,7 +65,7 @@ export function MyAccountPage() {
       toast({
         title: "Update error",
         description: "An error occurred while updating user data",
-        variant: "destructive",
+        variant: "error"
       });
     }
   };

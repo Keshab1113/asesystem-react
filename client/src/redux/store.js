@@ -10,7 +10,7 @@ import quizSlice from "./slices/quizSlice";
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth", "user"], // Only persist auth and user data
+  whitelist: ["auth", "user", "quiz"], // Only persist auth and user data
 };
 
 const rootReducer = combineReducers({

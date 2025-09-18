@@ -74,6 +74,7 @@ export default function VerifyOTPPage() {
           title: "Verification Successful",
           description:
             "Your account has been verified successfully. Please log in.",
+            variant: "success"
         });
         if (needFor === "") {
           navigate("/login");
@@ -106,12 +107,13 @@ export default function VerifyOTPPage() {
         toast({
           title: "OTP Sent",
           description: "A new verification code has been sent to your email.",
+          variant: "success"
         });
       } else {
         toast({
           title: "Failed",
           description: "Could not resend OTP. Please try again.",
-          variant: "destructive",
+          variant: "error"
         });
       }
     } catch (error) {
@@ -119,7 +121,7 @@ export default function VerifyOTPPage() {
       toast({
         title: "Error",
         description: "Something went wrong while resending OTP.",
-        variant: "destructive",
+        variant: "error"
       });
     }
   };

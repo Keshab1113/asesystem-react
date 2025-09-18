@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
       if (data.success) {
         window.location.href = `/verify-otp?email=${encodeURIComponent(email)}&needFor=forgotpassword`;
         setSuccess(data.message);
-        toast({ title: "OTP Sent", description: "Check your email inbox." });
+        toast({ title: "OTP Sent", description: "Check your email inbox.", variant: "success" });
       } else {
         setError(data.message || "Something went wrong");
       }

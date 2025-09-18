@@ -92,7 +92,7 @@ export function DashboardContent() {
         toast({
           title: "Error",
           description: "Failed to load quizzes from the server.",
-          variant: "destructive",
+          variant: "error"
         });
       }
     };
@@ -235,6 +235,7 @@ export function DashboardContent() {
     toast({
       title: "Preset Saved",
       description: `Filter preset "${name}" has been saved successfully.`,
+      variant: "success"
     });
   };
 
@@ -243,6 +244,7 @@ export function DashboardContent() {
     toast({
       title: "Preset Loaded",
       description: "Filter preset has been applied successfully.",
+      variant: "success"
     });
   };
 
@@ -264,6 +266,7 @@ export function DashboardContent() {
     toast({
       title: "Quiz Updated",
       description: `Quiz "${quiz?.name}" has been ${newStatus} successfully.`,
+      variant: "success"
     });
     setLoading(id, false);
   };
@@ -276,7 +279,7 @@ export function DashboardContent() {
     toast({
       title: "Quiz Deleted",
       description: `Quiz "${quiz?.name}" has been deleted successfully.`,
-      variant: "destructive",
+      variant: "success"
     });
     setLoading(id, false);
   };
@@ -302,6 +305,7 @@ export function DashboardContent() {
     toast({
       title: "Quiz Duplicated",
       description: `Quiz "${quiz.name}" has been duplicated successfully.`,
+      variant: "success"
     });
   };
 

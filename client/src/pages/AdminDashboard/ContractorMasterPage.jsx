@@ -11,6 +11,14 @@ import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "../../components/ui/dialog";
+import {
   Search,
   Plus,
   Edit,
@@ -21,6 +29,9 @@ import {
   MoreVertical,
   Power,
   PhoneCall,
+  Send,
+  IdCard,
+  MonitorCog,
 } from "lucide-react";
 import {
   Select,
@@ -51,7 +62,7 @@ export function ContractorMasterPage() {
   const updateRef = useRef(null);
   const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
   const [newContractor, setNewContractor] = useState({
     name: "",
     email: "",
@@ -60,6 +71,18 @@ export function ContractorMasterPage() {
     address: "",
     specialization: "",
     license_number: "",
+  });
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [formData, setFormData] = useState({
+    id: "",
+    name: "",
+    employee_id: "",
+    email: "",
+    group: "",
+    controlling_team: "",
+    location: "",
   });
   const [newCompany, setNewCompany] = useState({
     company_name: "",
@@ -91,6 +114,7 @@ export function ContractorMasterPage() {
       const res = await axios.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/role/user`
       );
+
       if (res.data.success) {
         setAllUsers(res.data.data);
       }
@@ -150,6 +174,7 @@ export function ContractorMasterPage() {
         toast({
           title: "Group Added",
           description: "New Group added successfully",
+          variant: "success",
         });
         setNewCompany({
           company_name: "",
@@ -163,7 +188,7 @@ export function ContractorMasterPage() {
         toast({
           title: "Group added Failed",
           description: data.message || "Unknown error",
-          variant: "destructive",
+          variant: "error",
         });
       }
     } catch (error) {
@@ -171,7 +196,7 @@ export function ContractorMasterPage() {
       toast({
         title: "Group added Failed",
         description: "Failed to add Group",
-        variant: "destructive",
+        variant: "error",
       });
     }
   };
@@ -186,7 +211,7 @@ export function ContractorMasterPage() {
         toast({
           title: "Failed to add team",
           description: "Please select a valid company",
-          variant: "destructive",
+          variant: "warning",
         });
         return;
       }
@@ -209,6 +234,7 @@ export function ContractorMasterPage() {
         toast({
           title: "Team Added",
           description: "New Team added successfully",
+          variant: "success",
         });
         setContractors([
           ...contractors,
@@ -233,7 +259,7 @@ export function ContractorMasterPage() {
         toast({
           title: "Team added Failed",
           description: data.message || "Unknown error",
-          variant: "destructive",
+          variant: "error",
         });
       }
     } catch (error) {
@@ -241,7 +267,7 @@ export function ContractorMasterPage() {
       toast({
         title: "Team added Failed",
         description: "Failed to add Team",
-        variant: "destructive",
+        variant: "error",
       });
     }
   };
@@ -255,7 +281,7 @@ export function ContractorMasterPage() {
         toast({
           title: "Failed to update Team",
           description: "Please select a valid group",
-          variant: "destructive",
+          variant: "warning",
         });
         return;
       }
@@ -280,6 +306,7 @@ export function ContractorMasterPage() {
         toast({
           title: "Team Updated",
           description: "Team updated successfully",
+          variant: "success",
         });
 
         // ✅ Update contractor in state instead of adding new
@@ -305,7 +332,7 @@ export function ContractorMasterPage() {
         toast({
           title: "Update Failed",
           description: data.message || "Unknown error",
-          variant: "destructive",
+          variant: "error",
         });
       }
     } catch (error) {
@@ -313,7 +340,7 @@ export function ContractorMasterPage() {
       toast({
         title: "Update Failed",
         description: "Failed to update Team",
-        variant: "destructive",
+        variant: "error",
       });
     }
   };
@@ -370,12 +397,13 @@ export function ContractorMasterPage() {
           description: `Team has been ${
             currentStatus ? "deactivated" : "activated"
           } successfully.`,
+          variant: "success",
         });
       } else {
         toast({
           title: "Update Failed",
           description: data.message || "Unable to update status",
-          variant: "destructive",
+          variant: "error",
         });
       }
     } catch (error) {
@@ -383,7 +411,7 @@ export function ContractorMasterPage() {
       toast({
         title: "Update Failed",
         description: "An error occurred while updating contractor status",
-        variant: "destructive",
+        variant: "error",
       });
     }
   };
@@ -409,6 +437,61 @@ export function ContractorMasterPage() {
         address: findContractor.address || "",
         specialization: findContractor.specialization || "",
         license_number: findContractor.license_number || "",
+      });
+    }
+  };
+
+  const handleUserClick = (user) => {
+    setSelectedUser(user);
+    setFormData({
+      ...user,
+      id: user.id || "",
+      name: user.name || "",
+      email: user.email || "",
+      employee_id: user.employee_id || "",
+      group: user.group || "",
+      controlling_team: user.controlling_team || "",
+      location: user.location || "",
+    });
+    setOpenModal(true);
+  };
+  const handleManualSubmit = async () => {
+    setIsEditingUser(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/update`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(formData),
+        }
+      );
+      const data = await response.json();
+      if (response.ok) {
+        fetchAttempts();
+        setIsEditingUser(false);
+        setOpenModal(false);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been successfully updated.",
+          variant: "success",
+        });
+      } else {
+        toast({
+          title: "Update Failed",
+          description: data.message || "Unknown error",
+          variant: "error",
+        });
+      }
+    } catch (error) {
+      console.log("UserProfile page error: ", error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "error",
       });
     }
   };
@@ -742,19 +825,15 @@ export function ContractorMasterPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex gap-2 mb-2 md:flex-row flex-col">
-                        <h3 className="font-semibold">{contractor.name}</h3>
-                        <div className=" flex gap-2 mb-2">
+                        <h3 className="font-semibold">
                           <Badge
-                            variant={
-                              contractor.is_active ? "default" : "secondary"
-                            }
-                          >
-                            {contractor.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                          <Badge variant="outline">
-                            {contractor.quizCount || 10} quizzes
-                          </Badge>
-                        </div>
+                            variant={"default"}
+                            className={` h-2 w-2 bg-red-500 max-w-2 px-0 mr-2 ${
+                              contractor.is_active && "bg-green-600"
+                            }`}
+                          />
+                          {contractor.name}
+                        </h3>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground mb-2">
                         <div className="flex items-center">
@@ -789,40 +868,7 @@ export function ContractorMasterPage() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      {/* Desktop buttons */}
-                      <div className="hidden sm:flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditClick(contractor.id)}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={
-                            contractor.is_active ? "destructive" : "default"
-                          }
-                          onClick={() =>
-                            handleToggleStatus(
-                              contractor.id,
-                              contractor.is_active
-                            )
-                          }
-                        >
-                          {contractor.is_active ? "Deactivate" : "Activate"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setDeleteContractorId(contractor.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-
-                      {/* Mobile 3-dot menu */}
-                      <div className="sm:hidden">
+                      <div className="">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon">
@@ -882,31 +928,156 @@ export function ContractorMasterPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2 max-h-[30rem] overflow-y-auto">
-              {filteredUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors flex justify-between md:flex-row flex-col`}
-                >
-                  <div className=" flex flex-col">
-                    <div className="font-medium">{user.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {user.email}
+              {filteredUsers.map((user) => {
+                return (
+                  <div
+                    key={user.id}
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors flex justify-between md:flex-row flex-col`}
+                  >
+                    <div className=" flex flex-col">
+                      <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[220px]">{user.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {user.email}
+                      </div>
+                    </div>
+                    <div className="  flex flex-row md:justify-center justify-between items-center gap-2 ">
+                      <p className=" text-xs">
+                        Profile Completed: {user?.is_active ? "100" : "50"}%
+                      </p>
+                        <Button onClick={() => handleUserClick(user)}>
+                          <Edit className="h-5 w-5" />
+                        </Button>
+                        
                     </div>
                   </div>
-                  <div className="  flex flex-row md:justify-center justify-between items-center gap-10 ">
-                    <p className=" text-xs">Profile Completed: 100%</p>
-                    <div className="  flex flex-row justify-center items-center gap-2">
-                      <Button>
-                        <Edit className="h-5 w-5" />
-                      </Button>
-                      <Button className=" bg-green-800 hover:bg-green-700">
-                        <PhoneCall className="h-5 w-5" />
-                      </Button>
-                    </div>
+                );
+              })}
+            </div>
+            <Dialog open={openModal} onOpenChange={setOpenModal}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center">
+                    <Edit className="h-5 w-5 mr-2" />
+                    Edit User Profile
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>User Name *</Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>User Email *</Label>
+                    <Input
+                      value={formData.email}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          email: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Select Group *</Label>
+                    <Select
+                      value={formData.group}
+                      onValueChange={(value) => {
+                        setFormData((prev) => ({ ...prev, group: value }));
+                        setSelectedGroup(value);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {companies?.map((quiz) => (
+                          <SelectItem key={quiz.id} value={quiz.name}>
+                            {quiz.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Team Name *</Label>
+                    <SearchableSelect
+                      options={filteredContractors.map((c) => c.name)}
+                      value={formData.controlling_team}
+                      onChange={(val) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          controlling_team: val,
+                        }))
+                      }
+                      placeholder="Select or type team"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Employee ID</Label>
+                    <Input
+                      value={formData.employee_id}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          employee_id: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>User Location Type</Label>
+                    <Select
+                      value={formData.location}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          location: value,
+                        }))
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select your location type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Rig Based Employee (ROE)">
+                          Rig Based Employee (ROE)
+                        </SelectItem>
+                        <SelectItem value="Office Based Employee">
+                          Office Based Employee
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              ))}
-            </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setOpenModal(false)}
+                    disabled={isEditingUser}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleManualSubmit}
+                    disabled={isEditingUser}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    {isEditingUser ? "Updating..." : "Update"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       </div>

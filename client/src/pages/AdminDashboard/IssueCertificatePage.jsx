@@ -67,7 +67,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Validation Error",
         description: "Please select a user and quiz",
-        variant: "destructive",
+        variant: "warning"
       });
       setIsLoadingCertificate(false);
       return;
@@ -101,6 +101,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Certificate Generated",
         description: "You can now download the certificate",
+        variant: "success"
       });
       setIsLoadingCertificate(false);
       setSelectedUser("");
@@ -113,7 +114,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Error",
         description: "Failed to generate certificate",
-        variant: "destructive",
+        variant: "error"
       });
     }
   };
@@ -179,7 +180,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Validation Error",
         description: "Please enter user name and quiz",
-        variant: "destructive",
+        variant: "warning"
       });
       return;
     }
@@ -214,6 +215,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Certificate Generated",
         description: "You can now download the certificate",
+        variant: "success"
       });
     } catch (error) {
       setIsLoadingCertificate(false);
@@ -221,7 +223,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Error",
         description: "Failed to generate certificate",
-        variant: "destructive",
+        variant: "error"
       });
     }
   };
@@ -306,14 +308,14 @@ export function IssueCertificatePage() {
               {filteredUsers.map((user) => (
                 <div
                   key={user.id}
-                  className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                  className={`p-3 border rounded-lg cursor-pointer transition-colors  ${
                     selectedUser === user.user_name
                       ? "bg-primary/10 border-primary"
                       : "hover:bg-muted"
                   }`}
                   onClick={() => handleUserSelect(user)}
                 >
-                  <div className="font-medium">{user.name}</div>
+                  <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[300px]">{user.name}</div>
                   <div className="text-sm text-muted-foreground">
                     {user.email}
                   </div>

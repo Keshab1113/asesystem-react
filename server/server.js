@@ -16,6 +16,8 @@ const aiQuestionsRoutes = require('./routes/aiQuestionsRoutes');
 const fileRoutes = require('./routes/fileRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const certificateRoutes = require('./routes/certificateRoutes');
+const quizAssignmentsRoutes = require("./routes/quizAssignmentsRoutes");
+
 
  
 // Middleware
@@ -44,6 +46,7 @@ app.use('/api/ai-questions', aiQuestionsRoutes);
 app.use('/api/files',  fileRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/quiz-attempts", quizRoutes);
+app.use("/api/quiz-assignments", quizAssignmentsRoutes);
 
 
 

@@ -58,7 +58,7 @@ export function AddQuestionsPage() {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
-        variant: "destructive",
+        variant: "error"
       });
       return;
     }
@@ -81,6 +81,7 @@ export function AddQuestionsPage() {
     toast({
       title: "Question Added",
       description: "Your question has been added successfully!",
+      variant: "success"
     });
   };
 
@@ -95,7 +96,7 @@ export function AddQuestionsPage() {
     toast({
       title: "Question Deleted",
       description: "Question has been removed successfully.",
-      variant: "destructive",
+      variant: "success"
     });
   };
 

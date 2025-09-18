@@ -9,11 +9,7 @@ import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { Textarea } from "../../../components/ui/textarea";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "../../../components/ui/avatar";
+
 import {
   Select,
   SelectContent,
@@ -21,43 +17,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../components/ui/select";
+
 import { Switch } from "../../../components/ui/switch";
-import { Edit, Save, Upload, Bell, Shield, Eye } from "lucide-react";
+import { Save, Bell, Shield, Eye } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import useToast from "../../../hooks/ToastContext";
 import { updateUser } from "../../../redux/slices/authSlice";
-
-const mockProfile = {
-  personalInfo: {
-    firstName: "John",
-    lastName: "Administrator",
-    email: "john.admin@company.com",
-    phone: "+1-555-0123",
-    department: "IT Department",
-    jobTitle: "System Administrator",
-    bio: "Experienced system administrator with 10+ years in IT management.",
-    avatar: "/admin-avatar.png",
-  },
-  preferences: {
-    emailNotifications: true,
-    smsNotifications: false,
-    weeklyReports: true,
-    theme: "system",
-    language: "en",
-    timezone: "UTC-5",
-  },
-  security: {
-    twoFactorEnabled: true,
-    lastPasswordChange: "2024-01-15",
-    sessionTimeout: "30",
-  },
-};
+import ProfilePicture from "../../../components/ProfilePicture/ProfilePicture";
 
 export function ModifyProfilePage() {
   const { user, token } = useSelector((state) => state.auth);
-  const [userData, setUserData] = useState(user);
   const [editData, setEditData] = useState(user);
-  const [profile, setProfile] = useState(mockProfile);
   const [activeTab, setActiveTab] = useState("personal");
   const { toast } = useToast();
   const dispatch = useDispatch();
@@ -79,17 +49,17 @@ export function ModifyProfilePage() {
       const data = await response.json();
 
       if (response.ok) {
-        setUserData(editData);
         dispatch(updateUser(editData));
         toast({
           title: "Profile Updated",
           description: "User updated successfully!",
+          variant: "success"
         });
       } else {
         toast({
           title: "Update Failed",
           description: data.message || "Unknown error",
-          variant: "destructive",
+          variant: "error"
         });
       }
     } catch (error) {
@@ -97,13 +67,9 @@ export function ModifyProfilePage() {
       toast({
         title: "Update Error",
         description: "An error occurred while updating profile data",
-        variant: "destructive",
+        variant: "error"
       });
     }
-  };
-
-  const handleAvatarUpload = () => {
-    alert("Avatar upload functionality would be implemented here");
   };
 
   return (
@@ -144,35 +110,7 @@ export function ModifyProfilePage() {
       {/* Personal Information Tab */}
       {activeTab === "personal" && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Edit className="h-5 w-5 mr-2" />
-                Profile Picture
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col items-center space-y-4">
-                <Avatar className="h-32 w-32">
-                  <AvatarImage
-                    src={userData.avatar || "/admin-avatar.png"}
-                    alt="Profile"
-                  />
-                  <AvatarFallback>
-                    {userData.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
-                <Button onClick={handleAvatarUpload}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Upload New Photo
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
+          <ProfilePicture />
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Personal Information</CardTitle>
@@ -200,7 +138,7 @@ export function ModifyProfilePage() {
                     onChange={(e) =>
                       setEditData({
                         ...editData,
-                          role: e.target.value,
+                        role: e.target.value,
                       })
                     }
                   />
@@ -264,7 +202,10 @@ export function ModifyProfilePage() {
                 <Textarea
                   id="bio"
                   rows={3}
-                  value={editData.bio || "Experienced system administrator with 10+ years in IT management."}
+                  value={
+                    editData.bio ||
+                    "Experienced system administrator with 10+ years in IT management."
+                  }
                   onChange={(e) =>
                     setEditData({
                       ...editData,
@@ -273,226 +214,6 @@ export function ModifyProfilePage() {
                   }
                 />
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Preferences Tab */}
-      {activeTab === "preferences" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Bell className="h-5 w-5 mr-2" />
-                Notifications
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="emailNotifications">Email Notifications</Label>
-                <Switch
-                  id="emailNotifications"
-                  checked={profile.preferences.emailNotifications}
-                  onCheckedChange={(checked) =>
-                    setProfile({
-                      ...profile,
-                      preferences: {
-                        ...profile.preferences,
-                        emailNotifications: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="smsNotifications">SMS Notifications</Label>
-                <Switch
-                  id="smsNotifications"
-                  checked={profile.preferences.smsNotifications}
-                  onCheckedChange={(checked) =>
-                    setProfile({
-                      ...profile,
-                      preferences: {
-                        ...profile.preferences,
-                        smsNotifications: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label htmlFor="weeklyReports">Weekly Reports</Label>
-                <Switch
-                  id="weeklyReports"
-                  checked={profile.preferences.weeklyReports}
-                  onCheckedChange={(checked) =>
-                    setProfile({
-                      ...profile,
-                      preferences: {
-                        ...profile.preferences,
-                        weeklyReports: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Eye className="h-5 w-5 mr-2" />
-                Display Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="theme">Theme</Label>
-                <Select
-                  value={profile.preferences.theme}
-                  onValueChange={(value) =>
-                    setProfile({
-                      ...profile,
-                      preferences: { ...profile.preferences, theme: value },
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">Light</SelectItem>
-                    <SelectItem value="dark">Dark</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="language">Language</Label>
-                <Select
-                  value={profile.preferences.language}
-                  onValueChange={(value) =>
-                    setProfile({
-                      ...profile,
-                      preferences: { ...profile.preferences, language: value },
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="es">Spanish</SelectItem>
-                    <SelectItem value="fr">French</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="timezone">Timezone</Label>
-                <Select
-                  value={profile.preferences.timezone}
-                  onValueChange={(value) =>
-                    setProfile({
-                      ...profile,
-                      preferences: { ...profile.preferences, timezone: value },
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="UTC-8">Pacific Time (UTC-8)</SelectItem>
-                    <SelectItem value="UTC-5">Eastern Time (UTC-5)</SelectItem>
-                    <SelectItem value="UTC+0">GMT (UTC+0)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Security Tab */}
-      {activeTab === "security" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Shield className="h-5 w-5 mr-2" />
-                Security Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Two-Factor Authentication</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Add an extra layer of security
-                  </p>
-                </div>
-                <Switch
-                  checked={profile.security.twoFactorEnabled}
-                  onCheckedChange={(checked) =>
-                    setProfile({
-                      ...profile,
-                      security: {
-                        ...profile.security,
-                        twoFactorEnabled: checked,
-                      },
-                    })
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sessionTimeout">
-                  Session Timeout (minutes)
-                </Label>
-                <Select
-                  value={profile.security.sessionTimeout}
-                  onValueChange={(value) =>
-                    setProfile({
-                      ...profile,
-                      security: { ...profile.security, sessionTimeout: value },
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="15">15 minutes</SelectItem>
-                    <SelectItem value="30">30 minutes</SelectItem>
-                    <SelectItem value="60">1 hour</SelectItem>
-                    <SelectItem value="120">2 hours</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="pt-4">
-                <p className="text-sm text-muted-foreground">
-                  Last password change: {profile.security.lastPasswordChange}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Password Management</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button className="w-full bg-transparent" variant="outline">
-                Change Password
-              </Button>
-              <Button className="w-full bg-transparent" variant="outline">
-                Download Backup Codes
-              </Button>
-              <Button className="w-full bg-transparent" variant="outline">
-                View Active Sessions
-              </Button>
             </CardContent>
           </Card>
         </div>

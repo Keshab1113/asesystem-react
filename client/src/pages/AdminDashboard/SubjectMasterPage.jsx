@@ -115,6 +115,7 @@ useEffect(() => {
    toast({
         title: "Quiz Updated",
         description: `Quiz "${quizData.name}" has been updated successfully.`,
+        variant: "success"
       });
 } else {
   // Add new quiz with default isActive and questionCount
@@ -122,6 +123,7 @@ useEffect(() => {
    toast({
         title: "Quiz Created",
         description: `Quiz "${quizData.name}" has been created successfully.`,
+        variant: "success"
       });
 }
 

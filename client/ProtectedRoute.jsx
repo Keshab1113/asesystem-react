@@ -1,14 +1,20 @@
 import { useSelector } from "react-redux";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
-const ProtectedRoute = ({ children }) => {
-  const { token } = useSelector((state) => state.auth);
+function ProtectedRoute({ children, allowedRoles }) {
+  const { user, token } = useSelector((state) => state.auth);
+  const location = useLocation();
 
   if (!token) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Role check
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+    return <Navigate to="/user-dashboard" replace />; // redirect normal users
   }
 
   return children;
-};
+}
 
 export default ProtectedRoute;

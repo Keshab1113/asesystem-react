@@ -38,12 +38,12 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     fullName: "",
     position: "",
-    employeeId: "",
+    employee_id: "",
     email: "",
     password: "",
     group: "",
-    controllingTeam: "",
-    userLocationType: "",
+    controlling_team: "",
+    location: "",
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -94,15 +94,15 @@ export default function RegisterPage() {
     if (!formData.position.trim()) {
       newErrors.position = t("register.position") + " is required";
     }
-    if (!formData.employeeId.trim()) {
-      newErrors.employeeId = t("register.employeeId") + " is required";
+    if (!formData.employee_id.trim()) {
+      newErrors.employee_id = t("register.employee_id") + " is required";
     }
-    if (!formData.controllingTeam.trim()) {
-      newErrors.controllingTeam = t("profile.controllingTeam") + " is required";
+    if (!formData.controlling_team.trim()) {
+      newErrors.controlling_team = t("profile.controlling_team") + " is required";
     }
-    if (!formData.userLocationType.trim()) {
-      newErrors.userLocationType =
-        t("profile.userLocationType") + " is required";
+    if (!formData.location.trim()) {
+      newErrors.location =
+        t("profile.location") + " is required";
     }
     if (!formData.group.trim()) {
       newErrors.group = t("profile.group") + " is required";
@@ -145,6 +145,7 @@ export default function RegisterPage() {
         toast({
           title: "Registration Successful",
           description: "Please check your email for OTP verification code.",
+          variant: "success"
         });
         // navigate to verify page (React Router)
         window.location.href = `/verify-otp?email=${encodeURIComponent(
@@ -154,7 +155,7 @@ export default function RegisterPage() {
         toast({
           title: "Registration Failed",
           description: data.message || "Please try again.",
-          variant: "destructive",
+          variant: "error"
         });
       }
     } catch (error) {
@@ -162,7 +163,7 @@ export default function RegisterPage() {
       toast({
         title: "Error",
         description: "An unexpected error occurred.",
-        variant: "destructive",
+        variant: "error"
       });
     } finally {
       setIsLoading(false);
@@ -247,22 +248,22 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="employeeId">
+                <Label htmlFor="employee_id">
                   <IdCard className="h-4 w-4 inline mr-1" />
-                  {t("register.employeeId")}
+                  {t("register.employee_id")}
                 </Label>
                 <Input
-                  id="employeeId"
+                  id="employee_id"
                   type="text"
                   placeholder="Enter your employee ID"
-                  value={formData.employeeId}
+                  value={formData.employee_id}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      employeeId: e.target.value,
+                      employee_id: e.target.value,
                     }))
                   }
-                  className={errors.employeeId ? "border-destructive" : ""}
+                  className={errors.employee_id ? "border-destructive" : ""}
                 />
               </div>
             </div>
@@ -293,16 +294,16 @@ export default function RegisterPage() {
                 </Select>
               </div>
               <div className="space-y-2 w-full ">
-                <Label htmlFor="controllingTeam">
+                <Label htmlFor="controlling_team">
                   <MonitorCog className="h-4 w-4 inline mr-2" />
-                  {t("profile.controllingTeam")}
+                  {t("profile.controlling_team")}
                 </Label>
                 <Select
-                  value={formData.controllingTeam}
+                  value={formData.controlling_team}
                   onValueChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
-                      controllingTeam: value,
+                      controlling_team: value,
                     }))
                   }
                   disabled={!formData.group}
@@ -330,16 +331,16 @@ export default function RegisterPage() {
               </div>
             </div>
             <div className="space-y-2 w-full ">
-              <Label htmlFor="userLocationType">
+              <Label htmlFor="location">
                 <MonitorCog className="h-4 w-4 inline mr-2" />
-                {t("profile.userLocationType")}
+                {t("profile.location")}
               </Label>
               <Select
-                value={formData.userLocationType}
+                value={formData.location}
                 onValueChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    userLocationType: value,
+                    location: value,
                   }))
                 }
               >

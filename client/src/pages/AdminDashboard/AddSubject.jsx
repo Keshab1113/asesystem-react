@@ -137,7 +137,7 @@ export default function AddSubjectPage() {
       toast({
         title: "Warning",
         description: "Please enter subject name and description!",
-        variant: "default",
+        variant: "warning"
       });
       return;
     }
@@ -170,7 +170,7 @@ export default function AddSubjectPage() {
           toast({
             title: "Error",
             description: uploadData.message || "File upload failed.",
-            variant: "error",
+            variant: "error"
           });
           setLoadingGenerate(false);
           return;
@@ -231,7 +231,7 @@ export default function AddSubjectPage() {
       toast({
         title: "Warning",
         description: "Please enter quiz title and add some questions!",
-        variant: "default",
+        variant: "warning"
       });
       return;
     }
@@ -244,7 +244,7 @@ export default function AddSubjectPage() {
       toast({
         title: "Warning",
         description: "All questions are empty. Please add valid questions!",
-        variant: "default",
+        variant: "warning"
       });
       return;
     }
@@ -407,7 +407,7 @@ export default function AddSubjectPage() {
                     toast({
                       title: "Warning",
                       description: "Maximum allowed is 150 questions.",
-                      variant: "default",
+                      variant: "warning"
                     });
                     setNumQuestions(150);
                   } else if (value < 1 || isNaN(value)) {

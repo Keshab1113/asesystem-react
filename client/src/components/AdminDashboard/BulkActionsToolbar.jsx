@@ -27,6 +27,7 @@ export function BulkActionsToolbar({ selectedItems, onClearSelection, onBulkActi
       toast({
         title: "Bulk Action Completed",
         description: `Successfully applied ${action} to ${selectedItems.length} items.`,
+        variant: "success"
       })
     }
   }
@@ -38,7 +39,7 @@ export function BulkActionsToolbar({ selectedItems, onClearSelection, onBulkActi
     toast({
       title: "Bulk Action Completed",
       description: `Successfully ${confirmDialog.action}d ${selectedItems.length} items.`,
-      variant: confirmDialog.action === "delete" ? "destructive" : "default",
+      variant: "success"
     })
   }
 

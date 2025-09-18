@@ -27,6 +27,7 @@ import { UserLogsPage } from "./pages/AdminDashboard/UserLogsPage";
 import { ModifyProfilePage } from "./pages/AdminDashboard/AdminDashboardProfile/ModifyProfilePage";
 import { ChangePasswordPage } from "./pages/AdminDashboard/AdminDashboardProfile/ChangePasswordPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage/ForgotPasswordPage";
+import QuestionsPage from "./pages/UserDashboard/QuestionsPage";
 
 function App() {
   return (
@@ -37,7 +38,7 @@ function App() {
           <Route
             path="/admin-dashboard"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={["admin", "super_admin"]}>
                 <AdminDashboardLayout />
               </ProtectedRoute>
             }
@@ -87,6 +88,7 @@ function App() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="upcoming" element={<UpcomingAssessmentsPage />} />
             <Route path="assessments" element={<AssessmentsPage />} />
+            <Route path="assessment/:quizId" element={<QuestionsPage />} />
           </Route>
           <Route path="*" element={<NoPage />} />
           <Route path="/login" element={<LoginPage />} />

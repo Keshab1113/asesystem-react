@@ -26,13 +26,15 @@ export default function UserDashboardLayout() {
   if (!user) {
     return null;
   }
-
+  const hideNavItems = location.pathname.startsWith(
+    "/user-dashboard/assessment/"
+  );
   return (
-    <div className="min-h-screen bg-background w-full relative hide-scrollbar">
+    <div className="min-h-screen bg-background w-full relative hide-scrollbar ">
       <DashboardNav />
-      <div className=" flex pt-20">
-        <NavItems/>
-        <main className=" p-6 lg:ml-[20rem] w-full">
+      <div className=" flex pt-18 ">
+        {!hideNavItems && <NavItems />}
+        <main className={`   w-full ${!hideNavItems && "lg:ml-[20rem] p-6"}`}>
           <Outlet />
         </main>
       </div>

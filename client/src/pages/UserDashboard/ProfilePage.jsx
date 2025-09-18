@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import axios from "axios";
 import {
   Select,
   SelectContent,
@@ -21,19 +20,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   User,
   Mail,
   Building,
   Award as IdCard,
   MonitorCog,
   UsersRound,
-  Camera,
   Edit,
   Save,
   X,
@@ -43,6 +35,8 @@ import {
   XCircle,
   TrendingUp,
   FileText,
+  Phone,
+  MapPin,
 } from "lucide-react";
 import { useLanguage } from "@/lib/language-context";
 import { Slider } from "@/components/ui/slider";
@@ -50,6 +44,8 @@ import Cropper from "react-easy-crop";
 import useToast from "../../hooks/ToastContext";
 import { useDispatch, useSelector } from "react-redux";
 import { updateUser } from "../../redux/slices/authSlice";
+import { SearchableSelect } from "../../components/SearchableSelect";
+import ProfilePicture from "../../components/ProfilePicture/ProfilePicture";
 
 // Mock assessment history data
 const mockAssessmentHistory = [
@@ -121,44 +117,7 @@ const mockAssessmentHistory = [
   },
 ];
 
-function createImage(url) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.addEventListener("load", () => resolve(img));
-    img.addEventListener("error", (err) => reject(err));
-    img.setAttribute("crossOrigin", "anonymous");
-    img.src = url;
-  });
-}
 
-async function getCroppedImg(imageSrc, crop) {
-  const image = await createImage(imageSrc);
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-
-  canvas.width = crop.width;
-  canvas.height = crop.height;
-
-  ctx.drawImage(
-    image,
-    crop.x,
-    crop.y,
-    crop.width,
-    crop.height,
-    0,
-    0,
-    crop.width,
-    crop.height
-  );
-
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      resolve(url);
-    }, "image/jpeg");
-  });
-}
 
 export default function ProfilePage() {
   const { token, user } = useSelector((state) => state.auth);
@@ -166,19 +125,12 @@ export default function ProfilePage() {
   const { t } = useLanguage();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isImageUploading, setIsImageUploading] = useState(false);
   const [userData, setUserData] = useState(user);
   const [editData, setEditData] = useState(user);
-  const [imageSrc, setImageSrc] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
-  const [croppedImage, setCroppedImage] = useState(
-    userData?.profile_pic_url || null
-  );
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
-  const [open, setOpen] = useState(false);
   const dispatch = useDispatch();
+  const [groups, setGroups] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState("");
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -203,12 +155,13 @@ export default function ProfilePage() {
         toast({
           title: "Profile Updated",
           description: "Your profile has been successfully updated.",
+          variant: "success"
         });
       } else {
         toast({
           title: "Update Failed",
           description: data.message || "Unknown error",
-          variant: "destructive",
+          variant: "error"
         });
       }
     } catch (error) {
@@ -216,7 +169,7 @@ export default function ProfilePage() {
       toast({
         title: "Error",
         description: "Failed to update profile. Please try again.",
-        variant: "destructive",
+        variant: "error"
       });
     } finally {
       setIsLoading(false);
@@ -228,65 +181,44 @@ export default function ProfilePage() {
     setIsEditing(false);
   };
 
-  const onFileChange = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImageSrc(reader.result);
-        setOpen(true);
-      };
-      reader.readAsDataURL(file);
+  const fetchContractor = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/contractors`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setTeams(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching companies:", error);
     }
   };
-
-  const onCropComplete = useCallback((_, croppedAreaPixels) => {
-    setCroppedAreaPixels(croppedAreaPixels);
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/companies`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setGroups(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching companies:", error);
+    }
+  };
+  useEffect(() => {
+    fetchContractor();
+    fetchCompanies();
   }, []);
 
-  const handleSaveImage = async () => {
-    setIsImageUploading(true);
-    if (!imageSrc || !croppedAreaPixels) return;
-    try {
-      const croppedImgBase64 = await getCroppedImg(imageSrc, croppedAreaPixels);
-      const blobResponse = await axios.get(croppedImgBase64, {
-        responseType: "blob",
-      });
-      const blob = blobResponse.data;
-      const croppedFile = new File([blob], imageFile?.name || "profile.jpg", {
-        type: blob.type,
-      });
-      const formData = new FormData();
-      formData.append("profilePic", croppedFile);
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/auth/upload-profile-picture`,
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-      setIsImageUploading(false);
-      setCroppedImage(response?.data?.profilePic);
-      const newUserData = {
-        ...editData,
-        profile_pic_url: response?.data?.profilePic,
-      };
+  const filteredContractors = teams.filter((contractor) => {
+    const matchesCompany = selectedGroup
+      ? contractor.company_name === selectedGroup
+      : true;
 
-      setEditData(newUserData);
-      dispatch(updateUser(newUserData));
-      toast({
-        title: "Profile Picture",
-        description: "Profile picture uploaded.",
-      });
-      setOpen(false);
-    } catch (error) {
-      console.error(error);
-    }
-  };
+    return matchesCompany;
+  });
 
   // Calculate statistics
   const totalAssessments = mockAssessmentHistory.length;
@@ -320,109 +252,7 @@ export default function ProfilePage() {
 
         <TabsContent value="personal" className="space-y-6">
           {/* Profile Picture Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="w-5 h-5" />
-                {t("profile.profilePicture")}
-              </CardTitle>
-              <CardDescription>{t("profile.updatePicture")}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-6">
-                {/* Avatar */}
-                <Avatar className="w-24 h-24">
-                  <AvatarImage
-                    src={croppedImage || "/admin-avatar.png"}
-                    alt={userData?.name}
-                  />
-                  <AvatarFallback className="text-lg">
-                    {userData?.name
-                      ?.split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-
-                {/* Controls */}
-                <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    id="profileInput"
-                    className="hidden"
-                    onChange={onFileChange}
-                  />
-                  <Button
-                    onClick={() =>
-                      document.getElementById("profileInput")?.click()
-                    }
-                    className="cursor-pointer"
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    {t("profile.changePicture")}
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    {t("profile.pictureFormat")}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-
-            {/* Cropper Modal */}
-            <Dialog open={open} onOpenChange={setOpen}>
-              <DialogContent className="max-w-lg">
-                <DialogHeader>
-                  <DialogTitle>Crop Profile Picture</DialogTitle>
-                </DialogHeader>
-                {imageSrc && (
-                  <div className="relative w-full h-64 bg-black">
-                    <Cropper
-                      image={imageSrc}
-                      crop={crop}
-                      zoom={zoom}
-                      aspect={1}
-                      onCropChange={setCrop}
-                      onZoomChange={setZoom}
-                      onCropComplete={onCropComplete}
-                    />
-                  </div>
-                )}
-                <div className="mt-4">
-                  <p className="text-sm mb-1">Zoom</p>
-                  <Slider
-                    min={1}
-                    max={3}
-                    step={0.1}
-                    value={[zoom]}
-                    onValueChange={(v) => setZoom(v[0])}
-                  />
-                </div>
-                <div className="flex justify-end mt-4 gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setOpen(false)}
-                    className=" cursor-pointer"
-                  >
-                    Cancel
-                  </Button>
-                  {isImageUploading ? (
-                    <Button className=" cursor-pointer opacity-50">
-                      Loading...
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleSaveImage}
-                      className=" cursor-pointer"
-                    >
-                      Save
-                    </Button>
-                  )}
-                </div>
-              </DialogContent>
-            </Dialog>
-          </Card>
+          <ProfilePicture />
 
           {/* Personal Details Section */}
           <Card>
@@ -480,7 +310,7 @@ export default function ProfilePage() {
                   ) : (
                     <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
                       <User className="w-4 h-4 text-muted-foreground" />
-                      <span>{userData?.name}</span>
+                      <span>{editData?.name}</span>
                     </div>
                   )}
                 </div>
@@ -501,9 +331,11 @@ export default function ProfilePage() {
                       placeholder="Enter your position"
                     />
                   ) : (
-                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md ">
                       <Building className="w-4 h-4 text-muted-foreground" />
-                      <span>{userData?.position}</span>
+                      <span className="truncate overflow-hidden whitespace-nowrap max-w-[94%]">
+                        {editData?.position}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -513,132 +345,142 @@ export default function ProfilePage() {
                   {isEditing ? (
                     <Select
                       value={editData.group}
-                      onValueChange={(value) =>
+                      onValueChange={(value) => {
                         setEditData({
                           ...editData,
                           group: value,
-                        })
-                      }
+                        });
+                        setSelectedGroup(value);
+                      }}
                     >
                       <SelectTrigger id="group" className=" w-full min-h-12">
                         <SelectValue placeholder="Select your group" />
                       </SelectTrigger>
                       <SelectContent>
-                        {/* Example items - replace with dynamic IDs */}
-                        <SelectItem value="group1">Group 1</SelectItem>
-                        <SelectItem value="group2">Group 2</SelectItem>
-                        <SelectItem value="group3">Group 3</SelectItem>
+                        {groups?.map((grp) => (
+                          <SelectItem key={grp.name} value={grp.name}>
+                            {grp.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   ) : (
                     <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
                       <UsersRound className="w-4 h-4 text-muted-foreground" />
-                      <span>{userData?.group}</span>
+                      <span>{editData?.group}</span>
                     </div>
                   )}
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="controlling_team">
-                    {t("profile.controllingTeam")}
+                    {t("profile.controlling_team")}
                   </Label>
                   {isEditing ? (
-                    <Select
+                    <SearchableSelect
+                      options={filteredContractors.map((c) => c.name)}
                       value={editData.controlling_team}
-                      onValueChange={(value) =>
+                      onChange={(val) =>
+                        setEditData((prev) => ({
+                          ...prev,
+                          controlling_team: val,
+                        }))
+                      }
+                      placeholder="Select or type team"
+                      customClass={"max-h-12 h-12"}
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                      <MonitorCog className="w-4 h-4 text-muted-foreground" />
+                      <span>{editData?.controlling_team}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="employee_id">
+                    {t("profile.employee_id")}
+                  </Label>
+                  {isEditing ? (
+                    <Input
+                      id="employee_id"
+                      value={editData.employee_id}
+                      className=" h-12"
+                      onChange={(e) =>
                         setEditData({
                           ...editData,
-                          controlling_team: value,
+                          employee_id: e.target.value,
                         })
                       }
+                      placeholder="Enter your employee ID"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                      <IdCard className="w-4 h-4 text-muted-foreground" />
+                      <span>{editData?.employee_id}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="employee_id">Phone Number</Label>
+                  {isEditing ? (
+                    <Input
+                      id="employee_id"
+                      value={editData.phone}
+                      className=" h-12"
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          phone: e.target.value,
+                        })
+                      }
+                      placeholder="Enter your employee ID"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
+                      <Phone className="w-4 h-4 text-muted-foreground" />
+                      <span>{editData?.phone}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="location">User Location Type</Label>
+
+                  {isEditing ? (
+                    <Select
+                      value={editData.location}
+                      onValueChange={(value) =>
+                        setEditData((prev) => ({
+                          ...prev,
+                          location: value,
+                        }))
+                      }
                     >
-                      <SelectTrigger
-                        id="controlling_team"
-                        className=" w-full min-h-12"
-                      >
-                        <SelectValue placeholder="Select your Controlling Team" />
+                      <SelectTrigger className="w-full min-h-12">
+                        <SelectValue placeholder="Select your location type" />
                       </SelectTrigger>
                       <SelectContent>
-                        {/* Example items - replace with dynamic IDs */}
-                        <SelectItem value="EMP001">EMP001</SelectItem>
-                        <SelectItem value="EMP002">EMP002</SelectItem>
-                        <SelectItem value="EMP003">EMP003</SelectItem>
+                        <SelectItem value="Rig Based Employee (ROE)">
+                          Rig Based Employee (ROE)
+                        </SelectItem>
+                        <SelectItem value="Office Based Employee">
+                          Office Based Employee
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   ) : (
                     <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                      <MonitorCog className="w-4 h-4 text-muted-foreground" />
-                      <span>{userData?.controlling_team}</span>
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span>{editData.location}</span>
                     </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="employee_id">{t("profile.employeeId")}</Label>
-                  {isEditing ? (
-                    <Input
-                      id="employee_id"
-                      value={editData.employee_id}
-                      className=" h-12"
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          employee_id: e.target.value,
-                        })
-                      }
-                      placeholder="Enter your employee ID"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                      <IdCard className="w-4 h-4 text-muted-foreground" />
-                      <span>{userData?.employee_id}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="employee_id">{t("profile.employeeId")}</Label>
-                  {isEditing ? (
-                    <Input
-                      id="employee_id"
-                      value={editData.employee_id}
-                      className=" h-12"
-                      onChange={(e) =>
-                        setEditData({
-                          ...editData,
-                          employee_id: e.target.value,
-                        })
-                      }
-                      placeholder="Enter your employee ID"
-                    />
-                  ) : (
-                    <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                      <IdCard className="w-4 h-4 text-muted-foreground" />
-                      <span>{userData?.employee_id}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="last_login">{t("profile.lastLogin")}</Label>
-                  <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>
-                      {userData.last_login
-                        ? new Date(userData.last_login).toLocaleString()
-                        : "Never"}
-                    </span>
-                  </div>
-                  {isEditing && (
-                    <p className="text-xs text-muted-foreground">
-                      {t("profile.lastLogInCannotChange")}
-                    </p>
                   )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">{t("auth.emailAddress")}</Label>
                   <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
                     <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>{userData?.email}</span>
+                    <span>{editData?.email}</span>
                   </div>
                   {isEditing && (
                     <p className="text-xs text-muted-foreground">

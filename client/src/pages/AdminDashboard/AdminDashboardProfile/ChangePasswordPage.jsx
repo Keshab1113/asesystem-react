@@ -79,7 +79,7 @@ export function ChangePasswordPage() {
         toast({
           title: "Update failed",
           description: "Please fill in all fields",
-          variant: "destructive",
+          variant: "error"
         });
         return;
       }
@@ -88,7 +88,7 @@ export function ChangePasswordPage() {
         toast({
           title: "Update failed",
           description: "New passwords do not match",
-          variant: "destructive",
+          variant: "error"
         });
         return;
       }
@@ -97,7 +97,7 @@ export function ChangePasswordPage() {
         toast({
           title: "Update failed",
           description: "Please fix password requirements",
-          variant: "destructive",
+          variant: "error"
         });
         return;
       }
@@ -124,6 +124,7 @@ export function ChangePasswordPage() {
         toast({
           title: "Password Updated",
           description: "Password changed successfully!",
+          variant: "success"
         });
         setPasswords({ new: "", confirm: "" });
         setPasswordStrength(0);
@@ -132,7 +133,7 @@ export function ChangePasswordPage() {
         toast({
           title: "Update failed",
           description: data.message || "Failed to change password",
-          variant: "destructive",
+          variant: "error"
         });
       }
     } catch (error) {
@@ -140,7 +141,7 @@ export function ChangePasswordPage() {
       toast({
         title: "Update failed",
         description: "An error occurred while changing password",
-        variant: "destructive",
+        variant: "error"
       });
     }
   };

@@ -72,6 +72,7 @@ export default function LoginPage() {
         toast({
           title: "Welcome to ASESystem",
           description: "Logged in successfully",
+          variant: "success"
         });
         dispatch(loginSuccess({ user: data.user, token: data.token }));
 
@@ -89,7 +90,7 @@ export default function LoginPage() {
       toast({
         title: "Login Error",
         description: "An unexpected error occurred. Please try again.",
-        variant: "destructive",
+        variant: "error"
       });
       console.log("Login Error: ", error);
       setError("An unexpected error occurred. Please try again.");

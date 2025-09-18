@@ -108,7 +108,9 @@ exports.updateQuiz = async (req, res) => {
   } = req.body;
 
   if (!name || !timeLimit || !passingScore || !maxAttempts) {
-    return res.status(400).json({ success: false, message: "Missing required fields" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing required fields" });
   }
 
   try {
@@ -138,12 +140,45 @@ exports.updateQuiz = async (req, res) => {
     );
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Quiz not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Quiz not found" });
     }
 
-    res.status(200).json({ success: true, message: "Quiz updated successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Quiz updated successfully" });
   } catch (error) {
     console.error("Error updating quiz:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.getQuizQuestions = async (req, res) => {
+  const { quizId } = req.params;
+  try {
+    const [rows] = await db.query(
+      `SELECT id, quiz_id, question_text, question_type, options, correct_answer, explanation, difficulty_level, is_active, created_by, created_at, updated_at 
+       FROM questions 
+       WHERE quiz_id = ? AND is_active = 1`,
+      [quizId]
+    );
+
+    if (rows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No questions found for this quiz" });
+    }
+
+    // Parse options (assuming stored as JSON string in DB)
+    const formattedRows = rows.map((q) => ({
+      ...q,
+      options: JSON.parse(q.options),
+    }));
+
+    res.json({ success: true, data: formattedRows });
+  } catch (err) {
+    console.error("Error fetching quiz questions:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

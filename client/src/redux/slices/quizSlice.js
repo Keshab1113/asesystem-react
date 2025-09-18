@@ -1,59 +1,30 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-const initialState = {
-  quizzes: [],
-  questions: [],
-  loading: false,
-  error: null,
-};
-
 const quizSlice = createSlice({
   name: "quiz",
-  initialState,
+  initialState: {
+    questionsByQuiz: {}, // { quizId: [questions] }
+    answers: {},         // { quizId: { questionId: answer } }
+  },
   reducers: {
-    setQuizzes: (state, action) => {
-      state.quizzes = action.payload;
-      state.loading = false;
-      state.error = null;
+    setQuizQuestions: (state, action) => {
+      const { quizId, questions } = action.payload;
+      state.questionsByQuiz[quizId] = questions;
     },
-    addQuiz: (state, action) => {
-      state.quizzes.push(action.payload);
-    },
-    updateQuiz: (state, action) => {
-      const { id, data } = action.payload;
-      const index = state.quizzes.findIndex((quiz) => quiz.id === id);
-      if (index !== -1) {
-        state.quizzes[index] = { ...state.quizzes[index], ...data };
+    setAnswer: (state, action) => {
+      const { quizId, questionId, answer } = action.payload;
+      if (!state.answers[quizId]) {
+        state.answers[quizId] = {};
       }
+      state.answers[quizId][questionId] = answer;
     },
-    deleteQuiz: (state, action) => {
-      state.quizzes = state.quizzes.filter((quiz) => quiz.id !== action.payload);
-    },
-    setQuestions: (state, action) => {
-      state.questions = action.payload;
-    },
-    addQuestion: (state, action) => {
-      state.questions.push(action.payload);
-    },
-    setLoading: (state, action) => {
-      state.loading = action.payload;
-    },
-    setError: (state, action) => {
-      state.error = action.payload;
-      state.loading = false;
+    resetQuiz: (state, action) => {
+      const { quizId } = action.payload;
+      delete state.questionsByQuiz[quizId];
+      delete state.answers[quizId];
     },
   },
 });
 
-export const {
-  setQuizzes,
-  addQuiz,
-  updateQuiz,
-  deleteQuiz,
-  setQuestions,
-  addQuestion,
-  setLoading,
-  setError,
-} = quizSlice.actions;
-
+export const { setQuizQuestions, setAnswer, resetQuiz } = quizSlice.actions;
 export default quizSlice.reducer;

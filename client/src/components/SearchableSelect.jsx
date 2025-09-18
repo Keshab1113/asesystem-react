@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export function SearchableSelect({ options, value, onChange, placeholder }) {
+export function SearchableSelect({
+  options,
+  value,
+  onChange,
+  placeholder,
+  customClass = "",
+}) {
   const [search, setSearch] = useState(value || "");
   const [showOptions, setShowOptions] = useState(false);
 
   const filteredOptions = options.filter((opt) =>
     opt.toLowerCase().includes(search.toLowerCase())
   );
-
+  useEffect(() => {
+    setSearch(value || "");
+  }, [value]);
   const handleSelect = (option) => {
     setSearch(option);
     onChange(option);
@@ -18,7 +26,7 @@ export function SearchableSelect({ options, value, onChange, placeholder }) {
     <div className="relative w-full">
       <input
         type="text"
-        className="w-full border rounded-md px-3 py-2  dark:bg-input/30 max-h-9 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className={`w-full border rounded-md px-3 py-2  dark:bg-input/30 max-h-9 focus:outline-none focus:ring-2 focus:ring-blue-500 ${customClass}`}
         placeholder={placeholder}
         value={search}
         onChange={(e) => {

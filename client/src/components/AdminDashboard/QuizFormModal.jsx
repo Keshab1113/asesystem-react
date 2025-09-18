@@ -43,7 +43,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
     toast({
       title: "Validation Error",
       description: "Quiz name is required",
-      variant: "destructive",
+      variant: "error"
     });
     return;
   }
@@ -74,6 +74,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
       toast({
         title: "Quiz Updated",
         description: `Quiz "${formData.name}" has been updated successfully.`,
+        variant: "success"
       });
     } else {
       // Create new quiz
@@ -81,6 +82,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
       toast({
         title: "Quiz Created",
         description: `Quiz "${formData.name}" has been created successfully.`,
+        variant: "success"
       });
     }
 
@@ -98,7 +100,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
     toast({
       title: "Error",
       description: error.response?.data?.message || "Failed to save quiz",
-      variant: "destructive",
+      variant: "error"
     });
   }
 };
