@@ -70,9 +70,9 @@ export default function LoginPage() {
       const data = await res.json();
       if (data.success && data.user) {
         toast({
-          title: "Welcome to ASESystem",
+          title: "Welcome to asesystem",
           description: "Logged in successfully",
-          variant: "success"
+          variant: "success",
         });
         dispatch(loginSuccess({ user: data.user, token: data.token }));
 
@@ -90,7 +90,7 @@ export default function LoginPage() {
       toast({
         title: "Login Error",
         description: "An unexpected error occurred. Please try again.",
-        variant: "error"
+        variant: "error",
       });
       console.log("Login Error: ", error);
       setError("An unexpected error occurred. Please try again.");
@@ -120,12 +120,29 @@ export default function LoginPage() {
       {/* Login card */}
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          {/* Company Logo */}
+          <div className="flex justify-center mb-4">
+            {/* Light Mode Logo */}
+            <img
+              src="/Images/logo-removebg-preview.webp"
+              alt="Company Logo"
+              className="h-12 block dark:hidden"
+            />
+            {/* Dark Mode Logo */}
+            <img
+              src="/Images/logo-dark-removebg-preview.webp"
+              alt="Company Logo"
+              className="h-12 hidden dark:block"
+            />
+          </div>
+
           <div className="flex items-center justify-center mb-0">
             <LogIn className="h-8 w-8 text-primary mx-2" />
             <CardTitle className="text-2xl">{t("auth.welcomeBack")}</CardTitle>
           </div>
           <CardDescription>{t("auth.signInDescription")}</CardDescription>
         </CardHeader>
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -158,7 +175,9 @@ export default function LoginPage() {
               </div>
             </div>
             <div className=" flex gap-1 text-sm -mt-2">
-              <Link to={"/forgot-password"} className=" hover:text-blue-500">Forgot Password?</Link>
+              <Link to={"/forgot-password"} className=" hover:text-blue-500">
+                Forgot Password?
+              </Link>
             </div>
             {error && (
               <Alert variant="destructive">

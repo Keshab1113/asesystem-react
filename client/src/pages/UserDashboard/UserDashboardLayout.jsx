@@ -11,7 +11,7 @@ export default function UserDashboardLayout() {
 
   useEffect(() => {
     if (!isAuthenticated && !user) {
-      router.push("/login");
+      router("/login");
     }
   }, [user, isAuthenticated, router]);
 
@@ -31,10 +31,18 @@ export default function UserDashboardLayout() {
   );
   return (
     <div className="min-h-screen bg-background w-full relative hide-scrollbar ">
-      <DashboardNav />
-      <div className=" flex pt-18 ">
+      {!hideNavItems && <DashboardNav />}
+      <div
+        className={` flex  ${
+          hideNavItems ? " md:h-screen h-full md:overflow-hidden p-0" : "h-full overflow-y-auto pt-18"
+        }`}
+      >
         {!hideNavItems && <NavItems />}
-        <main className={`   w-full ${!hideNavItems && "lg:ml-[20rem] p-6"}`}>
+        <main
+          className={` w-full ${
+            hideNavItems ? " md:h-screen h-full md:overflow-hidden p-0" : "lg:ml-[20rem] p-6"
+          }`}
+        >
           <Outlet />
         </main>
       </div>

@@ -271,7 +271,7 @@ asesystem Team`,
       html: `
   <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px;">
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-      <h2 style="color: #2563eb; text-align: center; margin-bottom: 20px;">ASESystem</h2>
+      <h2 style="color: #2563eb; text-align: center; margin-bottom: 20px;">asesystem</h2>
       <p style="font-size: 16px; color: #333;">Hello <b>${
         user.name || ""
       }</b>,</p>
@@ -286,10 +286,10 @@ asesystem Team`,
       <p style="font-size: 15px; color: #555;">⚠️ This code is valid for <b>${OTP_TTL_MINUTES} minutes</b> only. Please do not share it with anyone.</p>
       
       <p style="margin-top: 30px; font-size: 14px; color: #777;">Best regards,</p>
-      <p style="font-size: 14px; font-weight: bold; color: #333;">ASESystem Team</p>
+      <p style="font-size: 14px; font-weight: bold; color: #333;">asesystem Team</p>
     </div>
     <p style="text-align: center; font-size: 12px; color: #999; margin-top: 15px;">
-      © ${new Date().getFullYear()} ASESystem. All rights reserved.
+      © ${new Date().getFullYear()} asesystem. All rights reserved.
     </p>
   </div>
   `,

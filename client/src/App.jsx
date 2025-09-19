@@ -28,6 +28,7 @@ import { ModifyProfilePage } from "./pages/AdminDashboard/AdminDashboardProfile/
 import { ChangePasswordPage } from "./pages/AdminDashboard/AdminDashboardProfile/ChangePasswordPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage/ForgotPasswordPage";
 import QuestionsPage from "./pages/UserDashboard/QuestionsPage";
+import ResultsPage from "./pages/UserDashboard/ResultsPage";
 
 function App() {
   return (
@@ -89,6 +90,7 @@ function App() {
             <Route path="upcoming" element={<UpcomingAssessmentsPage />} />
             <Route path="assessments" element={<AssessmentsPage />} />
             <Route path="assessment/:quizId" element={<QuestionsPage />} />
+            <Route path="results/:quizId" element={<ResultsPage />} />
           </Route>
           <Route path="*" element={<NoPage />} />
           <Route path="/login" element={<LoginPage />} />

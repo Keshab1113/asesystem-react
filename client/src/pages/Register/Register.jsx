@@ -98,11 +98,11 @@ export default function RegisterPage() {
       newErrors.employee_id = t("register.employee_id") + " is required";
     }
     if (!formData.controlling_team.trim()) {
-      newErrors.controlling_team = t("profile.controlling_team") + " is required";
+      newErrors.controlling_team =
+        t("profile.controlling_team") + " is required";
     }
     if (!formData.location.trim()) {
-      newErrors.location =
-        t("profile.location") + " is required";
+      newErrors.location = t("profile.location") + " is required";
     }
     if (!formData.group.trim()) {
       newErrors.group = t("profile.group") + " is required";
@@ -145,7 +145,7 @@ export default function RegisterPage() {
         toast({
           title: "Registration Successful",
           description: "Please check your email for OTP verification code.",
-          variant: "success"
+          variant: "success",
         });
         // navigate to verify page (React Router)
         window.location.href = `/verify-otp?email=${encodeURIComponent(
@@ -155,7 +155,7 @@ export default function RegisterPage() {
         toast({
           title: "Registration Failed",
           description: data.message || "Please try again.",
-          variant: "error"
+          variant: "error",
         });
       }
     } catch (error) {
@@ -163,26 +163,37 @@ export default function RegisterPage() {
       toast({
         title: "Error",
         description: "An unexpected error occurred.",
-        variant: "error"
+        variant: "error",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4 pt-10 md:pt-4">
       <div className="md:top-6 top-2 md:left-6 left-2 absolute">
         <ToggleTheme />
       </div>
-      <Card className="w-full max-w-xl">
+      <Card className="w-full max-w-xl gap-2 py-4">
         <CardHeader className="text-center">
-          <div className="flex items-center justify-center mb-0">
-            <Globe className="h-8 w-8 text-primary mx-2" />
-            <CardTitle className="text-2xl">{t("register.title")}</CardTitle>
+          <div className="flex items-center justify-center">
+            <div className="relative">
+              <img
+                src="/Images/logo-removebg-preview.webp"
+                alt="Company Logo"
+                className="h-10 lg:h-16 w-auto block dark:hidden drop-shadow-lg"
+              />
+              <img
+                src="/Images/logo-dark-removebg-preview.webp"
+                alt="Company Logo"
+                className="h-10 lg:h-16 w-auto hidden dark:block drop-shadow-lg"
+              />
+              <div className="absolute -inset-1 lg:-inset-2 bg-blue-500/20 rounded-full blur-xl"></div>
+            </div>
           </div>
-          <CardDescription>{t("register.description")}</CardDescription>
+
+          <CardDescription><h1 className=" text-2xl font-bold">{t("register.title")}</h1></CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -345,7 +356,7 @@ export default function RegisterPage() {
                 }
               >
                 <SelectTrigger className=" w-full ">
-                  <SelectValue placeholder="Select Office location type" />
+                  <SelectValue placeholder="Select Work Location" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={"Rig Based Employee (ROE)"}>

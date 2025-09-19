@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import {Link, useNavigate} from "react-router-dom";
 import { useLanguage } from "@/lib/language-context";
@@ -111,7 +109,7 @@ export function DashboardNav() {
                   </div>
                 </div>
                 <nav className="flex flex-col gap-2 px-2">
-                  <NavItems mobile />
+                  <NavItems mobile onItemClick={() => setIsMobileMenuOpen(false)} />
                 </nav>
               </div>
             </SheetContent>
@@ -278,22 +276,6 @@ export function DashboardNav() {
                     </div>
                   </Link>
                 </DropdownMenuItem>
-                {/* <DropdownMenuItem asChild>
-                  <Link
-                    to="/dashboard/settings"
-                    className="flex items-center gap-3 rounded-lg p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-all duration-200"
-                  >
-                    <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                      <Settings className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-medium">Settings</span>
-                      <span className="text-xs text-slate-600 dark:text-slate-400">
-                        Preferences & privacy
-                      </span>
-                    </div>
-                  </Link>
-                </DropdownMenuItem> */}
               </div>
               <DropdownMenuSeparator className="my-2 bg-slate-200 dark:bg-slate-700" />
               <div className="p-2">

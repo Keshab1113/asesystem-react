@@ -69,13 +69,51 @@ export default function DashboardPage() {
 
   const getStatusBadge = (assessment) => {
     switch (assessment.status) {
-      case "scheduled":
+      case "scheduled": {
+        if (
+          assessment.schedule_start_date &&
+          assessment.schedule_start_time &&
+          assessment.schedule_end_date &&
+          assessment.schedule_end_time
+        ) {
+          // Merge date + time into Date objects
+          const startDateTime = new Date(
+            `${assessment.schedule_start_date.split("T")[0]}T${
+              assessment.schedule_start_time
+            }`
+          );
+          const endDateTime = new Date(
+            `${assessment.schedule_end_date.split("T")[0]}T${
+              assessment.schedule_end_time
+            }`
+          );
+          const now = new Date();
+
+          if (now >= startDateTime && now <= endDateTime) {
+            return (
+              <Badge className=" bg-green-600">
+                <CheckCircle className="w-3 h-3 mr-1" />
+                Active
+              </Badge>
+            );
+          } else {
+            return (
+              <Badge variant="destructive">
+                <AlertCircle className="w-3 h-3 mr-1" />
+                Closed
+              </Badge>
+            );
+          }
+        }
+
         return (
           <Badge variant="outline">
             <Clock className="w-3 h-3 mr-1" />
             Scheduled
           </Badge>
         );
+      }
+
       case "in_progress":
         return (
           <Badge variant="secondary">
@@ -83,6 +121,7 @@ export default function DashboardPage() {
             In Progress
           </Badge>
         );
+
       case "passed":
         return (
           <Badge variant="default">
@@ -90,6 +129,7 @@ export default function DashboardPage() {
             Passed
           </Badge>
         );
+
       case "failed":
         return (
           <Badge variant="destructive">
@@ -97,6 +137,7 @@ export default function DashboardPage() {
             Failed
           </Badge>
         );
+
       case "under_review":
         return (
           <Badge variant="outline">
@@ -104,6 +145,7 @@ export default function DashboardPage() {
             Under Review
           </Badge>
         );
+
       default:
         return null;
     }
@@ -213,36 +255,38 @@ export default function DashboardPage() {
 
         {/* Timestamps */}
         <div className="grid grid-cols-1 gap-3 text-sm bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
-          {assessment.started_at && (
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-400">
-                Started:
-              </span>
-              <span className="font-medium text-slate-700 dark:text-slate-300">
-                {new Date(assessment.started_at).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          )}
-          {assessment.ended_at && (
-            <div className="flex justify-between">
-              <span className="text-slate-500 dark:text-slate-400">
-                Completed:
-              </span>
-              <span className="font-medium text-slate-700 dark:text-slate-300">
-                {new Date(assessment.ended_at).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
-          )}
+          <div className="flex justify-between">
+            <span className="text-slate-500 dark:text-slate-400">
+              Assessment Start Date:
+            </span>
+            <span className="font-medium text-slate-700 dark:text-slate-300">
+              {assessment.started_at
+                ? new Date(assessment.started_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "Null"}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-slate-500 dark:text-slate-400">
+              Assessment End Date:
+            </span>
+            <span className="font-medium text-slate-700 dark:text-slate-300">
+              {assessment.ended_at
+                ? new Date(assessment.ended_at).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : "Null"}
+            </span>
+          </div>
+
           {assessment.scheduled_for && (
             <div className="flex justify-between">
               <span className="text-slate-500 dark:text-slate-400">
@@ -266,14 +310,28 @@ export default function DashboardPage() {
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
           {assessment.status === "scheduled" && (
-            <Button className="flex-1 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 text-white shadow-sm">
+            <Button
+              onClick={() =>
+                navigate(
+                  `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}`
+                )
+              }
+              className="flex-1 text-white dark:text-slate-900 shadow-sm"
+            >
               <Play className="w-4 h-4 mr-2" />
               Start Assessment
               <ChevronRight className="w-4 h-4 ml-auto" />
             </Button>
           )}
           {assessment.status === "in_progress" && (
-            <Button onClick={()=>navigate(`/user-dashboard/assessment/${assessment.quiz_id}`)} className="flex-1  text-white dark:text-slate-900 shadow-sm">
+            <Button
+              onClick={() =>
+                navigate(
+                  `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}`
+                )
+              }
+              className="flex-1 text-white dark:text-slate-900 shadow-sm"
+            >
               <Play className="w-4 h-4 mr-2" />
               Continue Assessment
               <ChevronRight className="w-4 h-4 ml-auto" />
@@ -321,10 +379,37 @@ export default function DashboardPage() {
 
   // 🔹 Separate assignments by status
   const inProgress = assignments.filter((a) => a.status === "in_progress");
-  const scheduled = assignments.filter((a) => a.status === "scheduled");
-  const completed = assignments.filter((a) =>
-    ["passed", "failed", "under_review"].includes(a.status)
-  );
+  const now = new Date();
+
+  const scheduled = assignments.filter((a) => {
+    if (a.status !== "scheduled") return false;
+
+    if (a.schedule_end_date && a.schedule_end_time) {
+      const endDateTime = new Date(
+        `${a.schedule_end_date.split("T")[0]}T${a.schedule_end_time}`
+      );
+      return now <= endDateTime; // keep only not expired scheduled
+    }
+
+    return true; // if no end date/time, keep it as scheduled
+  });
+
+  const completed = assignments.filter((a) => {
+    if (["passed", "failed", "under_review"].includes(a.status)) return true;
+
+    if (
+      a.status === "scheduled" &&
+      a.schedule_end_date &&
+      a.schedule_end_time
+    ) {
+      const endDateTime = new Date(
+        `${a.schedule_end_date.split("T")[0]}T${a.schedule_end_time}`
+      );
+      return now > endDateTime; // expired scheduled treated as completed
+    }
+
+    return false;
+  });
 
   console.log("assignments: ", assignments);
 

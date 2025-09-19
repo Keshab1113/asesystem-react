@@ -4,7 +4,7 @@ import { LayoutDashboard, FileText, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/lib/language-context";
 
-const NavItems = ({ mobile }) => {
+const NavItems = ({ mobile, onItemClick }) => {
   const location = useLocation();
   const { t } = useLanguage();
 
@@ -13,7 +13,6 @@ const NavItems = ({ mobile }) => {
       name: t("nav.dashboard"),
       href: "/user-dashboard",
       icon: LayoutDashboard,
-      badge: null,
     },
     // {
     //   name: t("nav.myAssessments"),
@@ -31,7 +30,6 @@ const NavItems = ({ mobile }) => {
       name: t("nav.profile"),
       href: "/user-dashboard/profile",
       icon: User,
-      badge: null,
     },
   ];
 
@@ -39,8 +37,8 @@ const NavItems = ({ mobile }) => {
     <section
       className={cn(
         mobile
-          ? "flex flex-col gap-2" // ✅ Mobile (inside Sheet)
-          : "fixed hidden lg:block left-0 top-[4rem] pt-10 w-[20rem] h-[calc(100vh-4rem)] bg-background border-r border-slate-200 dark:border-white/10 px-4 overflow-y-auto" // ✅ Desktop
+          ? "flex flex-col gap-2"
+          : "fixed hidden lg:block left-0 top-[4rem] pt-10 w-[20rem] h-[calc(100vh-4rem)] bg-background border-r border-slate-200 dark:border-white/10 px-4 overflow-y-auto"
       )}
     >
       {navigation.map((item) => {
@@ -49,6 +47,9 @@ const NavItems = ({ mobile }) => {
           <Link
             key={item.href}
             to={item.href}
+            onClick={() => {
+              if (mobile && onItemClick) onItemClick(); // ✅ Close sidebar on mobile
+            }}
             className={cn(
               "group relative flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 hover:scale-[1.02]",
               isActive
@@ -77,18 +78,6 @@ const NavItems = ({ mobile }) => {
               </div>
               <span>{item.name}</span>
             </div>
-            {item.badge && (
-              <div
-                className={cn(
-                  "px-2 py-1 rounded-full text-xs font-semibold transition-all",
-                  isActive
-                    ? "bg-white/20 text-white"
-                    : "bg-blue-100 text-blue-700 group-hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300"
-                )}
-              >
-                {item.badge}
-              </div>
-            )}
           </Link>
         );
       })}

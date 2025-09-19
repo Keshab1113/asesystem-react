@@ -155,31 +155,31 @@ function ToastItem({ toast, index, onClose }: ToastItemProps) {
     switch (type) {
       case "success":
         return {
-          container:
-            "bg-gradient-to-r from-emerald-50 to-green-50 border-l-4 border-emerald-400 shadow-lg shadow-emerald-100/50",
-          icon: "text-emerald-600",
-          progress: "bg-gradient-to-r from-emerald-400 to-green-400",
+          container: "bg-green-500 text-white border-green-600",
+          icon: "text-white",
+          progress: "bg-green-300",
+          closeButton: "hover:bg-green-600 text-white",
         };
       case "error":
         return {
-          container:
-            "bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-400 shadow-lg shadow-red-100/50",
-          icon: "text-red-600",
-          progress: "bg-gradient-to-r from-red-400 to-rose-400",
+          container: "bg-red-500 text-white border-red-600",
+          icon: "text-white",
+          progress: "bg-red-300",
+          closeButton: "hover:bg-red-600 text-white",
         };
       case "warning":
         return {
-          container:
-            "bg-gradient-to-r from-amber-50 to-yellow-50 border-l-4 border-amber-400 shadow-lg shadow-amber-100/50",
-          icon: "text-amber-600",
-          progress: "bg-gradient-to-r from-amber-400 to-yellow-400",
+          container: "bg-amber-500 text-white border-amber-600",
+          icon: "text-white",
+          progress: "bg-amber-300",
+          closeButton: "hover:bg-amber-600 text-white",
         };
       default:
         return {
-          container:
-            "bg-gradient-to-r from-slate-50 to-gray-50 border-l-4 border-blue-400 shadow-lg shadow-slate-100/50",
-          icon: "text-blue-600",
-          progress: "bg-gradient-to-r from-blue-400 to-indigo-400",
+          container: "bg-blue-500 text-white border-blue-600",
+          icon: "text-white",
+          progress: "bg-blue-300",
+          closeButton: "hover:bg-blue-600 text-white",
         };
     }
   };
@@ -202,7 +202,7 @@ function ToastItem({ toast, index, onClose }: ToastItemProps) {
   return (
     <div
       className={`
-        relative rounded-xl p-4 w-full backdrop-blur-sm pointer-events-auto
+        relative rounded-xl p-4 w-full backdrop-blur-sm pointer-events-auto border
         transform transition-all duration-300 ease-out
         ${
           isVisible
@@ -218,7 +218,7 @@ function ToastItem({ toast, index, onClose }: ToastItemProps) {
       }}
     >
       {/* Subtle background pattern */}
-      <div className="absolute inset-0 bg-white/60 rounded-xl" />
+      <div className="absolute inset-0 bg-white/10 rounded-xl" />
 
       <div className="relative flex items-start gap-3">
         {/* Icon with pulse animation */}
@@ -229,12 +229,12 @@ function ToastItem({ toast, index, onClose }: ToastItemProps) {
         {/* Content */}
         <div className="flex-1 min-w-0">
           {title && (
-            <div className="text-sm font-semibold text-gray-900 mb-1 leading-tight">
+            <div className="text-sm font-semibold mb-1 leading-tight">
               {title}
             </div>
           )}
           {description && (
-            <div className="text-xs text-gray-700 leading-relaxed break-words">
+            <div className="text-xs opacity-90 leading-relaxed break-words">
               {description}
             </div>
           )}
@@ -243,15 +243,15 @@ function ToastItem({ toast, index, onClose }: ToastItemProps) {
         {/* Close button */}
         <button
           onClick={handleClose}
-          className="flex-shrink-0 p-1.5 rounded-full bg-white/80 hover:bg-white transition-all duration-200 hover:scale-110 opacity-70 hover:opacity-100 group-hover:opacity-100"
+          className={`flex-shrink-0 p-1.5 rounded-full transition-all duration-200 hover:scale-110 opacity-70 hover:opacity-100 group-hover:opacity-100 ${styles.closeButton}`}
           aria-label="Dismiss notification"
         >
-          <X className="w-4 h-4 text-gray-600" />
+          <X className="w-4 h-4" />
         </button>
       </div>
 
       {/* Enhanced progress bar */}
-      <div className="relative mt-3 h-1.5 bg-white/50 rounded-full overflow-hidden">
+      <div className="relative mt-3 h-1.5 bg-black/20 rounded-full overflow-hidden">
         <div
           className={`absolute top-0 left-0 h-full rounded-full transition-all duration-75 ease-linear ${styles.progress}`}
           style={{ width: `${progress}%` }}
@@ -265,6 +265,8 @@ function ToastItem({ toast, index, onClose }: ToastItemProps) {
           }}
         />
       </div>
+
+      
     </div>
   );
 }
