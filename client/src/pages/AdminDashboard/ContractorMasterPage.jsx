@@ -1034,7 +1034,7 @@ export function ContractorMasterPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>User Location Type</Label>
+                    <Label>Office Location Type</Label>
                     <Select
                       value={formData.location}
                       onValueChange={(value) =>
@@ -1045,7 +1045,7 @@ export function ContractorMasterPage() {
                       }
                     >
                       <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select your location type" />
+                        <SelectValue placeholder="Select Office location type" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Rig Based Employee (ROE)">

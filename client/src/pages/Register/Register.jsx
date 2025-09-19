@@ -345,7 +345,7 @@ export default function RegisterPage() {
                 }
               >
                 <SelectTrigger className=" w-full ">
-                  <SelectValue placeholder="Select your location type" />
+                  <SelectValue placeholder="Select Office location type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={"Rig Based Employee (ROE)"}>

@@ -445,7 +445,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="location">User Location Type</Label>
+                  <Label htmlFor="location">Office Location Type</Label>
 
                   {isEditing ? (
                     <Select
@@ -458,7 +458,7 @@ export default function ProfilePage() {
                       }
                     >
                       <SelectTrigger className="w-full min-h-12">
-                        <SelectValue placeholder="Select your location type" />
+                        <SelectValue placeholder="Select Office location type" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Rig Based Employee (ROE)">

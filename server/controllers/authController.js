@@ -255,10 +255,10 @@ const forgotPasswordLogin = async (req, res) => {
     // send email
     const transporter = createTransporter();
     await transporter.sendMail({
-      from: `"ASESystem - No Reply" <${process.env.MAIL_USER_NOREPLY_VIEW}>`,
+      from: `"asesystem - No Reply" <${process.env.MAIL_USER_NOREPLY_VIEW}>`,
       to: email,
       replyTo: process.env.MAIL_USER_NOREPLY_VIEW,
-      subject: "ASESystem - Your One-Time Password (OTP)",
+      subject: "Advance Safety and Efficiency System - Your One-Time Password (OTP)",
       text: `Hello ${user.name || ""},
 
 Your One-Time Password (OTP) is: ${otp}
@@ -267,7 +267,7 @@ Your One-Time Password (OTP) is: ${otp}
 Do not share this code with anyone.
 
 Best regards,
-ASESystem Team`,
+asesystem Team`,
       html: `
   <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px;">
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">

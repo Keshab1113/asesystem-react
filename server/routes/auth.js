@@ -22,7 +22,7 @@ const multer = require("multer");
 const upload = multer();
 
 
-router.post('/change-password', authenticate, changePassword);
+router.post('/change-password', changePassword);
 router.put('/update',authenticate, updateUser);
 router.post(
   "/upload-profile-picture",

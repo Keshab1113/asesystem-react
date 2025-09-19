@@ -28,7 +28,7 @@ Best regards,
 ASESystem Team`;
 
   if (type === "resend") {
-    subject = "ASESystem - Your New OTP Code";
+    subject = "Advance Safety and Efficiency System - Your New OTP Code";
     text = `Hello ${name},
 
 We have generated a new One-Time Password (OTP) for you.

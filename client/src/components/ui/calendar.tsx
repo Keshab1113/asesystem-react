@@ -188,7 +188,15 @@ function CalendarDayButton({
       ref={ref}
       variant="ghost"
       size="icon"
-      data-day={day.date.toLocaleDateString()}
+     data-day={
+  day
+    ? ("date" in day ? (day.date as Date) : day)
+        .toLocaleDateString("en-CA") // "YYYY-MM-DD" format
+    : ""
+}
+
+
+
       data-selected-single={
         modifiers.selected &&
         !modifiers.range_start &&

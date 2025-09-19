@@ -122,19 +122,6 @@ export default function DashboardPage() {
     }
   };
 
-  const getDifficultyColor = (level) => {
-    switch (level) {
-      case "easy":
-        return "text-green-600 dark:text-green-400";
-      case "medium":
-        return "text-amber-600 dark:text-amber-400";
-      case "hard":
-        return "text-red-600 dark:text-red-400";
-      default:
-        return "text-gray-600 dark:text-gray-400";
-    }
-  };
-
   const AssessmentCard = ({ assessment }) => (
     <Card className="group hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-800/50 transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:-translate-y-1">
       <CardHeader className="pb-3">
@@ -159,14 +146,6 @@ export default function DashboardPage() {
           <span className="flex items-center gap-1.5">
             <Timer className="w-4 h-4" />
             {assessment.assignment_time_limit} min
-          </span>
-          <span
-            className={`flex items-center gap-1.5 capitalize font-medium ${getDifficultyColor(
-              assessment.difficulty_level
-            )}`}
-          >
-            <Target className="w-4 h-4" />
-            {assessment.difficulty_level}
           </span>
           <span className="flex items-center gap-1">
             <FileText className="w-4 h-4" />
