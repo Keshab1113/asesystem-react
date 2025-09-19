@@ -20,8 +20,9 @@ import { useNavigate } from "react-router-dom";
 import { QuizFormModal } from "../../components/AdminDashboard/QuizFormModal";
 import AssignQuizModal from "../../components/AdminDashboard/AssignQuizModal";
 import ViewQuestionsModal from "../../components/AdminDashboard/ViewQuestionsModal";
+import EditQuestionsModal from "../../components/AdminDashboard/EditQuestionModal";
 import useToast from "../../hooks/ToastContext";
-import { Eye,Users } from "lucide-react";
+import { Eye,Users,Pencil } from "lucide-react";
 
 export function SubjectMasterPage() {
   const [subjects, setSubjects] = useState([]);
@@ -36,6 +37,13 @@ export function SubjectMasterPage() {
     open: false,
     quizId: null,
   });
+const [editQuestionsModal, setEditQuestionsModal] = useState({
+  open: false,
+  quizId: null,
+});
+
+
+
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -61,6 +69,7 @@ export function SubjectMasterPage() {
           difficultyLevel: q.difficulty_level,
           passingScore: q.passing_score,
           maxAttempts: q.max_attempts,
+          maxQuestions: q.max_questions ?? 0,
           timeLimit: q.time_limit,
 
           scheduleStartDate: q.schedule_start_date
@@ -115,6 +124,10 @@ export function SubjectMasterPage() {
     setViewQuestionsModal({ open: true, quizId });
   };
 
+  const handleEditQuestions = (quizId) => {
+  setEditQuestionsModal({ open: true, quizId });
+};
+
   const handleAssignQuiz = (quiz) => {
     setAssignModal({ open: true, quizId: quiz.id, quizName: quiz.name });
     console.log("Assigning quiz:", quiz);
@@ -125,6 +138,11 @@ export function SubjectMasterPage() {
     setFormModal({ open: true, quiz });
     console.log("Editing quiz:", quiz);
   };
+
+  const handleEditQuestion = (question) => {
+  setEditQuestionModal({ open: true, question });
+};
+
 
   const handleSaveQuiz = (quizData) => {
     if (quizData.id && subjects.find((q) => q.id === quizData.id)) {
@@ -170,7 +188,7 @@ export function SubjectMasterPage() {
         <div className="flex flex-col md:flex-row md:items-center gap-20 w-full md:w-auto">
           <CardTitle className="flex items-center ">
             <BookOpen className="h-5 w-5 mr-2" />
-            Quiz Management
+            Assesment Management
           </CardTitle>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -195,7 +213,7 @@ export function SubjectMasterPage() {
       <div className="">
         <Card>
           <CardHeader>
-            <CardTitle>All Subjects ({filteredSubjects.length})</CardTitle>
+            <CardTitle>All Assesment ({filteredSubjects.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -224,6 +242,12 @@ export function SubjectMasterPage() {
                           {" "}
                           Time Limit: {subject.timeLimit} mins
                         </Badge>
+                        <Badge variant="outline">
+ {" "}
+                          Max Questions: {subject.maxQuestions}
+                          
+
+                        </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
                         {subject.description}
@@ -248,12 +272,31 @@ export function SubjectMasterPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button
+  size="sm"
+  variant="outline"
+  onClick={() => handleEditQuestions(subject.id)}
+  className="flex items-center gap-2"
+>
+  <Pencil className="h-4 w-4" /> {/* You can use lucide-react Pencil icon */}
+  Edit
+</Button>
+
+                      <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleViewQuestions(subject.id)}
                         className="flex items-center gap-2">
                         <Eye className="h-4 w-4" />
                         View 
+                      </Button>
+                      
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditQuiz(subject)}>
+                        <Edit className="h-3 w-3" />
+                        Schedule
                       </Button>
                       <Button
   size="sm"
@@ -264,13 +307,6 @@ export function SubjectMasterPage() {
   <Users className="h-4 w-4" />
   Assign
 </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditQuiz(subject)}>
-                        <Edit className="h-3 w-3" />
-                      </Button>
                       <Button
                         size="sm"
                         variant={subject.isActive ? "destructive" : "default"}
@@ -313,6 +349,11 @@ export function SubjectMasterPage() {
   quizName={assignModal.quizName} // <- pass the quiz name here
   open={assignModal.open}
   onClose={() => setAssignModal({ open: false, quizId: null, quizName: null })}
+/>
+<EditQuestionsModal
+  quizId={editQuestionsModal.quizId}
+  open={editQuestionsModal.open}
+  onClose={() => setEditQuestionsModal({ open: false, quizId: null })}
 />
 
       <ViewQuestionsModal

@@ -16,6 +16,7 @@ import CertificateView from "./pages/CertificateView/CertificateView";
 import AdminDashboardLayout from "./pages/AdminDashboard/AdminDashBoardLayout";
 import { DashboardContent } from "./components/AdminDashboard/DashboardContent";
 import { QuizReportPage } from "./pages/AdminDashboard/QuizReportPage";
+import { QuizReportDetailsPage } from "./pages/AdminDashboard/QuizReportDetailsPage";
 import { IssueCertificatePage } from "./pages/AdminDashboard/IssueCertificatePage";
 import { UserGroupPrivilegePage } from "./pages/AdminDashboard/UserGroupPrivilegePage";
 // import { AddQuestionsPage } from "./pages/AdminDashboard/AddQuestionsPage";
@@ -45,6 +46,7 @@ function App() {
           >
             <Route index element={<DashboardContent />} />
             <Route path="quiz-report" element={<QuizReportPage />} />
+            <Route path="quiz-report/:id" element={<QuizReportDetailsPage />} />
             <Route
               path="issue-certificate"
               element={<IssueCertificatePage />}

@@ -31,7 +31,10 @@ async function extractText(buffer, mimeType, originalFileName, ftpUrl) {
       const data = await response.json();
       console.log("✅ Mistral OCR response received");
       console.log("Mistral response data:", JSON.stringify(data, null, 2));
-      text = data.pages?.map(p => p.markdown).join("\n") || "";
+     text = data.pages
+  ?.map((p, idx) => `--- Page ${idx + 1} ---\n${p.markdown}`)
+  .join("\n\n") || "";
+
     }
 
     else if (mimeType === "text/plain") {
