@@ -90,8 +90,8 @@ exports.updateQuiz = async (req, res) => {
     name,
     timeLimit,
     passingScore,
-   maxAttempts,
-  maxQuestions, // <-- new
+    maxAttempts,
+    maxQuestions, // <-- new
     scheduleStartDate,
     scheduleStartTime,
     scheduleEndDate,
@@ -99,19 +99,29 @@ exports.updateQuiz = async (req, res) => {
   } = req.body;
 
   // Fetch current quiz first
-const [existing] = await db.query("SELECT time_limit, max_attempts FROM quizzes WHERE id = ?", [id]);
-if (!existing.length) {
-  return res.status(404).json({ success: false, message: "Quiz not found" });
-}
-const currentQuiz = existing[0];
+  const [existing] = await db.query(
+    "SELECT time_limit, max_attempts FROM quizzes WHERE id = ?",
+    [id]
+  );
+  if (!existing.length) {
+    return res.status(404).json({ success: false, message: "Quiz not found" });
+  }
+  const currentQuiz = existing[0];
 
-// If not already set in DB, then require them
-if ((currentQuiz.time_limit == null && (timeLimit === undefined || timeLimit === null)) ||
-    (currentQuiz.max_attempts == null && (maxAttempts === undefined || maxAttempts === null))) {
-  return res.status(400).json({ success: false, message: "Time limit and max attempts are required" });
-}
-
-
+  // If not already set in DB, then require them
+  if (
+    (currentQuiz.time_limit == null &&
+      (timeLimit === undefined || timeLimit === null)) ||
+    (currentQuiz.max_attempts == null &&
+      (maxAttempts === undefined || maxAttempts === null))
+  ) {
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "Time limit and max attempts are required",
+      });
+  }
 
   try {
     const [result] = await db.query(
@@ -127,20 +137,18 @@ if ((currentQuiz.time_limit == null && (timeLimit === undefined || timeLimit ===
   schedule_end_time = ?,
   updated_at = NOW()
 WHERE id = ?`,
-[
-  ...(name ? [name] : []),
-  ...(timeLimit !== undefined ? [timeLimit] : []),
-  passingScore,
-    ...(maxAttempts !== undefined ? [maxAttempts] : []),
-    ...(maxQuestions !== undefined ? [maxQuestions] : []), // <-- include
-  scheduleStartDate,
-  scheduleStartTime,
-  scheduleEndDate,
-  scheduleEndTime,
-  id,
-]
-
-
+      [
+        ...(name ? [name] : []),
+        ...(timeLimit !== undefined ? [timeLimit] : []),
+        passingScore,
+        ...(maxAttempts !== undefined ? [maxAttempts] : []),
+        ...(maxQuestions !== undefined ? [maxQuestions] : []), // <-- include
+        scheduleStartDate,
+        scheduleStartTime,
+        scheduleEndDate,
+        scheduleEndTime,
+        id,
+      ]
     );
 
     if (result.affectedRows === 0) {
@@ -158,7 +166,46 @@ WHERE id = ?`,
   }
 };
 
- 
+exports.deleteQuiz = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await db.query("DELETE FROM quiz_attempts WHERE quiz_id = ?", [id]);
+    await db.query("DELETE FROM quiz_assignments WHERE quiz_id = ?", [id]);
+    await db.query("DELETE FROM questions WHERE quiz_id = ?", [id]);
+    const [existing] = await db.query("SELECT * FROM quizzes WHERE id = ?", [
+      id,
+    ]);
+
+    if (!existing.length) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found",
+      });
+    }
+
+    // Delete quiz (and optionally related questions if you want cascade delete)
+    const [result] = await db.query("DELETE FROM quizzes WHERE id = ?", [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Quiz not found or already deleted",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Quiz deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting quiz:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 
 // Assign quiz to users
 // Assign quiz to users
@@ -193,7 +240,9 @@ exports.assignQuiz = async (req, res) => {
     );
 
     if (quizRows.length === 0) {
-      return res.status(404).json({ success: false, message: "Quiz not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Quiz not found" });
     }
 
     const {
@@ -205,10 +254,16 @@ exports.assignQuiz = async (req, res) => {
       schedule_end_time,
     } = quizRows[0];
 
-    if (!schedule_start_date || !schedule_start_time || !schedule_end_date || !schedule_end_time) {
+    if (
+      !schedule_start_date ||
+      !schedule_start_time ||
+      !schedule_end_date ||
+      !schedule_end_time
+    ) {
       return res.status(400).json({
         success: false,
-        message: "This quiz has not been scheduled. Please schedule it before assigning.",
+        message:
+          "This quiz has not been scheduled. Please schedule it before assigning.",
       });
     }
 
@@ -224,7 +279,9 @@ exports.assignQuiz = async (req, res) => {
     );
 
     if (userRows.length === 0) {
-      return res.status(404).json({ success: false, message: "Users not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Users not found" });
     }
 
     // 3. Filter out users who already have an active assignment
@@ -294,7 +351,8 @@ exports.assignQuiz = async (req, res) => {
     if (values.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "No eligible users to assign (already assigned or no attempts yet).",
+        message:
+          "No eligible users to assign (already assigned or no attempts yet).",
       });
     }
 
@@ -315,10 +373,6 @@ exports.assignQuiz = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
-
-
-
 
 // Fetch assigned users for a quiz
 // Fetch assigned users and summary for a quiz
@@ -351,9 +405,9 @@ exports.getQuizAssignments = async (req, res) => {
       [quiz_id]
     );
 
-    res.json({ 
-      success: true, 
-      data: { assignments, summary: summary[0] } 
+    res.json({
+      success: true,
+      data: { assignments, summary: summary[0] },
     });
   } catch (error) {
     console.error("Error fetching assignments:", error);
@@ -361,50 +415,54 @@ exports.getQuizAssignments = async (req, res) => {
   }
 };
 
-
 exports.getQuizQuestions = async (req, res) => {
   const { id } = req.params; // quizId
   const quizId = id;
 
   if (!quizId) {
-    return res.status(400).json({ success: false, message: "Quiz ID is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Quiz ID is required" });
   }
 
   try {
     // Fetch quiz questions along with quiz title
     // First fetch the quiz to get used_file_ids
-const [quizRows] = await db.query(
-  `SELECT title, used_file_ids FROM quizzes WHERE id = ?`,
-  [quizId]
-);
-const quiz = quizRows[0];
-let files = [];
-if (quiz?.used_file_ids) {
-  const fileIds = JSON.parse(quiz.used_file_ids || '[]');
-  if (fileIds.length > 0) {
-    const placeholders = fileIds.map(() => "?").join(",");
-    const [fileRows] = await db.query(
-      `SELECT file_id, original_name, file_url FROM uploaded_files WHERE file_id IN (${placeholders})`,
-      fileIds
+    const [quizRows] = await db.query(
+      `SELECT title, used_file_ids FROM quizzes WHERE id = ?`,
+      [quizId]
     );
-    files = fileRows;
-  }
-}
+    const quiz = quizRows[0];
+    let files = [];
+    if (quiz?.used_file_ids) {
+      const fileIds = JSON.parse(quiz.used_file_ids || "[]");
+      if (fileIds.length > 0) {
+        const placeholders = fileIds.map(() => "?").join(",");
+        const [fileRows] = await db.query(
+          `SELECT file_id, original_name, file_url FROM uploaded_files WHERE file_id IN (${placeholders})`,
+          fileIds
+        );
+        files = fileRows;
+      }
+    }
 
-// Then fetch questions as before
-const [rows] = await db.query(
-  `SELECT q.id, q.question_text, q.question_type, q.options, q.correct_answer, 
+    // Then fetch questions as before
+    const [rows] = await db.query(
+      `SELECT q.id, q.question_text, q.question_type, q.options, q.correct_answer, 
           q.explanation, q.difficulty_level, qu.title AS quiz_name
    FROM questions q
    JOIN quizzes qu ON q.quiz_id = qu.id
    WHERE q.quiz_id = ? AND q.is_active = 1
    ORDER BY q.id ASC`,
-  [quizId]
-);
+      [quizId]
+    );
 
-res.json({ success: true, data: rows, files, quiz_title: quiz?.title || "" });
-
- 
+    res.json({
+      success: true,
+      data: rows,
+      files,
+      quiz_title: quiz?.title || "",
+    });
   } catch (error) {
     console.error("Error fetching quiz questions:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -429,17 +487,21 @@ exports.updateQuizQuestionsBulk = async (req, res) => {
     );
 
     const existingMap = {};
-    existingRows.forEach(q => {
+    existingRows.forEach((q) => {
       existingMap[q.id] = {
         question_text: q.question_text,
-        options: Array.isArray(q.options) ? q.options : q.options ? JSON.parse(q.options) : [],
+        options: Array.isArray(q.options)
+          ? q.options
+          : q.options
+          ? JSON.parse(q.options)
+          : [],
         correct_answer: q.correct_answer,
         explanation: q.explanation,
         difficulty_level: q.difficulty_level,
       };
     });
 
-    const updatePromises = questions.map(q => {
+    const updatePromises = questions.map((q) => {
       const existing = existingMap[q.id] || {};
       // Only merge fields that exist; keep other options intact
       const newOptions = q.options !== undefined ? q.options : existing.options;
@@ -455,7 +517,7 @@ exports.updateQuizQuestionsBulk = async (req, res) => {
           q.explanation ?? existing.explanation,
           q.difficulty_level ?? existing.difficulty_level,
           q.id,
-          quizId
+          quizId,
         ]
       );
     });
@@ -470,12 +532,16 @@ exports.updateQuizQuestionsBulk = async (req, res) => {
       [quizId]
     );
 
-    const parsedQuestions = updatedRows.map(q => ({
+    const parsedQuestions = updatedRows.map((q) => ({
       ...q,
-      options: q.options ? JSON.parse(q.options) : []
+      options: q.options ? JSON.parse(q.options) : [],
     }));
 
-    res.json({ success: true, message: "All questions updated successfully", data: parsedQuestions });
+    res.json({
+      success: true,
+      message: "All questions updated successfully",
+      data: parsedQuestions,
+    });
   } catch (error) {
     console.error("Error updating questions:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -534,4 +600,3 @@ exports.getQuizReportDetails = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-

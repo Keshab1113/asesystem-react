@@ -11,6 +11,8 @@ import {
   MonitorCog,
   Smartphone,
   MapPin,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 import {
@@ -34,6 +36,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "../../hooks/ToastContext";
 import { useLanguage } from "@/lib/language-context";
 import ToggleTheme from "../../components/ToggleTheme";
+import { Link } from "react-router-dom";
 
 export default function RegisterPage() {
   const { language, setLanguage, t } = useLanguage();
@@ -55,6 +58,7 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [companies, setCompanies] = useState([]);
   const [contractors, setContractors] = useState([]);
+  const [showPassword, setShowPassword] = useState(false);
 
   const fetchCompanies = async () => {
     try {
@@ -177,12 +181,10 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
-  console.log("formData ", formData);
-  console.log("contractors ", contractors);
-  console.log("companies ", companies);
+  
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4 pt-10 md:pt-4">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4 pt-14 md:pt-4">
       <div className="md:top-6 top-2 md:left-6 left-2 absolute">
         <ToggleTheme />
       </div>
@@ -372,14 +374,17 @@ export default function RegisterPage() {
                         .filter(
                           (c) => c.company_id === Number(formData.group_id)
                         )
-                        .map((contractor) => (
-                          <SelectItem
-                            key={contractor.id}
-                            value={contractor.id.toString()}
-                          >
-                            {contractor.name}
-                          </SelectItem>
-                        ))}
+                        .map((contractor) => {
+                          console.log("Hiiii: ", contractor);
+                          return (
+                            <SelectItem
+                              key={contractor.id}
+                              value={contractor.id.toString()}
+                            >
+                              {contractor.name}
+                            </SelectItem>
+                          );
+                        })}
                   </SelectContent>
                 </Select>
               </div>
@@ -454,16 +459,34 @@ export default function RegisterPage() {
             {/* Password */}
             <div className="space-y-2">
               <Label htmlFor="password">{t("auth.password")}</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, password: e.target.value }))
-                }
-                className={errors.password ? "border-destructive" : ""}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"} // toggle text/password
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      password: e.target.value,
+                    }))
+                  }
+                  className={`pr-10 ${
+                    errors.password ? "border-destructive" : ""
+                  }`}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-primary"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Submit */}
@@ -479,13 +502,12 @@ export default function RegisterPage() {
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
               {t("register.alreadyHaveAccount")}{" "}
-              <Button
-                variant="link"
-                className="p-0 h-auto cursor-pointer"
-                onClick={() => (window.location.href = "/login")}
+              <Link
+                to="/login"
+                className="text-primary hover:underline font-medium cursor-pointer"
               >
                 {t("register.loginHere")}
-              </Button>
+              </Link>
             </p>
           </div>
         </CardContent>

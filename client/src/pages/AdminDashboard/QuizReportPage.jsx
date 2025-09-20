@@ -23,7 +23,7 @@ const [reports, setReports] = useState([]);
 const navigate = useNavigate();
 
 const handleViewDetails = (id) => {
-  navigate(`/admin-dashboard/quiz-report/${id}`);
+  navigate(`/admin-dashboard/assessment-report/${id}`);
 };
 
  useEffect(() => {

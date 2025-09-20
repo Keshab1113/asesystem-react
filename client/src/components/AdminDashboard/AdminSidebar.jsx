@@ -38,7 +38,7 @@ const navigationItems = [
     title: "Reports",
     icon: BarChart3,
     items: [
-      { title: "Assesment Report", icon: FileText, page: "quiz-report" },
+      { title: "Assesment Report", icon: FileText, page: "assessment-report" },
       {
         title: "Issue Manual Certificate",
         icon: Award,

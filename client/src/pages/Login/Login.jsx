@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LogIn, Mail, Lock, Sun, Moon } from "lucide-react";
+import { LogIn, Mail, Lock, Sun, Moon, Eye, EyeOff } from "lucide-react";
 import ToggleTheme from "../../components/ToggleTheme";
 import useToast from "../../hooks/ToastContext";
 
@@ -36,6 +36,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const { language, setLanguage, t } = useLanguage();
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { toast } = useToast();
@@ -166,12 +167,23 @@ export default function LoginPage() {
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"} // toggle between text & password
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className={`pl-10 ${error ? "border-destructive" : ""}`}
+                  className={`pl-10 pr-10 ${error ? "border-destructive" : ""}`}
                 />
+                <button
+                  type="button"
+                  className="absolute right-3 top-3 text-muted-foreground hover:text-primary"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
             <div className=" flex gap-1 text-sm -mt-2">

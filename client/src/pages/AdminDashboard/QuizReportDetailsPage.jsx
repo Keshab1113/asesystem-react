@@ -158,7 +158,8 @@ export function QuizReportDetailsPage() {
       return (
         <Badge
           variant="destructive"
-          className="bg-red-500 hover:bg-red-600 text-xs px-2 py-1">
+          className="bg-red-500 hover:bg-red-600 text-xs px-2 py-1"
+        >
           Fail
         </Badge>
       );
@@ -178,34 +179,33 @@ export function QuizReportDetailsPage() {
     <div className="  min-h-screen">
       <div className="w-full p-4 space-y-4">
         {/* Header */}
-     {/* Header */}
-<div className="flex items-center justify-between">
-  <div>
-    <h1 className="text-3xl font-bold text-slate-800">
-      Assessment Report Details
-    </h1>
-    
-    <p className="text-slate-600 text-sm">
-      Showing {filtered.length} of {assignments.length} results
-    </p>
-  </div>
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
+              Assessment Report Details
+            </h1>
 
-  <Button 
-    variant="outline" 
-    onClick={() => navigate(-1)} 
-    className="h-8 text-sm border-slate-200 text-slate-700 hover:bg-slate-50"
-  >
-    ← Back
-  </Button>
-</div>
+            <p className="text-slate-600 dark:text-slate-200 text-sm">
+              Showing {filtered.length} of {assignments.length} results
+            </p>
+          </div>
 
+          <Button
+            variant="outline"
+            onClick={() => navigate(-1)}
+            className="h-8 text-sm border-slate-200 text-gray-700 dark:text-gray-100 hover:bg-slate-50"
+          >
+            ← Back
+          </Button>
+        </div>
 
         {/* Filters */}
-        <Card className="shadow-sm border border-slate-200 bg-white">
+        <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900">
           <CardContent className="p-4">
             <div className="flex flex-wrap gap-3 items-end">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
                   Group
                 </label>
                 <Select value={groupFilter} onValueChange={setGroupFilter}>
@@ -224,7 +224,7 @@ export function QuizReportDetailsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
                   Team
                 </label>
                 <Select value={teamFilter} onValueChange={setTeamFilter}>
@@ -242,12 +242,13 @@ export function QuizReportDetailsPage() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
                   Location
                 </label>
                 <Select
                   value={locationFilter}
-                  onValueChange={setLocationFilter}>
+                  onValueChange={setLocationFilter}
+                >
                   <SelectTrigger className="w-60 h-8 text-sm border-slate-200">
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
@@ -263,7 +264,7 @@ export function QuizReportDetailsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
                   Status
                 </label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -282,7 +283,7 @@ export function QuizReportDetailsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-700">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
                   Min Score
                 </label>
                 <Input
@@ -304,7 +305,8 @@ export function QuizReportDetailsPage() {
                   setLocationFilter("all");
                   setScoreFilter("");
                 }}
-                className="h-8 text-sm border-slate-200 text-slate-700 hover:bg-slate-50">
+                className="h-8 text-sm border-slate-200 text-gray-700 dark:text-gray-100 hover:bg-slate-50"
+              >
                 Reset
               </Button>
             </div>
@@ -312,37 +314,37 @@ export function QuizReportDetailsPage() {
         </Card>
 
         {/* Results Table */}
-        <Card className="shadow-sm border border-slate-200 bg-white">
+        <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table className="w-full">
                 <TableHeader>
-                  <TableRow className="bg-slate-50 border-b border-slate-200">
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                  <TableRow className="bg-slate-50 dark:border-slate-700  dark:bg-gray-900 border-b border-slate-200">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       User
                     </TableHead>
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       Email
                     </TableHead>
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       Team
                     </TableHead>
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       Group
                     </TableHead>
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       Position
                     </TableHead>
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       Location
                     </TableHead>
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       Score
                     </TableHead>
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       Status
                     </TableHead>
-                    <TableHead className="font-medium text-slate-700 py-3 px-4 text-sm whitespace-nowrap">
+                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
                       Result
                     </TableHead>
                   </TableRow>
@@ -351,9 +353,10 @@ export function QuizReportDetailsPage() {
                   {filtered.map((a, index) => (
                     <TableRow
                       key={a.assignment_id}
-                      className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                      className="border-b border-slate-100 hover:bg-slate-50/50 hover:dark:bg-slate-800 transition-colors"
+                    >
                       <TableCell className="py-2 px-4">
-                        <div className="font-medium text-slate-900 text-sm whitespace-nowrap">
+                        <div className="font-medium text-gray-900 dark:text-gray-100 text-sm whitespace-nowrap">
                           {a.user_name}
                         </div>
                       </TableCell>
@@ -363,14 +366,14 @@ export function QuizReportDetailsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="py-2 px-4">
-                        <div className="text-slate-700 text-sm whitespace-nowrap">
+                        <div className="text-gray-700 dark:text-gray-100 text-sm whitespace-nowrap">
                           {a.team_name || (
                             <span className="text-gray-400">—</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell className="py-2 px-4">
-                        <div className="text-slate-700 text-sm whitespace-nowrap">
+                        <div className="text-gray-700 dark:text-gray-100 text-sm whitespace-nowrap">
                           {a.group_name || (
                             <span className="text-gray-400">—</span>
                           )}
@@ -394,7 +397,8 @@ export function QuizReportDetailsPage() {
                         <div
                           className={`text-sm whitespace-nowrap ${getScoreColor(
                             a.score
-                          )}`}>
+                          )}`}
+                        >
                           {a.score ?? <span className="text-gray-400">—</span>}
                           {a.score && (
                             <span className="text-slate-400 ml-1">%</span>

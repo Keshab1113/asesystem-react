@@ -116,4 +116,41 @@ exports.generateCertificate = async (req, res) => {
   }
 };
 
+exports.getCertificate = async (req, res) => {
+  try {
+    const { user_id, quiz_id } = req.body;
 
+    if (!user_id || !quiz_id) {
+      return res.status(400).json({
+        success: false,
+        message: "user_id, quiz_id are required",
+      });
+    }
+
+    const [rows] = await db.execute(
+      `SELECT certificate_url, certificate_number, issued_date, expiry_date, score 
+       FROM certificates 
+       WHERE user_id = ? AND quiz_id = ? AND is_valid = 1`,
+      [user_id, quiz_id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Certificate not found",
+      });
+    }
+
+    const certificate = rows[0];
+    res.status(200).json({
+      success: true,
+      certificate,
+    });
+  } catch (err) {
+    console.error("❌ Error fetching certificate:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};

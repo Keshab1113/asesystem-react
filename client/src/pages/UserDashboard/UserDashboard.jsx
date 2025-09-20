@@ -493,7 +493,7 @@ export default function DashboardPage() {
     <div className="space-y-10">
       {/* Welcome Section */}
       <div className="flex md:items-center items-start gap-3">
-        <div className="p-3 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
+        <div className="p-3 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg md:block hidden">
           <Award className="w-6 h-6" />
         </div>
         <div className="flex flex-col gap-0">

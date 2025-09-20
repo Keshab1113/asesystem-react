@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo,useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import axios from "axios";
 import {
   Card,
@@ -29,8 +28,6 @@ import { QuizDetailsModal } from "./QuizDetailsModal";
 import { QuizFormModal } from "./QuizFormModal";
 import { BulkActionsToolbar } from "./BulkActionsToolbar";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
-
- 
 
 const defaultFilters = {
   search: "",
@@ -72,33 +69,43 @@ export function DashboardContent() {
   });
   const { toast } = useToast();
 
-   useEffect(() => {
-    const fetchQuizzes = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`);
-        console.log(response.data);
-        const fetchedQuizzes = response.data.data.map((q) => ({
-          id: q.id,
-          name: q.title,
-          participants: q.participants || 0,
-          status: q.is_active === 1 ? "Active" : "Not Active",
-          subject: q.subject || "General",
-          difficulty: q.difficulty_level || "medium",
-          createdDate: new Date(q.created_at).toLocaleDateString(),
-        }));
-        setQuizzes(fetchedQuizzes);
-      } catch (error) {
-        console.error("Error fetching quizzes:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load quizzes from the server.",
-          variant: "error"
-        });
-      }
-    };
+  useEffect(() => {
+  const fetchReports = async () => {
+    try {
+      // First, get all quizzes
+      const quizzesRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`);
+      const quizzes = quizzesRes.data.data;
 
-    fetchQuizzes();
-  }, []);
+      // Now fetch assignments summary for each quiz
+      const reportsWithSummary = await Promise.all(
+        quizzes.map(async (q) => {
+          const assignRes = await axios.get(
+            `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.id}`
+          );
+          const { summary } = assignRes.data.data;
+        console.log("Fetched summary for quiz ID", q.id, ":", summary); // Debug log
+          return {
+            id: q.id,
+             name: q.title,
+            participants: summary.total_assigned ?? 0,
+            completedCount: summary.passed_count ?? 0,
+            inProgressCount: summary.in_progress_count ?? 0,
+            failedCount: summary.failed_count ?? 0,
+            averageScore: q.average_score ?? 0, // optional: calculate if needed
+            date: q.created_at ? new Date(q.created_at).toLocaleDateString() : "-",
+            status: q.is_active === 1 ? "Active" : "Completed",
+          };
+        })
+      );
+
+      setQuizzes(reportsWithSummary);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+    }
+  };
+
+  fetchReports();
+}, []);
 
   const debouncedSearch = useDebouncedValue(filters.search, 300);
 
@@ -171,6 +178,8 @@ export function DashboardContent() {
     (sum, quiz) => sum + quiz.participants,
     0
   );
+  console.log("totalParticipants: ",totalParticipants);
+  console.log("quizzes: ",quizzes);
 
   const setLoading = (id, loading) => {
     setLoadingStates((prev) => ({ ...prev, [id]: loading }));
@@ -235,7 +244,7 @@ export function DashboardContent() {
     toast({
       title: "Preset Saved",
       description: `Filter preset "${name}" has been saved successfully.`,
-      variant: "success"
+      variant: "success",
     });
   };
 
@@ -244,7 +253,7 @@ export function DashboardContent() {
     toast({
       title: "Preset Loaded",
       description: "Filter preset has been applied successfully.",
-      variant: "success"
+      variant: "success",
     });
   };
 
@@ -266,22 +275,33 @@ export function DashboardContent() {
     toast({
       title: "Quiz Updated",
       description: `Quiz "${quiz?.name}" has been ${newStatus} successfully.`,
-      variant: "success"
+      variant: "success",
     });
     setLoading(id, false);
   };
 
   const handleDeleteQuiz = async (id) => {
-    setLoading(id, true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    const quiz = quizzes.find((q) => q.id === id);
-    setQuizzes((prev) => prev.filter((quiz) => quiz.id !== id));
-    toast({
-      title: "Quiz Deleted",
-      description: `Quiz "${quiz?.name}" has been deleted successfully.`,
-      variant: "success"
-    });
-    setLoading(id, false);
+    try {
+      setLoading(id, true);
+      await axios.delete(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}`
+      );
+      setQuizzes((prev) => prev.filter((quiz) => quiz.id !== id));
+      toast({
+        title: "✅ Quiz Deleted",
+        description: `Quiz has been deleted successfully.`,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Error deleting quiz:", error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to delete quiz. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(id, false);
+    }
   };
 
   const handleViewQuiz = (quiz) => {
@@ -305,7 +325,7 @@ export function DashboardContent() {
     toast({
       title: "Quiz Duplicated",
       description: `Quiz "${quiz.name}" has been duplicated successfully.`,
-      variant: "success"
+      variant: "success",
     });
   };
 
@@ -331,6 +351,8 @@ export function DashboardContent() {
     }
   };
 
+  
+
   return (
     <section className=" ">
       {/* Dashboard stats */}
@@ -338,7 +360,7 @@ export function DashboardContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Quizzes
+              Total Assessments
             </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -352,7 +374,7 @@ export function DashboardContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Quizzes
+              Active Assessments
             </CardTitle>
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
@@ -401,7 +423,7 @@ export function DashboardContent() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <h2 className="text-2xl font-bold text-foreground text-balance">
-              All Quizzes ({filteredAndSortedQuizzes.length})
+              All Assessments ({filteredAndSortedQuizzes.length})
               {filteredAndSortedQuizzes.length !== quizzes.length && (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
                   of {quizzes.length} total
@@ -417,10 +439,10 @@ export function DashboardContent() {
               />
             )}
           </div>
-          <Button onClick={() => setFormModal({ open: true, quiz: null })}>
+          {/* <Button onClick={() => setFormModal({ open: true, quiz: null })}>
             <Plus className="h-4 w-4 mr-2" />
             Add New Quiz
-          </Button>
+          </Button> */}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
           {filteredAndSortedQuizzes.map((quiz) => (
@@ -464,7 +486,7 @@ export function DashboardContent() {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Subject: {quiz.subject} • Difficulty: {quiz.difficulty} •
-                  Created: {quiz.createdDate}
+                  Created: {quiz.date}
                 </div>
                 <div className="flex gap-2 pt-2">
                   <Button

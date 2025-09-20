@@ -47,76 +47,6 @@ import { updateUser } from "../../redux/slices/authSlice";
 import { SearchableSelect } from "../../components/SearchableSelect";
 import ProfilePicture from "../../components/ProfilePicture/ProfilePicture";
 
-// Mock assessment history data
-const mockAssessmentHistory = [
-  {
-    id: 1,
-    title: "JavaScript Fundamentals",
-    category: "Programming",
-    completedDate: "2024-01-15",
-    score: 92,
-    passed: true,
-    passingScore: 70,
-    duration: 45,
-    attempts: 1,
-  },
-  {
-    id: 2,
-    title: "React Components & Props",
-    category: "Programming",
-    completedDate: "2024-01-10",
-    score: 78,
-    passed: true,
-    passingScore: 75,
-    duration: 60,
-    attempts: 2,
-  },
-  {
-    id: 3,
-    title: "Database Design Principles",
-    category: "Database",
-    completedDate: "2024-01-03",
-    score: 85,
-    passed: true,
-    passingScore: 80,
-    duration: 90,
-    attempts: 2,
-  },
-  {
-    id: 4,
-    title: "API Development Best Practices",
-    category: "Backend",
-    completedDate: "2023-11-28",
-    score: 92,
-    passed: true,
-    passingScore: 75,
-    duration: 75,
-    attempts: 1,
-  },
-  {
-    id: 5,
-    title: "Security Fundamentals",
-    category: "Security",
-    completedDate: "2023-10-24",
-    score: 72,
-    passed: false,
-    passingScore: 80,
-    duration: 60,
-    attempts: 3,
-  },
-  {
-    id: 6,
-    title: "CSS Grid and Flexbox",
-    category: "Frontend",
-    completedDate: "2023-09-15",
-    score: 88,
-    passed: true,
-    passingScore: 70,
-    duration: 50,
-    attempts: 1,
-  },
-];
-
 export default function ProfilePage() {
   const { token, user } = useSelector((state) => state.auth);
   const { toast } = useToast();
@@ -129,6 +59,25 @@ export default function ProfilePage() {
   const [groups, setGroups] = useState([]);
   const [teams, setTeams] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("");
+  const [assignments, setAssignments] = useState([]);
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${user.id}`
+        );
+        const data = await res.json();
+        setAssignments(data.data);
+      } catch (err) {
+        console.error("Error on user dashboard: ", err);
+      }
+    };
+
+    if (user?.id) {
+      fetchAssignments();
+    }
+  }, [user?.id]);
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -219,14 +168,18 @@ export default function ProfilePage() {
   });
 
   // Calculate statistics
-  const totalAssessments = mockAssessmentHistory.length;
-  const passedAssessments = mockAssessmentHistory.filter(
-    (a) => a.passed
+  const totalAssessments = assignments?.length || 0;
+  const passedAssessments = assignments?.filter(
+    (a) => a.status === "passed"
   ).length;
-  const averageScore = Math.round(
-    mockAssessmentHistory.reduce((sum, a) => sum + a.score, 0) /
-      totalAssessments
-  );
+  const averageScore =
+    assignments?.length && totalAssessments
+      ? (
+          assignments.reduce((sum, a) => sum + (parseFloat(a.score) || 0), 0) /
+          totalAssessments
+        ).toFixed(2)
+      : "0.00";
+
   const passRate = Math.round((passedAssessments / totalAssessments) * 100);
 
   return (
@@ -255,7 +208,7 @@ export default function ProfilePage() {
           {/* Personal Details Section */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex md:flex-row flex-col md:items-center gap-4 justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <User className="w-5 h-5" />
@@ -618,7 +571,9 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {Math.max(...mockAssessmentHistory.map((a) => a.score))}%
+                  {assignments?.length > 0
+                    ? Math.max(...assignments.map((a) => a.score)) + "%"
+                    : "0%"}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {t("profile.personalBest")}
@@ -638,7 +593,7 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {mockAssessmentHistory.map((assessment) => (
+                {assignments?.map((assessment) => (
                   <div
                     key={assessment.id}
                     className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
@@ -646,7 +601,7 @@ export default function ProfilePage() {
                     {/* Left: Info */}
                     <div className="flex items-start sm:items-center gap-4 flex-1">
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted shrink-0">
-                        {assessment.passed ? (
+                        {assessment.status === "passed" ? (
                           <CheckCircle className="w-5 h-5 text-green-600" />
                         ) : (
                           <XCircle className="w-5 h-5 text-red-600" />
@@ -654,21 +609,21 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <h4 className="font-medium text-base sm:text-lg">
-                          {assessment.title}
+                          {assessment.quiz_title}
                         </h4>
                         <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                          <span>{assessment.category}</span>
-                          <span>•</span>
+                          {/* <span>{assessment.category}</span>
+                          <span>•</span> */}
                           <span>
                             {new Date(
-                              assessment.completedDate
+                              assessment.user_ended_at
                             ).toLocaleDateString()}
                           </span>
                           <span>•</span>
-                          <span>{assessment.duration} min</span>
+                          <span>{assessment.quiz_time_limit} min</span>
                           <span>•</span>
                           <span>
-                            {assessment.attempts} attempt
+                            1/{assessment.max_attempts} attempt
                             {assessment.attempts > 1 ? "s" : ""}
                           </span>
                         </div>
@@ -680,22 +635,26 @@ export default function ProfilePage() {
                       <div>
                         <div
                           className={`text-lg sm:text-xl font-bold ${
-                            assessment.passed
+                            assessment.status === "passed"
                               ? "text-green-600"
                               : "text-red-600"
                           }`}
                         >
-                          {assessment.score}%
+                          {assessment.score || 0}%
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {t("profile.required")} {assessment.passingScore}%
+                          {t("profile.required")} {assessment.passing_score}%
                         </div>
                       </div>
                       <Badge
-                        variant={assessment.passed ? "default" : "destructive"}
+                        variant={
+                          assessment.status === "passed"
+                            ? "default"
+                            : "destructive"
+                        }
                         className="self-center sm:self-auto"
                       >
-                        {assessment.passed ? "Passed" : "Failed"}
+                        {assessment.status === "passed" ? "Passed" : "Failed"}
                       </Badge>
                     </div>
                   </div>

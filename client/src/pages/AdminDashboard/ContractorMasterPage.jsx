@@ -663,6 +663,7 @@ export function ContractorMasterPage() {
                     setNewContractor({
                       ...newContractor,
                       company_name: value,
+                      name: "", // 🔑 reset team name
                     });
                     setSelectedGroup(value);
                   }}
@@ -673,13 +674,14 @@ export function ContractorMasterPage() {
                   </SelectTrigger>
                   <SelectContent>
                     {companies?.map((company) => (
-                      <SelectItem value={company.name}>
+                      <SelectItem key={company.id} value={company.name}>
                         {company.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="name">Team Name *</Label>
                 <SearchableSelect

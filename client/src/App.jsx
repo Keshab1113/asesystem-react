@@ -46,8 +46,8 @@ function App() {
             }
           >
             <Route index element={<DashboardContent />} />
-            <Route path="quiz-report" element={<QuizReportPage />} />
-            <Route path="quiz-report/:id" element={<QuizReportDetailsPage />} />
+            <Route path="assessment-report" element={<QuizReportPage />} />
+            <Route path="assessment-report/:id" element={<QuizReportDetailsPage />} />
             <Route
               path="issue-certificate"
               element={<IssueCertificatePage />}
@@ -92,7 +92,7 @@ function App() {
             <Route path="upcoming" element={<UpcomingAssessmentsPage />} />
             <Route path="assessments" element={<AssessmentsPage />} />
             <Route path="assessment/:quizId" element={<QuestionsPage />} />
-            <Route path="results/:quizId" element={<ResultsPage />} />
+            <Route path="results" element={<ResultsPage />} />
           </Route>
           <Route path="*" element={<NoPage />} />
           <Route path="/login" element={<LoginPage />} />

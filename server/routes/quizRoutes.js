@@ -1,5 +1,5 @@
 const express = require("express");
-const { getAllQuizAttempts, getAllQuizTitles,getAllQuizzes,updateQuiz ,assignQuiz,getQuizAssignments,getQuizQuestions,updateQuizQuestionsBulk,getQuizReportDetails} = require("../controllers/quizController");
+const { getAllQuizAttempts, getAllQuizTitles,getAllQuizzes,updateQuiz ,assignQuiz,getQuizAssignments,getQuizQuestions,updateQuizQuestionsBulk,getQuizReportDetails, deleteQuiz} = require("../controllers/quizController");
 const router = express.Router();
 
 router.get("/", getAllQuizAttempts);
@@ -8,6 +8,7 @@ router.get("/list", getAllQuizzes);
 router.get("/title", getAllQuizTitles);
 router.put('/edit/:id', updateQuiz);
 router.post("/assign", assignQuiz);
+router.delete("/:id", deleteQuiz);
 // router.get("/:id", getQuizAssignments);
 router.get("/:quiz_id", getQuizAssignments);
 

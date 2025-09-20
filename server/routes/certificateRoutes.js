@@ -1,9 +1,10 @@
 const express = require("express");
-const { generateCertificate } = require("../controllers/certificateController");
+const { generateCertificate, getCertificate } = require("../controllers/certificateController");
 const { authenticate } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 router.post("/generate", authenticate, generateCertificate);
+router.post("/ispresent", authenticate, getCertificate);
 
 router.get("/download", authenticate, async (req, res) => {
   try {

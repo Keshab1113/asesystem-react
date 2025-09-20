@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -18,11 +18,39 @@ import {
   Brain,
   Target,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import axios from "axios";
+import useToast from "../../hooks/ToastContext";
 
 export default function ResultsPage() {
   const navigate = useNavigate();
   const [view, setView] = useState("summary"); // 'summary' or 'wrong-answers'
   const [currentWrongQuestion, setCurrentWrongQuestion] = useState(0);
+  const { token, user } = useSelector((state) => state.auth);
+  const { toast } = useToast();
+  const [certificateNumber, setCertificateNumber] = useState("");
+  const [certificateURL, setCertificateURL] = useState(null);
+  const [isLoadingCertificate, setIsLoadingCertificate] = useState(false);
+  const [searchParams] = useSearchParams();
+  const quizId = searchParams.get("quizId");
+  // const attemptId = searchParams.get("attemptId");
+  const [allQuiz, setAllQuiz] = useState([]);
+
+  useEffect(() => {
+    const fetchQuizTitle = async () => {
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/title`
+        );
+        if (res.data.success) {
+          setAllQuiz(res.data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching quiz title:", err);
+      }
+    };
+    fetchQuizTitle();
+  }, []);
 
   // Mock data - in a real app, this would come from your backend/state
   const results = {
@@ -37,7 +65,7 @@ export default function ResultsPage() {
         question: "Which React hook is used to manage side effects?",
         options: ["useState", "useEffect", "useContext", "useReducer"],
         userAnswer: "useState",
-        correctAnswer: "useEffect"
+        correctAnswer: "useEffect",
       },
       {
         id: 7,
@@ -46,28 +74,140 @@ export default function ResultsPage() {
           "A direct representation of the actual DOM",
           "A programming concept where a virtual representation is kept in memory",
           "A browser extension for debugging",
-          "A React-specific database for storing components"
+          "A React-specific database for storing components",
         ],
         userAnswer: "A direct representation of the actual DOM",
-        correctAnswer: "A programming concept where a virtual representation is kept in memory"
+        correctAnswer:
+          "A programming concept where a virtual representation is kept in memory",
       },
       {
         id: 9,
         question: "Which method is used to change state in React?",
-        options: ["changeState()", "setState()", "updateState()", "modifyState()"],
+        options: [
+          "changeState()",
+          "setState()",
+          "updateState()",
+          "modifyState()",
+        ],
         userAnswer: "changeState()",
-        correctAnswer: "setState()"
-      }
-    ]
+        correctAnswer: "setState()",
+      },
+    ],
   };
 
   const correctCount = results.correctAnswers;
   const wrongCount = results.totalQuestions - results.correctAnswers;
   const scorePercentage = results.score;
 
-  const handleRetakeQuiz = () => {
-    // In a real app, this would navigate to the quiz retake page
-    navigate("/dashboard");
+  const generateCertificateNumber = () => {
+    const orgCode = "NL01";
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const year = now.getFullYear();
+    const randomNum = Math.floor(100000 + Math.random() * 900000);
+    return `${orgCode}${month}${year}${randomNum}`;
+  };
+  const foundQuizTitle = allQuiz.find(
+    (quiz) => quiz.id.toString() === quizId.toString()
+  );
+
+  const handleDownload = async () => {
+    try {
+      const downloadURL = `${
+        import.meta.env.VITE_BACKEND_URL
+      }/api/certificates/download?url=${encodeURIComponent(certificateURL)}`;
+
+      const response = await fetch(downloadURL, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${certificateNumber}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download failed", err);
+    }
+  };
+
+  const handleCertificate = async () => {
+    try {
+      setIsLoadingCertificate(true);
+
+      // Step 1: Check if certificate already exists
+      const checkResponse = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/certificates/ispresent`,
+        {
+          user_id: user.id,
+          quiz_id: quizId,
+          // attempt_id: attemptId,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (checkResponse.data.success && checkResponse.data.certificate) {
+        // Certificate already exists, no need to generate
+        setCertificateURL(checkResponse.data.certificate.certificate_url);
+        setCertificateNumber(checkResponse.data.certificate.certificate_number);
+        setIsLoadingCertificate(false);
+
+        toast({
+          title: "Certificate Already Exists",
+          description: "You can download the existing certificate",
+          variant: "info",
+        });
+
+        await handleDownload(); // download existing certificate
+        return;
+      }
+
+      // Step 2: Generate new certificate
+      const certNo = generateCertificateNumber();
+      const payload = {
+        userName: user.name,
+        quizID: quizId,
+        quizTitle: foundQuizTitle?.title,
+        date: new Date().toLocaleDateString(),
+        certificateText: "",
+        certificateNumber: certNo,
+        // attemptId: attemptId,
+      };
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/certificates/generate`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setCertificateNumber(certNo);
+      setCertificateURL(response?.data?.certificate_url);
+      setIsLoadingCertificate(false);
+
+      toast({
+        title: "Certificate Generated",
+        description: "You can now download the certificate",
+        variant: "success",
+      });
+
+      await handleDownload();
+    } catch (error) {
+      setIsLoadingCertificate(false);
+      console.error("❌ Error generating certificate:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate certificate",
+        variant: "error",
+      });
+    }
   };
 
   const handleReviewWrongAnswers = () => {
@@ -80,7 +220,7 @@ export default function ResultsPage() {
 
   if (view === "wrong-answers") {
     const question = results.wrongAnswers[currentWrongQuestion];
-    
+
     return (
       <div className="min-h-screen">
         <div className="max-w-4xl mx-auto">
@@ -89,7 +229,8 @@ export default function ResultsPage() {
               Review Incorrect Answers
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Question {currentWrongQuestion + 1} of {results.wrongAnswers.length}
+              Question {currentWrongQuestion + 1} of{" "}
+              {results.wrongAnswers.length}
             </p>
           </div>
 
@@ -109,10 +250,10 @@ export default function ResultsPage() {
                 <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
                   {question.question}
                 </h3>
-                
+
                 <div className="space-y-3">
                   {question.options.map((option, index) => (
-                    <div 
+                    <div
                       key={index}
                       className={`p-3 rounded-lg border-2 transition-all ${
                         option === question.userAnswer
@@ -121,30 +262,39 @@ export default function ResultsPage() {
                       }`}
                     >
                       <div className="flex items-center">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
-                          option === question.userAnswer
-                            ? "bg-red-500 text-white"
-                            : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                        }`}>
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
+                            option === question.userAnswer
+                              ? "bg-red-500 text-white"
+                              : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
                           {String.fromCharCode(65 + index)}
                         </div>
-                        <span className="text-gray-700 dark:text-gray-300">{option}</span>
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {option}
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
-                
+
                 <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
                   <div className="flex items-start">
                     <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-3 flex-shrink-0" />
                     <p className="text-amber-800 dark:text-amber-200 text-sm">
-                      You selected option <strong>{String.fromCharCode(65 + question.options.indexOf(question.userAnswer))}</strong>. 
-                      Review this concept to improve your understanding.
+                      You selected option{" "}
+                      <strong>
+                        {String.fromCharCode(
+                          65 + question.options.indexOf(question.userAnswer)
+                        )}
+                      </strong>
+                      . Review this concept to improve your understanding.
                     </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex justify-between mt-6">
                 <Button
                   onClick={handleBackToSummary}
@@ -154,22 +304,28 @@ export default function ResultsPage() {
                   <ChevronLeft className="w-4 h-4 mr-2" />
                   Back to Summary
                 </Button>
-                
+
                 <div className="flex gap-2">
                   <Button
-                    onClick={() => setCurrentWrongQuestion(prev => Math.max(prev - 1, 0))}
+                    onClick={() =>
+                      setCurrentWrongQuestion((prev) => Math.max(prev - 1, 0))
+                    }
                     disabled={currentWrongQuestion === 0}
                     variant="outline"
                   >
                     <ChevronLeft className="w-4 h-4 mr-2" />
                     Previous
                   </Button>
-                  
+
                   <Button
-                    onClick={() => setCurrentWrongQuestion(prev => 
-                      Math.min(prev + 1, results.wrongAnswers.length - 1)
-                    )}
-                    disabled={currentWrongQuestion === results.wrongAnswers.length - 1}
+                    onClick={() =>
+                      setCurrentWrongQuestion((prev) =>
+                        Math.min(prev + 1, results.wrongAnswers.length - 1)
+                      )
+                    }
+                    disabled={
+                      currentWrongQuestion === results.wrongAnswers.length - 1
+                    }
                   >
                     Next
                     <ChevronRight className="w-4 h-4 ml-2" />
@@ -195,7 +351,8 @@ export default function ResultsPage() {
             Assessment Completed!
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Congratulations on completing your assessment. Here's how you performed.
+            Congratulations on completing your assessment. Here's how you
+            performed.
           </p>
         </div>
 
@@ -214,13 +371,20 @@ export default function ResultsPage() {
                   {scorePercentage}%
                 </div>
                 <Progress value={scorePercentage} className="h-2 mb-2" />
-                <div className={`text-sm font-medium ${
-                  scorePercentage >= results.passingScore 
-                    ? "text-green-600 dark:text-green-400" 
-                    : "text-red-600 dark:text-red-400"
-                }`}>
-                  {scorePercentage >= results.passingScore ? "Passed" : "Failed"} 
-                  <span className="text-gray-500 dark:text-gray-400"> (Minimum {results.passingScore}% to pass)</span>
+                <div
+                  className={`text-sm font-medium ${
+                    scorePercentage >= results.passingScore
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`}
+                >
+                  {scorePercentage >= results.passingScore
+                    ? "Passed"
+                    : "Failed"}
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {" "}
+                    (Minimum {results.passingScore}% to pass)
+                  </span>
                 </div>
               </div>
             </CardContent>
@@ -289,10 +453,12 @@ export default function ResultsPage() {
                       fill="transparent"
                       strokeWidth="10"
                       stroke="url(#correctGradient)"
-                      strokeDasharray={`${(correctCount / results.totalQuestions) * 282.6} 282.6`}
+                      strokeDasharray={`${
+                        (correctCount / results.totalQuestions) * 282.6
+                      } 282.6`}
                       transform="rotate(-90 50 50)"
                     />
-                    
+
                     {/* Wrong answers segment */}
                     <circle
                       cx="50"
@@ -301,60 +467,103 @@ export default function ResultsPage() {
                       fill="transparent"
                       strokeWidth="10"
                       stroke="url(#wrongGradient)"
-                      strokeDasharray={`${(wrongCount / results.totalQuestions) * 282.6} 282.6`}
-                      strokeDashoffset={`-${(correctCount / results.totalQuestions) * 282.6}`}
+                      strokeDasharray={`${
+                        (wrongCount / results.totalQuestions) * 282.6
+                      } 282.6`}
+                      strokeDashoffset={`-${
+                        (correctCount / results.totalQuestions) * 282.6
+                      }`}
                       transform="rotate(-90 50 50)"
                     />
-                    
+
                     <defs>
-                      <linearGradient id="correctGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <linearGradient
+                        id="correctGradient"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="0%"
+                      >
                         <stop offset="0%" stopColor="#4ade80" />
                         <stop offset="100%" stopColor="#22c55e" />
                       </linearGradient>
-                      <linearGradient id="wrongGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <linearGradient
+                        id="wrongGradient"
+                        x1="0%"
+                        y1="0%"
+                        x2="100%"
+                        y2="0%"
+                      >
                         <stop offset="0%" stopColor="#f87171" />
                         <stop offset="100%" stopColor="#ef4444" />
                       </linearGradient>
                     </defs>
-                    
-                    <text x="50" y="50" textAnchor="middle" dy="0.3em" fontSize="20" fontWeight="bold" fill="#1f2937">
+
+                    <text
+                      x="50"
+                      y="50"
+                      textAnchor="middle"
+                      dy="0.3em"
+                      fontSize="20"
+                      fontWeight="bold"
+                      fill="#1f2937"
+                    >
                       {results.totalQuestions}
                     </text>
                   </svg>
                 </div>
               </div>
-              
+
               <div className="w-full md:w-1/2 space-y-4">
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
                   <div className="flex-1">
                     <div className="flex justify-between">
-                      <span className="text-gray-700 dark:text-gray-300">Correct Answers</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Correct Answers
+                      </span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {correctCount} ({Math.round((correctCount / results.totalQuestions) * 100)}%)
+                        {correctCount} (
+                        {Math.round(
+                          (correctCount / results.totalQuestions) * 100
+                        )}
+                        %)
                       </span>
                     </div>
-                    <Progress value={(correctCount / results.totalQuestions) * 100} className="h-2 mt-1" />
+                    <Progress
+                      value={(correctCount / results.totalQuestions) * 100}
+                      className="h-2 mt-1"
+                    />
                   </div>
                 </div>
-                
+
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
                   <div className="flex-1">
                     <div className="flex justify-between">
-                      <span className="text-gray-700 dark:text-gray-300">Wrong Answers</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Wrong Answers
+                      </span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {wrongCount} ({Math.round((wrongCount / results.totalQuestions) * 100)}%)
+                        {wrongCount} (
+                        {Math.round(
+                          (wrongCount / results.totalQuestions) * 100
+                        )}
+                        %)
                       </span>
                     </div>
-                    <Progress value={(wrongCount / results.totalQuestions) * 100} className="h-2 mt-1 bg-red-100 dark:bg-red-900/20" indicatorClassName="bg-red-500" />
+                    <Progress
+                      value={(wrongCount / results.totalQuestions) * 100}
+                      className="h-2 mt-1 bg-red-100 dark:bg-red-900/20"
+                      indicatorClassName="bg-red-500"
+                    />
                   </div>
                 </div>
-                
+
                 {wrongCount > 0 && (
-                  <Button 
+                  <Button
                     onClick={handleReviewWrongAnswers}
-                    variant="outline" 
+                    variant="outline"
                     className="w-full mt-4"
                   >
                     <BookOpen className="w-4 h-4 mr-2" />
@@ -380,10 +589,15 @@ export default function ResultsPage() {
                 <div className="flex items-start">
                   <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <h4 className="font-medium text-green-800 dark:text-green-200 mb-1">Excellent work!</h4>
+                    <h4 className="font-medium text-green-800 dark:text-green-200 mb-1">
+                      Excellent work!
+                    </h4>
                     <p className="text-green-700 dark:text-green-300 text-sm">
-                      You've passed this assessment with a score of {scorePercentage}%. 
-                      {wrongCount > 0 ? " Consider reviewing the questions you missed to strengthen your understanding." : " Perfect score! You've demonstrated mastery of all concepts."}
+                      You've passed this assessment with a score of{" "}
+                      {scorePercentage}%.
+                      {wrongCount > 0
+                        ? " Consider reviewing the questions you missed to strengthen your understanding."
+                        : " Perfect score! You've demonstrated mastery of all concepts."}
                     </p>
                   </div>
                 </div>
@@ -393,10 +607,14 @@ export default function ResultsPage() {
                 <div className="flex items-start">
                   <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-3 flex-shrink-0" />
                   <div>
-                    <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-1">Keep practicing!</h4>
+                    <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-1">
+                      Keep practicing!
+                    </h4>
                     <p className="text-amber-700 dark:text-amber-300 text-sm">
-                      You scored {scorePercentage}%, which is below the passing threshold of {results.passingScore}%. 
-                      Review the incorrect answers to identify areas for improvement. With more practice, you'll be able to pass on your next attempt.
+                      You scored {scorePercentage}%, which is below the passing
+                      threshold of {results.passingScore}%. Review the incorrect
+                      answers to identify areas for improvement. With more
+                      practice, you'll be able to pass on your next attempt.
                     </p>
                   </div>
                 </div>
@@ -407,7 +625,7 @@ export default function ResultsPage() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Button 
+          <Button
             onClick={() => navigate("/dashboard")}
             className="flex items-center"
             size="lg"
@@ -415,15 +633,16 @@ export default function ResultsPage() {
             <Home className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-          
-          <Button 
-            onClick={handleRetakeQuiz}
+
+          <Button
+            onClick={handleCertificate}
             variant="outline"
             className="flex items-center"
             size="lg"
+            disabled={isLoadingCertificate}
           >
             <BookOpen className="w-4 h-4 mr-2" />
-            Retake Assessment
+            {isLoadingCertificate ? "Generating..." : "Download Certificate"}
           </Button>
         </div>
       </div>
