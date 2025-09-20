@@ -11,7 +11,8 @@ const deepseek = new OpenAI({
 // Controller function – now only generates and returns questions
 exports.generateQuestionsFromDescription = async (req, res) => {
   try {
-   const { difficulty, fileIds, subjectId, description, numberOfQuestions } = req.body;
+    const { difficulty, fileIds, subjectId, description, numberOfQuestions } =
+      req.body;
 
     console.log("Request body:", req.body);
     // const userId = req.userId; // From your authenticate middleware
@@ -87,12 +88,18 @@ ${
 
 Prioritize scenario-based, problem-solving, and applied questions over simple definitions. Avoid repetition and ensure each question is unique.
 
-Return only the questions in a numbered list format, with options. After the options, clearly specify the correct answer in this format:  
- Correct Answer: A.
+Return only the questions in a numbered list format, with options.  
+After the options, clearly specify the correct answer${
+  extraContext
+    ? " and the page number (based on the reference content) in this format: Correct Answer: A (Page X)."
+    : " in this format: Correct Answer: A."
+}
+.
+
 `;
 
     // ✅ Call DeepSeek API
-      // ✅ Parallel batch requests to DeepSeek
+    // ✅ Parallel batch requests to DeepSeek
     const batchSize = 20; // number of questions per API call
     const tasks = [];
 
@@ -117,8 +124,14 @@ ${
 
 Prioritize scenario-based, problem-solving, and applied questions over simple definitions. Avoid repetition and ensure each question is unique.
 
-Return only the questions in a numbered list format, with options. After the options, clearly specify the correct answer in this format:  
- Correct Answer: A
+Return only the questions in a numbered list format, with options.  
+After the options, clearly specify the correct answer${
+  extraContext
+    ? " and the page number (based on the reference content) in this format: Correct Answer: A (Page X)."
+    : " in this format: Correct Answer: A."
+}
+
+
 `;
 
       tasks.push(
@@ -150,6 +163,10 @@ Return only the questions in a numbered list format, with options. After the opt
     for (let line of lines) {
       if (/^\d+[\.\)]/.test(line)) {
         if (currentQuestion) {
+          // put page number into explanation if available
+          if (currentQuestion.page) {
+            currentQuestion.explanation = `Page ${currentQuestion.page}`;
+          }
           questions.push(currentQuestion);
         }
         currentQuestion = {
@@ -162,27 +179,35 @@ Return only the questions in a numbered list format, with options. After the opt
           subject: subjectId,
         };
       } else if (/^[A-D][\.\)]\s+/i.test(line) && currentQuestion) {
-  // Matches options like "A. text" or "B) text"
-  const optMatch = line.match(/^([A-D])[\.\)]\s+(.*)/i);
-  if (optMatch) {
-    const idx = optMatch[1].toUpperCase().charCodeAt(0) - 65; // A=0, B=1, etc.
-    currentQuestion.options[idx] = optMatch[2].trim();
-  }
-} else if (/^Correct Answer[:\-]/i.test(line) && currentQuestion) {
-
-      const match = line.match(/^Correct Answer[:\-]\s*([A-D])/i);
-      if (match) {
-  const answerLetter = match[1].toUpperCase();
-  const idx = answerLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
-  currentQuestion.correctAnswer = currentQuestion.options[idx] || answerLetter;
-}
-
-     }
+        // Matches options like "A. text" or "B) text"
+        const optMatch = line.match(/^([A-D])[\.\)]\s+(.*)/i);
+        if (optMatch) {
+          const idx = optMatch[1].toUpperCase().charCodeAt(0) - 65; // A=0, B=1, etc.
+          currentQuestion.options[idx] = optMatch[2].trim();
+        }
+      } else if (/^Correct Answer[:\-]/i.test(line) && currentQuestion) {
+        const match = line.match(
+          /^Correct Answer[:\-]\s*([A-D])(?:.*Page\s+(\d+))?/i
+        );
+        if (match) {
+          const answerLetter = match[1].toUpperCase();
+          const idx = answerLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
+          currentQuestion.correctAnswer =
+            currentQuestion.options[idx] || answerLetter;
+          if (match[2]) {
+            currentQuestion.page = parseInt(match[2], 10);
+          }
+        }
+      }
     }
 
     if (currentQuestion) {
-      questions.push(currentQuestion);
-    }
+  if (currentQuestion.page) {
+    currentQuestion.explanation = `Page ${currentQuestion.page}`;
+  }
+  questions.push(currentQuestion);
+}
+
 
     if (questions.length === 0) {
       return res.status(500).json({ message: "No questions generated." });
@@ -201,7 +226,6 @@ Return only the questions in a numbered list format, with options. After the opt
   }
 };
 
- 
 exports.saveQuestions = async (req, res) => {
   try {
     const {
@@ -228,10 +252,12 @@ exports.saveQuestions = async (req, res) => {
       await connection.beginTransaction();
 
       // ✅ 1. Insert into quizzes table
-      const [quizResult] = await connection.execute(
+      const usedFileIdsJson = JSON.stringify(req.body.fileIds || []); // add this
+
+const [quizResult] = await connection.execute(
   `INSERT INTO quizzes 
-     (title, description, subject_id, company_id, time_limit, passing_score, max_attempts, difficulty_level, is_active, created_by, created_at, updated_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
+   (title, description, subject_id, company_id, time_limit, passing_score, max_attempts, difficulty_level, used_file_ids, is_active, created_by, created_at, updated_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
   [
     title,
     description || "",
@@ -240,10 +266,12 @@ exports.saveQuestions = async (req, res) => {
     timeLimit || 60,
     passingScore || 70,
     maxAttempts || 3,
-    difficulty || "medium",  // ✅ save quiz difficulty
+    difficulty || "medium", 
+    usedFileIdsJson, // ✅ save fileIds
     userId,
   ]
 );
+
 
       const quizId = quizResult.insertId;
 
@@ -256,12 +284,13 @@ VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())
 
 `,
           [
-             quizId, // ✅ use the quiz ID here
+            quizId, // ✅ use the quiz ID here
             q.question ?? "",
             q.type ?? "multiple_choice",
             JSON.stringify(Array.isArray(q.options) ? q.options : []),
             q.correctAnswer ?? "",
-            q.explanation ?? "",
+            q.explanation ?? (q.page ? `Page ${q.page}` : ""),
+
             q.difficulty ?? "medium",
             userId,
           ]

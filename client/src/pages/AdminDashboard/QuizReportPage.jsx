@@ -1,63 +1,80 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
 import { Search, Download, Eye, Calendar } from "lucide-react";
-
-const mockReports = [
-  {
-    id: 1,
-    quizName: "JavaScript Fundamentals",
-    participants: 245,
-    completedCount: 198,
-    averageScore: 78.5,
-    date: "2024-01-15",
-    status: "Completed",
-  },
-  {
-    id: 2,
-    quizName: "React Development",
-    participants: 189,
-    completedCount: 156,
-    averageScore: 82.3,
-    date: "2024-01-20",
-    status: "Active",
-  },
-  {
-    id: 3,
-    quizName: "Database Design",
-    participants: 203,
-    completedCount: 203,
-    averageScore: 75.8,
-    date: "2024-01-25",
-    status: "Completed",
-  },
-];
+import axios from "axios";
+ import { useNavigate } from "react-router-dom";
 
 export function QuizReportPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+const [reports, setReports] = useState([]);
+  const filteredReports = reports.filter((report) => {
 
-  const filteredReports = mockReports.filter((report) => {
     const matchesSearch = report.quizName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || report.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
+// inside component
+const navigate = useNavigate();
+
+const handleViewDetails = (id) => {
+  navigate(`/admin-dashboard/quiz-report/${id}`);
+};
+
+ useEffect(() => {
+  const fetchReports = async () => {
+    try {
+      // First, get all quizzes
+      const quizzesRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`);
+      const quizzes = quizzesRes.data.data;
+
+      // Now fetch assignments summary for each quiz
+      const reportsWithSummary = await Promise.all(
+        quizzes.map(async (q) => {
+          const assignRes = await axios.get(
+            `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.id}`
+          );
+          const { summary } = assignRes.data.data;
+        
+          return {
+            id: q.id,
+            quizName: q.title,
+            participants: summary.total_assigned ?? 0,
+            completedCount: summary.passed_count ?? 0,
+            inProgressCount: summary.in_progress_count ?? 0,
+            failedCount: summary.failed_count ?? 0,
+            averageScore: q.average_score ?? 0, // optional: calculate if needed
+            date: q.created_at ? new Date(q.created_at).toLocaleDateString() : "-",
+            status: q.is_active === 1 ? "Active" : "Completed",
+          };
+        })
+      );
+
+      setReports(reportsWithSummary);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+    }
+  };
+
+  fetchReports();
+}, []);
+
+
   const handleDownloadReport = (id) => {
     alert(`Downloading report for quiz ID: ${id}`);
   };
 
-  const handleViewDetails = (id) => {
-    alert(`Viewing detailed report for quiz ID: ${id}`);
-  };
+  
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Quiz Reports</h1>
+        <h1 className="text-3xl font-bold text-foreground">Assesment Reports</h1>
         <Button>
           <Download className="h-4 w-4 mr-2" />
           Export All Reports
@@ -69,7 +86,7 @@ export function QuizReportPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search quiz reports..."
+            placeholder="Search assesment reports..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"

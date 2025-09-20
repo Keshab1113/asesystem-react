@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AdminHeader } from "../../components/AdminDashboard/AdminHeader";
 import { AdminSidebar } from "../../components/AdminDashboard/AdminSidebar";
 import { DashboardContent } from "../../components/AdminDashboard/DashboardContent";
-import { QuizReportPage } from "../../components/AdminDashboard/QuizReportPage";
+import { QuizReportPage } from "./QuizReportPage";
 import { IssueCertificatePage } from "../../components/AdminDashboard/IssueCertificatePage";
 import { UserGroupPrivilegePage } from "../../components/AdminDashboard/UserGroupPrivilegePage";
 import { AddQuestionsPage } from "../../components/AdminDashboard/AddQuestionsPage";

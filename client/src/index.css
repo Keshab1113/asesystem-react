@@ -1,2 +1,6 @@
 @import "tailwindcss";
 
+/* Make the native time picker icon show pointer cursor */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
