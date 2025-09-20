@@ -40,7 +40,7 @@ const handleViewDetails = (id) => {
             `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.id}`
           );
           const { summary } = assignRes.data.data;
-        
+        console
           return {
             id: q.id,
             quizName: q.title,
