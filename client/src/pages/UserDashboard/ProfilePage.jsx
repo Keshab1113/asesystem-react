@@ -117,8 +117,6 @@ const mockAssessmentHistory = [
   },
 ];
 
-
-
 export default function ProfilePage() {
   const { token, user } = useSelector((state) => state.auth);
   const { toast } = useToast();
@@ -155,13 +153,13 @@ export default function ProfilePage() {
         toast({
           title: "Profile Updated",
           description: "Your profile has been successfully updated.",
-          variant: "success"
+          variant: "success",
         });
       } else {
         toast({
           title: "Update Failed",
           description: data.message || "Unknown error",
-          variant: "error"
+          variant: "error",
         });
       }
     } catch (error) {
@@ -169,7 +167,7 @@ export default function ProfilePage() {
       toast({
         title: "Error",
         description: "Failed to update profile. Please try again.",
-        variant: "error"
+        variant: "error",
       });
     } finally {
       setIsLoading(false);
@@ -346,19 +344,23 @@ export default function ProfilePage() {
                     <Select
                       value={editData.group}
                       onValueChange={(value) => {
-                        setEditData({
-                          ...editData,
-                          group: value,
-                        });
-                        setSelectedGroup(value);
+                        const selectedGroupObj = groups.find(
+                          (g) => g.name === value
+                        );
+                        setEditData((prev) => ({
+                          ...prev,
+                          group: selectedGroupObj?.name || "",
+                          group_id: selectedGroupObj?.id || "", // ✅ set group_id here
+                        }));
+                        setSelectedGroup(selectedGroupObj?.name || "");
                       }}
                     >
-                      <SelectTrigger id="group" className=" w-full min-h-12">
+                      <SelectTrigger id="group" className="w-full min-h-12">
                         <SelectValue placeholder="Select your group" />
                       </SelectTrigger>
                       <SelectContent>
                         {groups?.map((grp) => (
-                          <SelectItem key={grp.name} value={grp.name}>
+                          <SelectItem key={grp.id} value={grp.name}>
                             {grp.name}
                           </SelectItem>
                         ))}
@@ -377,18 +379,43 @@ export default function ProfilePage() {
                     {t("profile.controlling_team")}
                   </Label>
                   {isEditing ? (
-                    <SearchableSelect
-                      options={filteredContractors.map((c) => c.name)}
-                      value={editData.controlling_team}
-                      onChange={(val) =>
+                    <Select
+                      value={editData.team_id?.toString() || ""}
+                      onValueChange={(value) => {
+                        const selectedContractor = filteredContractors.find(
+                          (c) => c.id === Number(value)
+                        );
                         setEditData((prev) => ({
                           ...prev,
-                          controlling_team: val,
-                        }))
-                      }
-                      placeholder="Select or type team"
-                      customClass={"max-h-12 h-12"}
-                    />
+                          controlling_team: selectedContractor?.name || "",
+                          team_id: selectedContractor?.id || "",
+                        }));
+                      }}
+                      disabled={!filteredContractors?.length}
+                    >
+                      <SelectTrigger
+                        id="controlling_team"
+                        className="w-full min-h-12"
+                      >
+                        <SelectValue placeholder="Select your Controlling Team">
+                          {
+                            filteredContractors.find(
+                              (c) => c.id === Number(editData.team_id)
+                            )?.name
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredContractors?.map((contractor) => (
+                          <SelectItem
+                            key={contractor.id}
+                            value={contractor.id.toString()}
+                          >
+                            {contractor.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <div className="flex items-center gap-2 p-3 bg-muted rounded-md">
                       <MonitorCog className="w-4 h-4 text-muted-foreground" />

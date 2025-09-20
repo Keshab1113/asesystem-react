@@ -135,6 +135,8 @@ const updateUser = async (req, res) => {
       group,
       controlling_team,
       location,
+      team_id,
+      group_id,
     } = req.body;
 
     if (!id) {
@@ -146,10 +148,12 @@ const updateUser = async (req, res) => {
 
     await db.execute(
       `UPDATE users 
-       SET name = ?, email = ?, role = ?, phone = ?, position = ?, bio = ?, is_active = ?, \`group\` = ?,employee_id = ? ,controlling_team = ?,location= ?, profile_pic_url = ?, updated_at = NOW()
+       SET name = ?, team_id = ?, group_id = ?, email = ?, role = ?, phone = ?, position = ?, bio = ?, is_active = ?, \`group\` = ?,employee_id = ? ,controlling_team = ?,location= ?, profile_pic_url = ?, updated_at = NOW()
        WHERE id = ?`,
       [
         name,
+        team_id,
+        group_id,
         email,
         role,
         phone,
@@ -213,7 +217,7 @@ const uploadProfilePicture = async (req, res) => {
 const getNormalUsers = async (req, res) => {
   try {
     const [rows] = await db.execute(
-      "SELECT id, name,location,employee_id, controlling_team, `group`, email, role, phone, position, bio, is_active, profile_pic_url, created_at, updated_at FROM users WHERE role = 'user' ORDER BY created_at DESC"
+      "SELECT id, name,location,employee_id,team_id, group_id, controlling_team, `group`, email, role, phone, position, bio, is_active, profile_pic_url, created_at, updated_at FROM users WHERE role = 'user' ORDER BY created_at DESC"
     );
 
     res.json({ success: true, data: rows });
@@ -367,7 +371,7 @@ const register = async (req, res) => {
       location,
       phone,
       team_id,
-      group_id
+      group_id,
     } = req.body;
 
     if (!password) {

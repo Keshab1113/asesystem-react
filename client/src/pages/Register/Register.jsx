@@ -10,7 +10,7 @@ import {
   UsersRound,
   MonitorCog,
   Smartphone,
-  MapPin
+  MapPin,
 } from "lucide-react";
 
 import {
@@ -47,8 +47,8 @@ export default function RegisterPage() {
     group: "",
     controlling_team: "",
     location: "",
-    group_id:"",
-    team_id:""
+    group_id: "",
+    team_id: "",
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -177,8 +177,9 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
-  console.log("formData ",formData);
-  
+  console.log("formData ", formData);
+  console.log("contractors ", contractors);
+  console.log("companies ", companies);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4 pt-10 md:pt-4">
@@ -293,58 +294,88 @@ export default function RegisterPage() {
 
             {/* Group & Controlling Team */}
             <div className="grid md:grid-cols-2 grid-cols-1 gap-2 w-full ">
+              {/* Group Select */}
               <div className="space-y-2 w-full ">
                 <Label htmlFor="group">
                   <UsersRound className="h-4 w-4 inline mr-2" />
                   {t("profile.group")}
                 </Label>
                 <Select
-                  value={formData.group}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, group: value }))
-                  }
+                  value={formData.group_id?.toString() || ""}
+                  onValueChange={(value) => {
+                    const selectedCompany = companies.find(
+                      (c) => c.id === Number(value)
+                    );
+                    setFormData((prev) => ({
+                      ...prev,
+                      group: selectedCompany?.name || "",
+                      group_id: selectedCompany?.id || "",
+                      controlling_team: "",
+                      team_id: "",
+                    }));
+                  }}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select your group" />
+                    <SelectValue placeholder="Select your group">
+                      {
+                        companies.find(
+                          (c) => c.id === Number(formData.group_id)
+                        )?.name
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {companies?.map((company) => (
-                      <SelectItem value={company.name}>
+                      <SelectItem
+                        key={company.id}
+                        value={company.id.toString()}
+                      >
                         {company.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Controlling Team Select */}
               <div className="space-y-2 w-full ">
                 <Label htmlFor="controlling_team">
                   <MonitorCog className="h-4 w-4 inline mr-2" />
                   {t("profile.controlling_team")}
                 </Label>
                 <Select
-                  value={formData.controlling_team}
-                  onValueChange={(value) =>
+                  value={formData.team_id?.toString() || ""}
+                  onValueChange={(value) => {
+                    const selectedContractor = contractors.find(
+                      (c) => c.id === Number(value)
+                    );
                     setFormData((prev) => ({
                       ...prev,
-                      controlling_team: value,
-                    }))
-                  }
-                  disabled={!formData.group}
+                      controlling_team: selectedContractor?.name || "",
+                      team_id: selectedContractor?.id || "",
+                    }));
+                  }}
+                  disabled={!formData.group_id}
                 >
-                  <SelectTrigger className=" w-full ">
-                    <SelectValue placeholder="Select your Controlling Team" />
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select your Controlling Team">
+                      {
+                        contractors.find(
+                          (c) => c.id === Number(formData.team_id)
+                        )?.name
+                      }
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {formData.group &&
+                    {formData.group_id &&
                       contractors
                         .filter(
-                          (contractor) =>
-                            contractor.company_name === formData.group
+                          (c) => c.company_id === Number(formData.group_id)
                         )
                         .map((contractor) => (
                           <SelectItem
                             key={contractor.id}
-                            value={contractor.name}
+                            value={contractor.id.toString()}
                           >
                             {contractor.name}
                           </SelectItem>
@@ -353,6 +384,7 @@ export default function RegisterPage() {
                 </Select>
               </div>
             </div>
+
             <div className="grid md:grid-cols-2 grid-cols-1 gap-2 w-full ">
               <div className="space-y-2 w-full ">
                 <Label htmlFor="location">

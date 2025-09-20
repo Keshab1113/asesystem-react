@@ -83,6 +83,8 @@ export function ContractorMasterPage() {
     group: "",
     controlling_team: "",
     location: "",
+    group_id: "",
+    team_id: "",
   });
   const [newCompany, setNewCompany] = useState({
     company_name: "",
@@ -452,6 +454,8 @@ export function ContractorMasterPage() {
       group: user.group || "",
       controlling_team: user.controlling_team || "",
       location: user.location || "",
+      group_id: user.group_id || "",
+      team_id: user.team_id || "",
     });
     setOpenModal(true);
   };
@@ -935,7 +939,9 @@ export function ContractorMasterPage() {
                     className={`p-3 border rounded-lg cursor-pointer transition-colors flex justify-between md:flex-row flex-col`}
                   >
                     <div className=" flex flex-col">
-                      <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[220px]">{user.name}</div>
+                      <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[220px]">
+                        {user.name}
+                      </div>
                       <div className="text-sm text-muted-foreground">
                         {user.email}
                       </div>
@@ -944,10 +950,9 @@ export function ContractorMasterPage() {
                       <p className=" text-xs">
                         Profile Completed: {user?.is_active ? "100" : "50"}%
                       </p>
-                        <Button onClick={() => handleUserClick(user)}>
-                          <Edit className="h-5 w-5" />
-                        </Button>
-                        
+                      <Button onClick={() => handleUserClick(user)}>
+                        <Edit className="h-5 w-5" />
+                      </Button>
                     </div>
                   </div>
                 );
@@ -989,19 +994,36 @@ export function ContractorMasterPage() {
                   <div className="space-y-2">
                     <Label>Select Group *</Label>
                     <Select
-                      value={formData.group}
+                      value={formData.group_id?.toString() || ""}
                       onValueChange={(value) => {
-                        setFormData((prev) => ({ ...prev, group: value }));
-                        setSelectedGroup(value);
+                        const selectedCompany = companies.find(
+                          (c) => c.id === Number(value)
+                        );
+                        setFormData((prev) => ({
+                          ...prev,
+                          group: selectedCompany?.name || "",
+                          group_id: selectedCompany?.id || "",
+                          controlling_team: "",
+                          team_id: "",
+                        }));
                       }}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Choose group" />
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select your group">
+                          {
+                            companies.find(
+                              (c) => c.id === Number(formData.group_id)
+                            )?.name
+                          }
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        {companies?.map((quiz) => (
-                          <SelectItem key={quiz.id} value={quiz.name}>
-                            {quiz.name}
+                        {companies?.map((company) => (
+                          <SelectItem
+                            key={company.id}
+                            value={company.id.toString()}
+                          >
+                            {company.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -1009,17 +1031,45 @@ export function ContractorMasterPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Team Name *</Label>
-                    <SearchableSelect
-                      options={filteredContractors.map((c) => c.name)}
-                      value={formData.controlling_team}
-                      onChange={(val) =>
+                    <Select
+                      value={formData.team_id?.toString() || ""}
+                      onValueChange={(value) => {
+                        const selectedContractor = contractors.find(
+                          (c) => c.id === Number(value)
+                        );
                         setFormData((prev) => ({
                           ...prev,
-                          controlling_team: val,
-                        }))
-                      }
-                      placeholder="Select or type team"
-                    />
+                          controlling_team: selectedContractor?.name || "",
+                          team_id: selectedContractor?.id || "",
+                        }));
+                      }}
+                      disabled={!formData.group_id}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select your Controlling Team">
+                          {
+                            contractors.find(
+                              (c) => c.id === Number(formData.team_id)
+                            )?.name
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {formData.group_id &&
+                          contractors
+                            .filter(
+                              (c) => c.company_id === Number(formData.group_id)
+                            )
+                            .map((contractor) => (
+                              <SelectItem
+                                key={contractor.id}
+                                value={contractor.id.toString()}
+                              >
+                                {contractor.name}
+                              </SelectItem>
+                            ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label>Employee ID</Label>
