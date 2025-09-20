@@ -23,7 +23,11 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { setQuizQuestions, setAnswer, resetQuiz } from "../../redux/slices/quizSlice";
+import {
+  setQuizQuestions,
+  setAnswer,
+  resetQuiz,
+} from "../../redux/slices/quizSlice";
 import useToast from "../../hooks/ToastContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "axios";
@@ -33,6 +37,7 @@ export default function QuestionsPage() {
   const [searchParams] = useSearchParams();
   const time = searchParams.get("time");
   const passing_score = searchParams.get("passing_score");
+const assignmentId = searchParams.get("assesment_id");
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -85,23 +90,16 @@ export default function QuestionsPage() {
 
       try {
         const res = await fetch(
-          `${
-            import.meta.env.VITE_BACKEND_URL
-          }/api/quiz-attempts/${quizId}/questions`
-        );
+      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${quizId}/fetch-assigned-questions?userId=${user.id}&assignmentId=${assignmentId}`
+    );
+
         const data = await res.json();
+console.log("Fetched questions data:", data); // Debug log
         if (data.success) {
-          let allQuestions = data.data;
-
-          // Randomize and pick 10
-          const randomized = allQuestions
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 10);
-
-          dispatch(setQuizQuestions({ quizId, questions: randomized }));
+          dispatch(setQuizQuestions({ quizId, questions: data.data }));
         }
       } catch (error) {
-        console.error("Error fetching questions:", error);
+        console.error("Error fetching assigned questions:", error);
       } finally {
         setLoading(false);
       }
@@ -186,11 +184,11 @@ export default function QuestionsPage() {
     };
 
     // Force fullscreen
-    const requestFullscreen = () => {
-      const el = document.documentElement;
-      if (el.requestFullscreen) el.requestFullscreen();
-    };
-    requestFullscreen();
+    // const requestFullscreen = () => {
+    //   const el = document.documentElement;
+    //   if (el.requestFullscreen) el.requestFullscreen();
+    // };
+    // requestFullscreen();
 
     // If user exits fullscreen → submit
     const exitHandler = () => {
@@ -200,18 +198,18 @@ export default function QuestionsPage() {
     };
 
     // Register events
-    document.addEventListener("contextmenu", disableRightClick);
-    document.addEventListener("keydown", disableKeys);
-    window.addEventListener("blur", handleBlur);
-    document.addEventListener("fullscreenchange", exitHandler);
+    // document.addEventListener("contextmenu", disableRightClick);
+    // document.addEventListener("keydown", disableKeys);
+    // window.addEventListener("blur", handleBlur);
+    // document.addEventListener("fullscreenchange", exitHandler);
 
     // Cleanup
     return () => {
       clearInterval(timer);
-      document.removeEventListener("contextmenu", disableRightClick);
-      document.removeEventListener("keydown", disableKeys);
-      window.removeEventListener("blur", handleBlur);
-      document.removeEventListener("fullscreenchange", exitHandler);
+      // document.removeEventListener("contextmenu", disableRightClick);
+      // document.removeEventListener("keydown", disableKeys);
+      // window.removeEventListener("blur", handleBlur);
+      // document.removeEventListener("fullscreenchange", exitHandler);
     };
   }, [quizId, questions, dispatch, toast, timerStarted, acceptedInstructions]);
 
@@ -282,14 +280,19 @@ export default function QuestionsPage() {
 
     try {
       await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/end`,
-        {
-          quiz_id: quizId,
-          user_id: user.id,
-          score,
-          passing_score: passing_score,
-        }
-      );
+  `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/end`,
+  {
+    quiz_id: quizId,
+    user_id: user.id,
+    assignment_id: assignmentId,
+    passing_score: passing_score,
+    answers: Object.entries(answers).map(([question_id, answer]) => ({
+      question_id: Number(question_id),
+      answer,
+    })),
+  }
+);
+
       localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
       dispatch(resetQuiz(quizId));
       toast({
@@ -298,7 +301,7 @@ export default function QuestionsPage() {
         variant: "success",
       });
 
-      navigate("/results");
+      navigate(`/user-dashboard/results?${quizId}`);
     } catch (err) {
       console.error("Error ending assessment:", err);
       toast({
@@ -429,8 +432,7 @@ export default function QuestionsPage() {
               />
               <label
                 htmlFor="accept"
-                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none"
-              >
+                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none">
                 I have read and agree to the terms and conditions.
               </label>
             </div>
@@ -440,8 +442,7 @@ export default function QuestionsPage() {
                 onClick={handleAcceptInstructions}
                 disabled={!accepted}
                 size="lg"
-                className="px-8 py-3 text-lg bg-blue-600 hover:bg-blue-700"
-              >
+                className="px-8 py-3 text-lg bg-blue-600 hover:bg-blue-700">
                 I Accept - Start Assessment
               </Button>
             </div>
@@ -472,8 +473,7 @@ export default function QuestionsPage() {
               </h1>
               <Badge
                 variant="outline"
-                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
-              >
+                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
                 <Monitor className="w-3 h-3" />
                 Secure Mode
               </Badge>
@@ -506,8 +506,7 @@ export default function QuestionsPage() {
                   allQuestionsAnswered
                     ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300"
                     : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                }`}
-              >
+                }`}>
                 {answeredCount}/{questions.length} Completed
               </Badge>
             </div>
@@ -520,8 +519,7 @@ export default function QuestionsPage() {
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
           <Alert
             variant="destructive"
-            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
-          >
+            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-red-800 dark:text-red-200">
               Warning
@@ -567,8 +565,7 @@ export default function QuestionsPage() {
                           getQuestionStatus(index) === "answered"
                             ? "Answered"
                             : "Not Answered"
-                        }`}
-                      >
+                        }`}>
                         {index + 1}
                         {getQuestionStatus(index) === "answered" && (
                           <CheckCircle className="absolute -top-1 -right-1 w-4 h-4 text-green-600 bg-white rounded-full" />
@@ -614,8 +611,7 @@ export default function QuestionsPage() {
                     <Button
                       onClick={goToUnansweredQuestion}
                       variant="outline"
-                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                    >
+                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20">
                       Go
                     </Button>
                   </div>
@@ -646,8 +642,7 @@ export default function QuestionsPage() {
                           onClick={handleClearAnswer}
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20"
-                        >
+                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20">
                           <RotateCcw className="md:w-4 md:h-4 h-3 w-3" />
                           <h4 className=" md:block hidden">Clear Answer</h4>
                         </Button>
@@ -658,8 +653,7 @@ export default function QuestionsPage() {
                           currentAnswer
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                        }`}
-                      >
+                        }`}>
                         {currentAnswer ? "Answered" : "Not Answered"}
                       </Badge>
                     </div>
@@ -679,8 +673,7 @@ export default function QuestionsPage() {
                     onValueChange={(val) =>
                       handleAnswerChange(currentQuestion.id, val)
                     }
-                    className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-1 gap-4 pb-6"
-                  >
+                    className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-1 gap-4 pb-6">
                     {currentOptions?.map((opt, i) => (
                       <div
                         key={i}
@@ -688,8 +681,7 @@ export default function QuestionsPage() {
                           currentAnswer === opt
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 shadow-lg scale-[1.02]"
                             : "border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:scale-[1.01]"
-                        }`}
-                      >
+                        }`}>
                         <RadioGroupItem
                           value={opt}
                           id={`${currentQuestion.id}-${i}`}
@@ -697,15 +689,13 @@ export default function QuestionsPage() {
                         />
                         <Label
                           htmlFor={`${currentQuestion.id}-${i}`}
-                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium"
-                        >
+                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium">
                           <span
                             className={`flex justify-center items-center w-8 h-8 min-w-8 min-h-8 md:w-10 md:h-10 md:min-w-10 md:min-h-10 rounded-full text-white text-base font-bold md:mr-4 mr-1 text-center leading-10 transition-all ${
                               currentAnswer === opt
                                 ? "bg-blue-600 shadow-md"
                                 : "bg-gray-400 group-hover:bg-gray-500"
-                            }`}
-                          >
+                            }`}>
                             {String.fromCharCode(65 + i)}
                           </span>
                           <span className="md:text-lg text-base">{opt}</span>
@@ -719,8 +709,7 @@ export default function QuestionsPage() {
                       disabled={currentQuestionIndex === 0}
                       variant="outline"
                       size="lg"
-                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
+                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                       <ArrowLeft className="w-4 h-4 md:mr-2" />
                       <h4 className=" md:block hidden">Previous</h4>
                     </Button>
@@ -735,8 +724,7 @@ export default function QuestionsPage() {
                               ? "bg-green-600 hover:bg-green-700 shadow-lg"
                               : "bg-gray-400 cursor-not-allowed"
                           }`}
-                          disabled={!allQuestionsAnswered}
-                        >
+                          disabled={!allQuestionsAnswered}>
                           <CheckCircle className="w-5 h-5 mr-2" />
                           Submit Assessment
                         </Button>
@@ -744,8 +732,7 @@ export default function QuestionsPage() {
                         <Button
                           onClick={handleNext}
                           size="lg"
-                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg"
-                        >
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg">
                           <h4 className=" md:block hidden">Next</h4>
                           <ArrowRight className="w-4 h-4 md:ml-2" />
                         </Button>

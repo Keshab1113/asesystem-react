@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import {
   Dialog,
@@ -65,28 +65,118 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
     tags: [],
   });
 
+  // Reset form data when quiz prop changes
+  useEffect(() => {
+    if (quiz) {
+      setFormData({
+        name: quiz.name || "",
+        description: quiz.description || "",
+        subject: quiz.subject || "",
+        difficulty: quiz.difficulty || "medium",
+        timeLimit: quiz.timeLimit || "30",
+        passingScore: quiz.passingScore || "70",
+        maxAttempts: quiz.maxAttempts || "3",
+        maxQuestions: quiz.questionCount || 0,
+        randomizeQuestions: quiz.randomizeQuestions ?? true,
+        showResults: quiz.showResults ?? true,
+        allowReview: quiz.allowReview ?? true,
+        isPublic: quiz.isPublic ?? false,
+        tags: quiz.tags || [],
+        scheduleStartDate: quiz.scheduleStartDate || "",
+        scheduleStartTime: quiz.scheduleStartTime || "",
+        scheduleEndDate: quiz.scheduleEndDate || "",
+        scheduleEndTime: quiz.scheduleEndTime || "",
+      });
+    } else {
+      // Reset to default values for new quiz
+      setFormData({
+        name: "",
+        description: "",
+        subject: "",
+        difficulty: "medium",
+        timeLimit: "30",
+        passingScore: "70",
+        maxAttempts: "3",
+        maxQuestions: 0,
+        randomizeQuestions: true,
+        showResults: true,
+        allowReview: true,
+        isPublic: false,
+        tags: [],
+        scheduleStartDate: "",
+        scheduleStartTime: "",
+        scheduleEndDate: "",
+        scheduleEndTime: "",
+      });
+    }
+  }, [quiz]);
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      // Reset form to default values when modal closes
+      if (quiz) {
+        setFormData({
+          name: quiz.name || "",
+          description: quiz.description || "",
+          subject: quiz.subject || "",
+          difficulty: quiz.difficulty || "medium",
+          timeLimit: quiz.timeLimit || "30",
+          passingScore: quiz.passingScore || "70",
+          maxAttempts: quiz.maxAttempts || "3",
+          maxQuestions: quiz.questionCount || 0,
+          randomizeQuestions: quiz.randomizeQuestions ?? true,
+          showResults: quiz.showResults ?? true,
+          allowReview: quiz.allowReview ?? true,
+          isPublic: quiz.isPublic ?? false,
+          tags: quiz.tags || [],
+          scheduleStartDate: quiz.scheduleStartDate || "",
+          scheduleStartTime: quiz.scheduleStartTime || "",
+          scheduleEndDate: quiz.scheduleEndDate || "",
+          scheduleEndTime: quiz.scheduleEndTime || "",
+        });
+      } else {
+        setFormData({
+          name: "",
+          description: "",
+          subject: "",
+          difficulty: "medium",
+          timeLimit: "30",
+          passingScore: "70",
+          maxAttempts: "3",
+          maxQuestions: 0,
+          randomizeQuestions: true,
+          showResults: true,
+          allowReview: true,
+          isPublic: false,
+          tags: [],
+          scheduleStartDate: "",
+          scheduleStartTime: "",
+          scheduleEndDate: "",
+          scheduleEndTime: "",
+        });
+      }
+    }
+  }, [open, quiz]);
+
   const [newTag, setNewTag] = useState("");
 
   const handleSave = async () => {
     setLoading(true);
 
     const quizData = {
-      name: formData.name || quiz?.name,
-      description: formData.description || quiz?.description,
-      subject_id: formData.subject || quiz?.subject || null,
-      difficulty_level: formData.difficulty || quiz?.difficulty || "medium",
-      timeLimit: formData.timeLimit || quiz?.timeLimit,
-      passingScore: formData.passingScore || quiz?.passingScore,
-        maxAttempts: formData.maxAttempts || quiz?.maxAttempts,
-  maxQuestions: formData.maxQuestions || quiz?.questionCount || 0, // <-- add here
-      scheduleStartDate:
-        formData.scheduleStartDate || quiz?.scheduleStartDate || null,
-      scheduleStartTime:
-        formData.scheduleStartTime || quiz?.scheduleStartTime || null,
-      scheduleEndDate:
-        formData.scheduleEndDate || quiz?.scheduleEndDate || null,
-      scheduleEndTime:
-        formData.scheduleEndTime || quiz?.scheduleEndTime || null,
+      name: formData.name,
+      description: formData.description,
+      subject_id: formData.subject || null,
+      difficulty_level: formData.difficulty || "medium",
+      timeLimit: formData.timeLimit,
+      passingScore: formData.passingScore,
+      maxAttempts: formData.maxAttempts,
+      maxQuestions: formData.maxQuestions || 0,
+      scheduleStartDate: formData.scheduleStartDate || null,
+      scheduleStartTime: formData.scheduleStartTime || null,
+      scheduleEndDate: formData.scheduleEndDate || null,
+      scheduleEndTime: formData.scheduleEndTime || null,
     };
     try {
       if (isEditing && quiz?.id) {
