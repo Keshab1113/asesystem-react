@@ -32,6 +32,8 @@ import { useLanguage } from "@/lib/language-context";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import useToast from "../../hooks/ToastContext";
 
 export default function DashboardPage() {
   const { t } = useLanguage();
@@ -40,6 +42,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -255,37 +258,91 @@ export default function DashboardPage() {
 
         {/* Timestamps */}
         <div className="grid grid-cols-1 gap-3 text-sm bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
-          <div className="flex justify-between">
-            <span className="text-slate-500 dark:text-slate-400">
-              Assessment Start Date:
-            </span>
-            <span className="font-medium text-slate-700 dark:text-slate-300">
-              {assessment.started_at
-                ? new Date(assessment.started_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "Null"}
-            </span>
-          </div>
+          {assessment.status === "passed" ||
+          assessment.status === "failed" ||
+          assessment.status === "under_review" ||
+          assessment.status === "in_progress" ? (
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-400">
+                Started at:
+              </span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {assessment.user_started_at
+                  ? new Date(assessment.user_started_at).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Null"}
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-400">
+                Assessment Start Date:
+              </span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {assessment.schedule_start_date &&
+                assessment.schedule_start_time
+                  ? new Date(
+                      `${assessment.schedule_start_date.split("T")[0]}T${
+                        assessment.schedule_start_time
+                      }`
+                    ).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Null"}
+              </span>
+            </div>
+          )}
 
-          <div className="flex justify-between">
-            <span className="text-slate-500 dark:text-slate-400">
-              Assessment End Date:
-            </span>
-            <span className="font-medium text-slate-700 dark:text-slate-300">
-              {assessment.ended_at
-                ? new Date(assessment.ended_at).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })
-                : "Null"}
-            </span>
-          </div>
+          {assessment.status === "passed" ||
+          assessment.status === "failed" ||
+          assessment.status === "under_review" ? (
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-400">
+                Ended at:
+              </span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {assessment.user_ended_at
+                  ? new Date(assessment.user_ended_at).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Null"}
+              </span>
+            </div>
+          ) : (
+            <div className="flex justify-between">
+              <span className="text-slate-500 dark:text-slate-400">
+                Assessment End Date:
+              </span>
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {assessment.schedule_end_date && assessment.schedule_end_time
+                  ? new Date(
+                      `${assessment.schedule_end_date.split("T")[0]}T${
+                        assessment.schedule_end_time
+                      }`
+                    ).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Null"}
+              </span>
+            </div>
+          )}
 
           {assessment.scheduled_for && (
             <div className="flex justify-between">
@@ -293,15 +350,13 @@ export default function DashboardPage() {
                 Scheduled:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {new Date(assessment.scheduled_for).toLocaleDateString(
-                  "en-US",
-                  {
-                    month: "short",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }
-                )}
+                {new Date(assessment.scheduled_for).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
             </div>
           )}
@@ -309,25 +364,62 @@ export default function DashboardPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
-          {assessment.status === "scheduled" && (
-            <Button
-              onClick={() =>
-                navigate(
-                  `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}`
-                )
-              }
-              className="flex-1 text-white dark:text-slate-900 shadow-sm"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Start Assessment
-              <ChevronRight className="w-4 h-4 ml-auto" />
-            </Button>
-          )}
+          {assessment.status === "scheduled" &&
+            (() => {
+              // Combine date + time into a single Date object
+              const endDateTime = new Date(
+                `${assessment?.schedule_end_date?.split("T")[0]}T${
+                  assessment?.schedule_end_time
+                }`
+              );
+
+              const now = new Date();
+
+              const isExpired = now > endDateTime;
+
+              const handleStartAssessment = async () => {
+                try {
+                  await axios.post(
+                    `${
+                      import.meta.env.VITE_BACKEND_URL
+                    }/api/quiz-assignments/start`,
+                    {
+                      quiz_id: assessment.quiz_id,
+                      user_id: user.id,
+                    }
+                  );
+
+                  // after saving, navigate to quiz
+                  navigate(
+                    `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}`
+                  );
+                } catch (err) {
+                  console.error("Error starting assessment:", err);
+                  toast({
+                    title: "Try again",
+                    description: "Failed to start assessment.",
+                    variant: "error",
+                  });
+                }
+              };
+
+              return (
+                <Button
+                  onClick={handleStartAssessment}
+                  disabled={isExpired} // disable if expired
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Start Assessment
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </Button>
+              );
+            })()}
           {assessment.status === "in_progress" && (
             <Button
               onClick={() =>
                 navigate(
-                  `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}`
+                  `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}`
                 )
               }
               className="flex-1 text-white dark:text-slate-900 shadow-sm"
@@ -347,14 +439,7 @@ export default function DashboardPage() {
               <ChevronRight className="w-4 h-4 ml-auto" />
             </Button>
           )}
-          {(assessment.status === "failed" ||
-            assessment.status === "under_review") &&
-            (assessment.attempts || 0) < assessment.max_attempts && (
-              <Button variant="outline">
-                <AlertCircle className="w-4 h-4 mr-2" />
-                Retake
-              </Button>
-            )}
+          
         </div>
       </CardContent>
     </Card>
@@ -364,15 +449,6 @@ export default function DashboardPage() {
     return (
       <div className="flex items-center justify-center min-h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-        <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
       </div>
     );
   }

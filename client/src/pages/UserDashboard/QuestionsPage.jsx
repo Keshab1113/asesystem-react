@@ -23,14 +23,16 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { setQuizQuestions, setAnswer } from "../../redux/slices/quizSlice";
+import { setQuizQuestions, setAnswer, resetQuiz } from "../../redux/slices/quizSlice";
 import useToast from "../../hooks/ToastContext";
 import { Checkbox } from "@/components/ui/checkbox";
+import axios from "axios";
 
 export default function QuestionsPage() {
   const { quizId } = useParams();
   const [searchParams] = useSearchParams();
   const time = searchParams.get("time");
+  const passing_score = searchParams.get("passing_score");
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -47,6 +49,7 @@ export default function QuestionsPage() {
   const [acceptedInstructions, setAcceptedInstructions] = useState(false);
   const [timerStarted, setTimerStarted] = useState(false);
   const { toast } = useToast();
+  const { user } = useSelector((state) => state.auth);
   const [accepted, setAccepted] = useState(false);
 
   // Calculate progress
@@ -242,8 +245,20 @@ export default function QuestionsPage() {
     // Store in localStorage to remember user accepted for this quiz
     localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
   };
+  const calculateScore = () => {
+    let score = 0;
 
-  const handleSubmit = (forced = false, message = null) => {
+    questions.forEach((q) => {
+      const userAnswer = answers[q.id];
+      if (userAnswer && userAnswer.trim() === q.correct_answer.trim()) {
+        score++;
+      }
+    });
+
+    return score;
+  };
+
+  const handleSubmit = async (forced = false, message = null) => {
     if (!forced && !allQuestionsAnswered) {
       const unansweredQuestions = questions.filter((q) => !answers[q.id]);
 
@@ -253,23 +268,45 @@ export default function QuestionsPage() {
         variant: "destructive",
       });
 
-      // Navigate to first unanswered question
       goToUnansweredQuestion();
       return;
     }
 
-    console.log("Submitted answers:", answers);
     if (document.fullscreenElement) {
       document.exitFullscreen().catch((err) => {
         console.warn("Failed to exit fullscreen:", err);
       });
     }
-    toast({
-      title: "Submitted",
-      description: message || "✅ Quiz submitted successfully!",
-      variant: "success",
-    });
-    navigate("/results");
+
+    const score = calculateScore();
+
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/end`,
+        {
+          quiz_id: quizId,
+          user_id: user.id,
+          score,
+          passing_score: passing_score,
+        }
+      );
+      localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
+      dispatch(resetQuiz(quizId));
+      toast({
+        title: "Submitted",
+        description: message || "✅ Quiz submitted successfully!",
+        variant: "success",
+      });
+
+      navigate("/results");
+    } catch (err) {
+      console.error("Error ending assessment:", err);
+      toast({
+        title: "Error",
+        description: "Failed to end assessment. Try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatTime = (seconds) => {

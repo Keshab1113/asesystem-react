@@ -258,7 +258,8 @@ const forgotPasswordLogin = async (req, res) => {
       from: `"asesystem - No Reply" <${process.env.MAIL_USER_NOREPLY_VIEW}>`,
       to: email,
       replyTo: process.env.MAIL_USER_NOREPLY_VIEW,
-      subject: "Advance Safety and Efficiency System - Your One-Time Password (OTP)",
+      subject:
+        "Advance Safety and Efficiency System - Your One-Time Password (OTP)",
       text: `Hello ${user.name || ""},
 
 Your One-Time Password (OTP) is: ${otp}
@@ -364,6 +365,9 @@ const register = async (req, res) => {
       group,
       password,
       location,
+      phone,
+      team_id,
+      group_id
     } = req.body;
 
     if (!password) {
@@ -379,18 +383,21 @@ const register = async (req, res) => {
 
     await pool.execute(
       `INSERT INTO users 
-        (name, position, employee_id, email, controlling_team, location, \`group\`, otp, role, is_active, password_hash) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'user', FALSE, ?)`,
+        (name, position, employee_id, email,phone, controlling_team, location, \`group\`, otp, role, is_active, password_hash, group_id, team_id) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', FALSE, ?, ?, ?)`,
       [
         fullName,
         position,
         employee_id,
         email,
+        phone,
         controlling_team,
         location,
         group,
         otp,
         passwordHash,
+        group_id,
+        team_id,
       ]
     );
 

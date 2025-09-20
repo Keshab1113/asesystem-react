@@ -9,6 +9,8 @@ import {
   Moon,
   UsersRound,
   MonitorCog,
+  Smartphone,
+  MapPin
 } from "lucide-react";
 
 import {
@@ -39,11 +41,14 @@ export default function RegisterPage() {
     fullName: "",
     position: "",
     employee_id: "",
+    phone: "",
     email: "",
     password: "",
     group: "",
     controlling_team: "",
     location: "",
+    group_id:"",
+    team_id:""
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -96,6 +101,9 @@ export default function RegisterPage() {
     }
     if (!formData.employee_id.trim()) {
       newErrors.employee_id = t("register.employee_id") + " is required";
+    }
+    if (!formData.phone.trim()) {
+      newErrors.phone = t("register.mobileNumber") + " is required";
     }
     if (!formData.controlling_team.trim()) {
       newErrors.controlling_team =
@@ -169,6 +177,8 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
+  console.log("formData ",formData);
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4 pt-10 md:pt-4">
@@ -193,7 +203,9 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <CardDescription><h1 className=" text-2xl font-bold">{t("register.title")}</h1></CardDescription>
+          <CardDescription>
+            <h1 className=" text-2xl font-bold">{t("register.title")}</h1>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -341,34 +353,54 @@ export default function RegisterPage() {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2 w-full ">
-              <Label htmlFor="location">
-                <MonitorCog className="h-4 w-4 inline mr-2" />
-                {t("profile.location")}
-              </Label>
-              <Select
-                value={formData.location}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    location: value,
-                  }))
-                }
-              >
-                <SelectTrigger className=" w-full ">
-                  <SelectValue placeholder="Select Work Location" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={"Rig Based Employee (ROE)"}>
-                    Rig Based Employee (ROE)
-                  </SelectItem>
-                  <SelectItem value={"Office Based Employee"}>
-                    Office Based Employee
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid md:grid-cols-2 grid-cols-1 gap-2 w-full ">
+              <div className="space-y-2 w-full ">
+                <Label htmlFor="location">
+                  <MapPin className="h-4 w-4 inline mr-2" />
+                  {t("profile.location")}
+                </Label>
+                <Select
+                  value={formData.location}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      location: value,
+                    }))
+                  }
+                >
+                  <SelectTrigger className=" w-full ">
+                    <SelectValue placeholder="Select Work Location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={"Rig Based Employee (ROE)"}>
+                      Rig Based Employee (ROE)
+                    </SelectItem>
+                    <SelectItem value={"Office Based Employee"}>
+                      Office Based Employee
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">
+                  <Smartphone className="h-4 w-4 inline mr-1" />
+                  {t("register.mobileNumber")}
+                </Label>
+                <Input
+                  id="phone"
+                  type="number"
+                  placeholder="Enter your mobile number"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      phone: e.target.value,
+                    }))
+                  }
+                  className={errors.phone ? "border-destructive" : ""}
+                />
+              </div>
             </div>
-
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">
