@@ -68,7 +68,6 @@ export default function AddSubjectPage() {
     setNewSubject({ name: "", description: "" });
   };
 
-  
   const generateQuestions = async () => {
     if (!newSubject.name.trim() || !newSubject.description.trim()) {
       toast({
@@ -205,7 +204,7 @@ export default function AddSubjectPage() {
             timeLimit: timeLimit,
             passingScore: passingScore,
             maxAttempts: maxAttempts,
-            difficulty: difficulty ?? "medium",  
+            difficulty: difficulty ?? "medium",
             questions: validQuestions.map((q) => ({
               question: q.question ?? "",
               type: q.type ?? "multiple_choice",
@@ -216,7 +215,7 @@ export default function AddSubjectPage() {
               explanation: q.explanation ?? "",
               difficulty: q.difficulty ?? "medium",
             })),
-             fileIds: uploadedFileIds,  
+            fileIds: uploadedFileIds,
           }),
         }
       );
@@ -253,23 +252,24 @@ export default function AddSubjectPage() {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full ">
       <div className="flex justify-between ">
         <h1 className="text-3xl font-bold text-foreground">Assesment Master</h1>
         <div className="flex items-center mb-4">
           <Button
             variant="outline"
             onClick={handleBack}
-            className="flex items-center gap-2">
+            className="flex items-center gap-2"
+          >
             <ArrowLeft className="h-4 w-4" />
             Back to Assesments
           </Button>
         </div>
       </div>
 
-      <div className="add-subject grid grid-cols-1 lg:grid-cols-2 gap-6 h-[80vh]">
+      <div className="add-subject grid grid-cols-1 lg:grid-cols-2 gap-6  h-fit pb-4">
         {/* Add New Subject */}
-        <Card className="h-full  ">
+        <Card className="h-fit ">
           <CardHeader>
             <CardTitle className="flex items-center">
               <Plus className="h-5 w-5 mr-2" />
@@ -309,7 +309,8 @@ export default function AddSubjectPage() {
                   difficulty === "easy"
                     ? "bg-green-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}>
+                }`}
+              >
                 Easy
               </button>
               <button
@@ -318,7 +319,8 @@ export default function AddSubjectPage() {
                   difficulty === "medium"
                     ? "bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}>
+                }`}
+              >
                 Medium
               </button>
               <button
@@ -327,7 +329,8 @@ export default function AddSubjectPage() {
                   difficulty === "hard"
                     ? "bg-red-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}>
+                }`}
+              >
                 Hard
               </button>
             </div>
@@ -384,7 +387,8 @@ export default function AddSubjectPage() {
                   {files.map((file, index) => (
                     <div
                       key={index}
-                      className="flex items-center bg-gray-100 rounded-md px-3 py-2 hover:bg-gray-200 transition-colors">
+                      className="flex items-center bg-gray-100 rounded-md px-3 py-2 hover:bg-gray-200 transition-colors"
+                    >
                       <span className="text-indigo-600 font-medium mr-3 min-w-[20px]">
                         {index + 1}.
                       </span>
@@ -402,7 +406,8 @@ export default function AddSubjectPage() {
                           });
                         }}
                         className="text-red-500 hover:text-red-700 ml-4 flex-shrink-0"
-                        aria-label="Remove file">
+                        aria-label="Remove file"
+                      >
                         ❌
                       </button>
                     </div>
@@ -413,25 +418,29 @@ export default function AddSubjectPage() {
 
             <Button
               onClick={generateQuestions}
-              className="w-full flex items-center justify-center gap-2">
+              className="w-full flex items-center justify-center gap-2"
+            >
               {loadingGenerate ? (
                 <>
                   <svg
                     className="animate-spin h-4 w-4 text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
-                    viewBox="0 0 24 24">
+                    viewBox="0 0 24 24"
+                  >
                     <circle
                       className="opacity-25"
                       cx="12"
                       cy="12"
                       r="10"
                       stroke="currentColor"
-                      strokeWidth="4"></circle>
+                      strokeWidth="4"
+                    ></circle>
                     <path
                       className="opacity-75"
                       fill="currentColor"
-                      d="M4 12a8 8 0 018-8v8H4z"></path>
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    ></path>
                   </svg>
                   Generating...
                 </>
@@ -455,7 +464,8 @@ export default function AddSubjectPage() {
                   className="w-5 h-5 text-white"
                   fill="none"
                   stroke="currentColor"
-                  viewBox="0 0 24 24">
+                  viewBox="0 0 24 24"
+                >
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -484,12 +494,14 @@ export default function AddSubjectPage() {
                   },
                 ])
               }
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+            >
               <svg
                 className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
-                viewBox="0 0 24 24">
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -522,13 +534,16 @@ export default function AddSubjectPage() {
                   <div className="flex justify-center space-x-1">
                     <div
                       className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}></div>
+                      style={{ animationDelay: "0ms" }}
+                    ></div>
                     <div
                       className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}></div>
+                      style={{ animationDelay: "150ms" }}
+                    ></div>
                     <div
                       className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}></div>
+                      style={{ animationDelay: "300ms" }}
+                    ></div>
                   </div>
                 </div>
               )}
@@ -540,7 +555,8 @@ export default function AddSubjectPage() {
                       className="w-8 h-8 text-gray-400"
                       fill="none"
                       stroke="currentColor"
-                      viewBox="0 0 24 24">
+                      viewBox="0 0 24 24"
+                    >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -562,144 +578,144 @@ export default function AddSubjectPage() {
                 questions.map((q, i) => (
                   <div
                     key={i}
-                    className="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+                    className="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+                  >
                     {/* Question Content */}
                     <div className="p-3 sm:p-5 space-y-3 relative sm:space-y-4">
                       <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            const updated = questions.filter(
-                              (_, index) => index !== i
-                            );
-                            setQuestions(updated);
-                          }}
-                          className="text-gray-400 absolute top-0 right-1  hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 sm:p-2 opacity-100 flex-shrink-0 mt-1">
-                          <Trash2 className="sm:h-4 sm:w-4 h-2 w-2 " />
-                        </Button>
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const updated = questions.filter(
+                            (_, index) => index !== i
+                          );
+                          setQuestions(updated);
+                        }}
+                        className="text-gray-400 absolute top-0 right-1  hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1.5 sm:p-2 opacity-100 flex-shrink-0 mt-1"
+                      >
+                        <Trash2 className="sm:h-4 sm:w-4 h-2 w-2 " />
+                      </Button>
                       <div className="flex justify-between items-start gap-3 mb-3 sm:mb-4 mt-5">
                         <div className="flex items-start gap-2 sm:gap-3 flex-1">
                           <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base mt-1 flex-shrink-0">
                             {i + 1}.
                           </span>
-                         <textarea
-  ref={(el) => {
-    if (el) {
-      // ✅ resize on mount
-      el.style.height = "auto";
-      el.style.height = `${el.scrollHeight}px`;
-    }
-  }}
-  value={q.question}
-  onChange={(e) => {
-    const updated = [...questions];
-    updated[i] = {
-      ...updated[i],
-      question: e.target.value,
-    };
-    setQuestions(updated);
+                          <textarea
+                            ref={(el) => {
+                              if (el) {
+                                // ✅ resize on mount
+                                el.style.height = "auto";
+                                el.style.height = `${el.scrollHeight}px`;
+                              }
+                            }}
+                            value={q.question}
+                            onChange={(e) => {
+                              const updated = [...questions];
+                              updated[i] = {
+                                ...updated[i],
+                                question: e.target.value,
+                              };
+                              setQuestions(updated);
 
-    // ✅ resize on input
-    e.target.style.height = "auto";
-    e.target.style.height = `${e.target.scrollHeight}px`;
-  }}
-  placeholder="Type your question here..."
-  className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 sm:px-4 sm:py-3
+                              // ✅ resize on input
+                              e.target.style.height = "auto";
+                              e.target.style.height = `${e.target.scrollHeight}px`;
+                            }}
+                            placeholder="Type your question here..."
+                            className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 sm:px-4 sm:py-3
              text-gray-900 dark:text-white bg-gray-50 dark:bg-gray-700 placeholder-gray-500
              focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none
              resize-none overflow-hidden transition-all duration-200 text-[10px] sm:text-base"
-/>
-
-
+                          />
                         </div>
-                        
                       </div>
 
                       <div>
+                        {/* Options */}
+                        {/* Options */}
+                        <div className="space-y-2 sm:space-y-3">
+                          <h4 className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+                            Answer Options
+                          </h4>
+                          {["A", "B", "C", "D"].map((label, index) => (
+                            <div
+                              key={index}
+                              className="flex items-start gap-2 sm:gap-3 group/option"
+                            >
+                              <div className="relative flex-shrink-0 mt-2">
+                                <input
+                                  type="radio"
+                                  name={`correct-${i}`}
+                                  checked={q.correctAnswer === q.options[index]}
+                                  onChange={() => {
+                                    const updated = [...questions];
+                                    updated[i].correctAnswer = q.options[index];
+                                    setQuestions(updated);
+                                  }}
+                                  className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 bg-white border-2 border-gray-300 focus:ring-green-500 focus:ring-2"
+                                />
+                                {q.correctAnswer === q.options[index] && (
+                                  <div className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full flex items-center justify-center">
+                                    <svg
+                                      className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-white"
+                                      fill="currentColor"
+                                      viewBox="0 0 20 20"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </div>
+                                )}
+                              </div>
 
-                     
+                              <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm flex-shrink-0">
+                                {label}
+                              </div>
 
-                      {/* Options */}
-                     {/* Options */}
-<div className="space-y-2 sm:space-y-3">
-  <h4 className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
-    Answer Options
-  </h4>
-  {["A", "B", "C", "D"].map((label, index) => (
-    <div key={index} className="flex items-start gap-2 sm:gap-3 group/option">
-      <div className="relative flex-shrink-0 mt-2">
-        <input
-          type="radio"
-          name={`correct-${i}`}
-          checked={q.correctAnswer === q.options[index]}
-          onChange={() => {
-            const updated = [...questions];
-            updated[i].correctAnswer = q.options[index];
-            setQuestions(updated);
-          }}
-          className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 bg-white border-2 border-gray-300 focus:ring-green-500 focus:ring-2"
-        />
-        {q.correctAnswer === q.options[index] && (
-          <div className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full flex items-center justify-center">
-            <svg
-              className="w-1.5 h-1.5 sm:w-2 sm:h-2 text-white"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </div>
-        )}
-      </div>
+                              <textarea
+                                value={q.options[index]}
+                                onChange={(e) => {
+                                  const updated = [...questions];
+                                  updated[i].options[index] = e.target.value;
+                                  setQuestions(updated);
 
-      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center font-semibold text-gray-700 dark:text-gray-300 text-xs sm:text-sm flex-shrink-0">
-        {label}
-      </div>
-
-      <textarea
-        value={q.options[index]}
-        onChange={(e) => {
-          const updated = [...questions];
-          updated[i].options[index] = e.target.value;
-          setQuestions(updated);
-
-          // ✅ auto-resize
-          e.target.style.height = "auto";
-          e.target.style.height = `${e.target.scrollHeight}px`;
-        }}
-        placeholder={`Enter option ${label}`}
-        className={`flex-1 min-w-0 rounded-lg px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-sm border-2 transition-all duration-200 outline-none resize-none overflow-hidden ${
-          q.correctAnswer === q.options[index]
-            ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 font-medium shadow-sm"
-            : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800"
-        }`}
-        rows={1} // start with 1 row
-        ref={(el) => {
-          if (el) {
-            el.style.height = "auto";
-            el.style.height = `${el.scrollHeight}px`;
-          }
-        }}
-      />
-    </div>
-  ))}
-</div>
-
-
-                      {/* Explanation */}
-                      {q.explanation && (
-                        <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
-                          <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
-                            <span className="font-semibold">Explanation:</span>{" "}
-                            {q.explanation}
-                          </p>
+                                  // ✅ auto-resize
+                                  e.target.style.height = "auto";
+                                  e.target.style.height = `${e.target.scrollHeight}px`;
+                                }}
+                                placeholder={`Enter option ${label}`}
+                                className={`flex-1 min-w-0 rounded-lg px-3 py-2 sm:px-4 sm:py-3 text-[10px] sm:text-sm border-2 transition-all duration-200 outline-none resize-none overflow-hidden ${
+                                  q.correctAnswer === q.options[index]
+                                    ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 font-medium shadow-sm"
+                                    : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800"
+                                }`}
+                                rows={1} // start with 1 row
+                                ref={(el) => {
+                                  if (el) {
+                                    el.style.height = "auto";
+                                    el.style.height = `${el.scrollHeight}px`;
+                                  }
+                                }}
+                              />
+                            </div>
+                          ))}
                         </div>
-                      )}
-                       </div>
+
+                        {/* Explanation */}
+                        {q.explanation && (
+                          <div className="mt-3 sm:mt-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border-l-4 border-blue-500">
+                            <p className="text-xs sm:text-sm text-blue-800 dark:text-blue-200">
+                              <span className="font-semibold">
+                                Explanation:
+                              </span>{" "}
+                              {q.explanation}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -709,25 +725,29 @@ export default function AddSubjectPage() {
               <div className="flex gap-3 pt-2 border-t border-gray-200 dark:border-gray-700  ">
                 <Button
                   onClick={handleSave}
-                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center justify-center gap-2 py-3 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
+                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center justify-center gap-2 py-3 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                >
                   {loadingSave ? (
                     <>
                       <svg
                         className="animate-spin h-5 w-5 text-white"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
-                        viewBox="0 0 24 24">
+                        viewBox="0 0 24 24"
+                      >
                         <circle
                           className="opacity-25"
                           cx="12"
                           cy="12"
                           r="10"
                           stroke="currentColor"
-                          strokeWidth="4"></circle>
+                          strokeWidth="4"
+                        ></circle>
                         <path
                           className="opacity-75"
                           fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8H4z"></path>
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        ></path>
                       </svg>
                       Saving Test...
                     </>
@@ -737,7 +757,8 @@ export default function AddSubjectPage() {
                         className="w-5 h-5"
                         fill="none"
                         stroke="currentColor"
-                        viewBox="0 0 24 24">
+                        viewBox="0 0 24 24"
+                      >
                         <path
                           strokeLinecap="round"
                           strokeLinejoin="round"
@@ -758,6 +779,7 @@ export default function AddSubjectPage() {
           </CardContent>
         </Card>
       </div>
+
       <style>{`
 @keyframes slow-reverse-spin {
   from { transform: rotate(360deg); }

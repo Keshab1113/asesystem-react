@@ -4,64 +4,79 @@ import axios from "axios";
 const ViewQuestionsModal = ({ quizId, open, onClose }) => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(false);
-const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState([]);
 
   useEffect(() => {
     if (open && quizId) fetchQuestions();
   }, [open, quizId]);
 
   const fetchQuestions = async () => {
-  setLoading(true);
-  try {
-    const res = await axios.get(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${quizId}/questions`
-    );
-    setQuestions(res.data.data || []);
-    setFiles(res.data.files || []); // ✅ store files
-    console.log("Fetched questions:", res.data.data);
-    console.log("Fetched files:", res.data.files);
-  } catch (err) {
-    console.error("Error fetching questions:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/quiz-attempts/${quizId}/questions`
+      );
+      setQuestions(res.data.data || []);
+      setFiles(res.data.files || []); // ✅ store files
+      console.log("Fetched questions:", res.data.data);
+      console.log("Fetched files:", res.data.files);
+    } catch (err) {
+      console.error("Error fetching questions:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-              <div className="bg-white rounded-2xl shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
-        
+      <div className="bg-white dark:bg-slate-800 rounded-md shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-100">
-          <h3 className="text-xl font-semibold text-gray-900">
-            Assesment Questions {questions[0]?.quiz_name ? `- ${questions[0].quiz_name}` : ""}
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Assesment Questions{" "}
+            {questions[0]?.quiz_name ? `- ${questions[0].quiz_name}` : ""}
           </h3>
           <button
             onClick={onClose}
-            className="w-9 h-9 cursor-pointer rounded-full  hover:bg-red-400 text-gray-400 hover:text-gray-900 flex items-center justify-center transition-colors"
+            className="w-9 h-9 cursor-pointer rounded-full  hover:bg-red-400 text-gray-400 hover:text-gray-900 dark:text-gray-100 flex items-center justify-center transition-colors"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5 text-gray-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
-{files.length > 0 && (
-  <div className="mb-4 ml-10">
-    <strong>Files used:</strong>
-    <ul className="list-disc ml-5 text-gray-700">
-      {files.map((f) => (
-        <li key={f.file_id}>
-          <a href={f.file_url} target="_blank" className="text-blue-600 hover:underline">
-            {f.original_name}
-          </a>
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
+        {files.length > 0 && (
+          <div className="my-4 ml-10 max-w-[90%]">
+            <strong>Files used:</strong>
+            <ul className="list-disc ml-5 text-gray-700">
+              {files.map((f) => (
+                <li key={f.file_id}>
+                  <a
+                    href={f.file_url}
+                    target="_blank"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {f.original_name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
@@ -77,38 +92,42 @@ const [files, setFiles] = useState([]);
           ) : (
             <div className="space-y-6">
               {questions.map((q, idx) => (
-                <div key={q.id} className="border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow">
-                  
+                <div
+                  key={q.id}
+                  className="border border-gray-200 rounded-xl p-5 hover:shadow-sm transition-shadow"
+                >
                   <div className="flex items-start space-x-3 mb-4">
                     <span className="bg-gradient-to-r from-blue-500 to-blue-600 text-white text-sm font-medium px-3 py-1.5 rounded-lg">
                       {idx + 1}
                     </span>
-                    <p className="font-medium text-gray-900 flex-1 leading-relaxed">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 flex-1 leading-relaxed">
                       {q.question_text}
                     </p>
                   </div>
-
-                 
 
                   {/* MCQ Options - Exact same logic */}
                   {q.options && (
                     <div className="ml-10 mb-3 space-y-1">
                       {(function getOptions() {
-  if (!q.options) return [];
-  try {
-    const parsed = typeof q.options === "string" ? JSON.parse(q.options) : q.options;
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-})().map((opt, i) => {
-
+                        if (!q.options) return [];
+                        try {
+                          const parsed =
+                            typeof q.options === "string"
+                              ? JSON.parse(q.options)
+                              : q.options;
+                          return Array.isArray(parsed) ? parsed : [];
+                        } catch {
+                          return [];
+                        }
+                      })().map((opt, i) => {
                         const label = String.fromCharCode(65 + i);
                         const isCorrect = opt === q.correct_answer;
                         return (
                           <p
                             key={i}
-                            className={`${isCorrect ? "text-green-600 font-semibold" : ""}`}
+                            className={`${
+                              isCorrect ? "text-green-600 font-semibold" : ""
+                            }`}
                           >
                             {label}. {opt}
                           </p>

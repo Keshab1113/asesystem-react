@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import useToast from "../../hooks/ToastContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { Input } from "../ui/input";
 
 const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
   const { toast } = useToast();
@@ -25,7 +33,9 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
       setUsers(data);
 
       // extract unique teams & groups
-      const uniqueGroups = [...new Set(data.map((u) => u.group).filter(Boolean))];
+      const uniqueGroups = [
+        ...new Set(data.map((u) => u.group).filter(Boolean)),
+      ];
       setGroups(uniqueGroups);
     } catch (err) {
       console.error("Error fetching users", err);
@@ -39,46 +49,47 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
   };
 
   const handleAssign = async () => {
-  try {
-    await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/assign`,
-      { quiz_id: quizId, user_ids: selectedUsers }
-    );
-    toast({
-      title: "Success",
-      description: "Quiz assigned successfully!",
-      variant: "success",
-    });
-    onClose();
-  } catch (err) {
-    if (err.response && err.response.data?.message) {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/assign`,
+        { quiz_id: quizId, user_ids: selectedUsers }
+      );
       toast({
-        title: "Warning",
-        description: err.response.data.message,
-        variant: "default",
+        title: "Success",
+        description: "Quiz assigned successfully!",
+        variant: "success",
       });
-    } else {
-      toast({
-        title: "Error",
-        description: "Error assigning quiz",
-        variant: "error",
-      });
+      onClose();
+    } catch (err) {
+      if (err.response && err.response.data?.message) {
+        toast({
+          title: "Warning",
+          description: err.response.data.message,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Error assigning quiz",
+          variant: "error",
+        });
+      }
+      console.error("Error assigning quiz", err);
     }
-    console.error("Error assigning quiz", err);
-  }
-};
-
+  };
 
   const handleSelectAll = () => {
     const allFiltered = filteredUsers.map((u) => u.id);
-    const allSelected = allFiltered.every(id => selectedUsers.includes(id));
-    
+    const allSelected = allFiltered.every((id) => selectedUsers.includes(id));
+
     if (allSelected) {
       // Deselect all filtered users
-      setSelectedUsers(prev => prev.filter(id => !allFiltered.includes(id)));
+      setSelectedUsers((prev) =>
+        prev.filter((id) => !allFiltered.includes(id))
+      );
     } else {
       // Select all filtered users
-      setSelectedUsers(prev => [...new Set([...prev, ...allFiltered])]);
+      setSelectedUsers((prev) => [...new Set([...prev, ...allFiltered])]);
     }
   };
 
@@ -96,36 +107,46 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col transform transition-all duration-300 animate-slideIn">
-        
+      <div className="bg-white dark:bg-slate-800 rounded-md shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col transform transition-all duration-300 animate-slideIn">
         {/* Header */}
         <div className="flex items-center justify-between p-8 pb-6 border-b border-gray-100">
           <div>
-            <h2 className="text-2xl font-semibold text-gray-900">Assign Quiz</h2>
-            <p className="text-gray-500 mt-1">
-              Assign "{quizName || 'Quiz'}" to selected users
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+              Assign Assessment
+            </h2>
+            <p className="text-gray-500 dark:text-gray-200 mt-1">
+              Assign "{quizName || "Quiz"}" to selected users
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 cursor-pointer flex items-center justify-center rounded-full hover:bg-red-400 text-gray-400 hover:text-gray-900 transition-colors"
+            className="w-10 h-10 cursor-pointer flex items-center justify-center rounded-full hover:bg-red-400 text-gray-400 hover:text-gray-900 dark:text-white transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         {/* Content */}
         <div className="flex-1 p-8 space-y-6 overflow-hidden">
-          
           {/* Stats and Actions */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
                 {selectedUsers.length} selected
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-200">
                 of {filteredUsers.length} users
               </div>
             </div>
@@ -133,65 +154,90 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
               onClick={handleSelectAll}
               className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
             >
-              {filteredUsers.length > 0 && filteredUsers.every(u => selectedUsers.includes(u.id)) 
-                ? 'Deselect All' 
-                : 'Select All'}
+              {filteredUsers.length > 0 &&
+              filteredUsers.every((u) => selectedUsers.includes(u.id))
+                ? "Deselect All"
+                : "Select All"}
             </button>
           </div>
 
           {/* Search and Filters */}
           <div className="space-y-4">
-            <div className="relative">
-              <svg className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search users by name or email..."
-                className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900"
-              />
-            </div>
+            <div className="grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-2">
+              <div className="relative">
+                <svg
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                <Input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search users by name or email..."
+                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 dark:text-white"
+                />
+              </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <select
+              <Select
                 value={selectedGroup}
-                onChange={(e) => {
-                  setSelectedGroup(e.target.value);
+                onValueChange={(val) => {
+                  setSelectedGroup(val);
                   setSelectedTeam("all");
-                  if (e.target.value === "all") {
+
+                  if (val === "all") {
                     setTeams([]);
                   } else {
                     const filteredTeams = [
                       ...new Set(
                         users
-                          .filter((u) => u.group === e.target.value)
+                          .filter((u) => u.group === val)
                           .map((u) => u.controlling_team)
                           .filter(Boolean)
-                      )
+                      ),
                     ];
                     setTeams(filteredTeams);
                   }
                 }}
-                className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 bg-white"
               >
-                <option value="all">All Groups</option>
-                {groups.map((g, idx) => (
-                  <option key={idx} value={g}>{g}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 dark:text-white bg-white">
+                  <SelectValue placeholder="All Groups" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Groups</SelectItem>
+                  {groups.map((g, idx) => (
+                    <SelectItem key={idx} value={g}>
+                      {g}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-              <select
+              {/* Team Select */}
+              <Select
                 value={selectedTeam}
-                onChange={(e) => setSelectedTeam(e.target.value)}
-                className="px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 bg-white"
+                onValueChange={(val) => setSelectedTeam(val)}
               >
-                <option value="all">All Teams</option>
-                {teams.map((t, idx) => (
-                  <option key={idx} value={t}>{t}</option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 dark:text-white bg-white">
+                  <SelectValue placeholder="All Teams" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Teams</SelectItem>
+                  {teams.map((t, idx) => (
+                    <SelectItem key={idx} value={t}>
+                      {t}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -199,19 +245,31 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
           <div className="flex-1 min-h-0">
             <div className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
               {filteredUsers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                  <svg className="w-12 h-12 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-200">
+                  <svg
+                    className="w-12 h-12 mb-4 text-gray-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+                    />
                   </svg>
                   <p className="text-lg font-medium">No users found</p>
-                  <p className="text-sm">Try adjusting your search or filters</p>
+                  <p className="text-sm">
+                    Try adjusting your search or filters
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2 pr-2">
                   {filteredUsers.map((u) => (
                     <label
                       key={u.id}
-                      className="group flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-200"
+                      className="group flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-200"
                     >
                       <div className="relative mt-1">
                         <input
@@ -221,10 +279,12 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
                           className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20 transition-all"
                         />
                       </div>
-                      
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-gray-900 truncate">{u.name}</h4>
+                          <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                            {u.name}
+                          </h4>
                           <div className="flex items-center gap-2 ml-4">
                             {u.group && (
                               <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-md">
@@ -238,7 +298,9 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
                             )}
                           </div>
                         </div>
-                        <p className="text-sm text-gray-500 mt-1 truncate">{u.email}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-200 mt-1 truncate">
+                          {u.email}
+                        </p>
                       </div>
                     </label>
                   ))}
@@ -261,7 +323,8 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
             disabled={selectedUsers.length === 0}
             className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm"
           >
-            Assign Quiz {selectedUsers.length > 0 && `(${selectedUsers.length})`}
+            Assign Assessment{" "}
+            {selectedUsers.length > 0 && `(${selectedUsers.length})`}
           </button>
         </div>
       </div>

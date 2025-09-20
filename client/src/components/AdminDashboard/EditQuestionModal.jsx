@@ -81,13 +81,13 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg w-[650px] max-h-[85vh] overflow-hidden shadow-xl">
+      <div className="bg-white dark:bg-gray-800 rounded-lg w-[650px] max-h-[85vh] overflow-hidden shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-800">Edit Assesment Questions {questions[0]?.quiz_name ? `- ${questions[0].quiz_name}` : ""}</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Edit Assesment Questions {questions[0]?.quiz_name ? `- ${questions[0].quiz_name}` : ""}</h2>
           <button 
             onClick={onClose}
-            className="w-8 h-8 cursor-pointer flex items-center justify-center rounded-full hover:bg-red-400 text-black hover:text-black"
+            className="w-8 h-8 cursor-pointer flex items-center justify-center rounded-full hover:bg-red-400 text-black dark:text-white hover:text-black"
           >
             ✕
           </button>
@@ -105,7 +105,7 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
           ) : (
             <div className="space-y-6">
               {questions.map((q, index) => (
-                <div key={q.id} className="border rounded-lg p-4 bg-gray-50">
+                <div key={q.id} className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
                   {/* Question */}
                   <div className="mb-4">
                     <div className="flex items-center gap-2 mb-2">
@@ -184,7 +184,7 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
                         Correct Answer
                       </label>
                       <input
-                        className="w-full border rounded-md p-2 text-sm bg-green-50 border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500"
+                        className="w-full border rounded-md p-2 text-sm bg-green-50 dark:bg-gray-700 border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500"
                         value={q.correct_answer || ""}
                         onChange={(e) =>
                           updateQuestionField(q.id, "correct_answer", e.target.value)

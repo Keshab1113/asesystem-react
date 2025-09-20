@@ -10,19 +10,33 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../components/ui/dropdown-menu";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
-import { Search, Plus, Edit, Trash2, BookOpen } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Edit,
+  Trash2,
+  BookOpen,
+  MoreVertical,
+  Power,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { QuizFormModal } from "../../components/AdminDashboard/QuizFormModal";
 import AssignQuizModal from "../../components/AdminDashboard/AssignQuizModal";
 import ViewQuestionsModal from "../../components/AdminDashboard/ViewQuestionsModal";
 import EditQuestionsModal from "../../components/AdminDashboard/EditQuestionModal";
 import useToast from "../../hooks/ToastContext";
-import { Eye,Users,Pencil } from "lucide-react";
+import { Eye, Users, Pencil } from "lucide-react";
 
 export function SubjectMasterPage() {
   const [subjects, setSubjects] = useState([]);
@@ -37,13 +51,10 @@ export function SubjectMasterPage() {
     open: false,
     quizId: null,
   });
-const [editQuestionsModal, setEditQuestionsModal] = useState({
-  open: false,
-  quizId: null,
-});
-
-
-
+  const [editQuestionsModal, setEditQuestionsModal] = useState({
+    open: false,
+    quizId: null,
+  });
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -125,14 +136,13 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
   };
 
   const handleEditQuestions = (quizId) => {
-  setEditQuestionsModal({ open: true, quizId });
-};
+    setEditQuestionsModal({ open: true, quizId });
+  };
 
   const handleAssignQuiz = (quiz) => {
     setAssignModal({ open: true, quizId: quiz.id, quizName: quiz.name });
     console.log("Assigning quiz:", quiz);
-};
-
+  };
 
   const handleEditQuiz = (quiz) => {
     setFormModal({ open: true, quiz });
@@ -140,9 +150,8 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
   };
 
   const handleEditQuestion = (question) => {
-  setEditQuestionModal({ open: true, question });
-};
-
+    setEditQuestionModal({ open: true, question });
+  };
 
   const handleSaveQuiz = (quizData) => {
     if (quizData.id && subjects.find((q) => q.id === quizData.id)) {
@@ -162,7 +171,7 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
       toast({
         title: "Quiz Updated",
         description: `Quiz "${quizData.name}" has been updated successfully.`,
-        variant: "success"
+        variant: "success",
       });
     } else {
       // Add new quiz with default isActive and questionCount
@@ -173,7 +182,7 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
       toast({
         title: "Quiz Created",
         description: `Quiz "${quizData.name}" has been created successfully.`,
-        variant: "success"
+        variant: "success",
       });
     }
   };
@@ -185,7 +194,7 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
       </div>
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center gap-20 w-full md:w-auto">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 w-full md:w-auto">
           <CardTitle className="flex items-center ">
             <BookOpen className="h-5 w-5 mr-2" />
             Assesment Management
@@ -203,8 +212,9 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
 
         <Button
           onClick={() => navigate("add-subject")}
-          className="self-start md:self-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 ">
-          ➕ Add New Quiz
+          className="self-start md:self-auto cursor-pointer inline-flex items-center justify-center gap-2 px-5 py-3 "
+        >
+          ➕ Add New Assessment
         </Button>
       </div>
 
@@ -219,35 +229,36 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
             <div className="space-y-3">
               {filteredSubjects.map((subject) => (
                 <div key={subject.id} className="p-4 border rounded-lg">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-1 justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex flex-col items-start gap-2 mb-2">
                         <h3 className="font-semibold">{subject.name}</h3>
-                        <Badge
-                          variant={subject.isActive ? "default" : "secondary"}>
-                          {subject.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                        <Badge variant="outline">
-                          {subject.questionCount} question Bank
-                        </Badge>
-                        <Badge variant="outline">
-                          {" "}
-                          {subject.difficultyLevel}
-                        </Badge>
-                        <Badge variant="outline">
-                          {" "}
-                          Max Attempts: {subject.maxAttempts}
-                        </Badge>
-                        <Badge variant="outline">
-                          {" "}
-                          Time Limit: {subject.timeLimit} mins
-                        </Badge>
-                        <Badge variant="outline">
- {" "}
-                          Max Questions: {subject.maxQuestions}
-                          
-
-                        </Badge>
+                        <div className=" flex flex-wrap gap-2">
+                          <Badge
+                            variant={subject.isActive ? "default" : "secondary"}
+                          >
+                            {subject.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          <Badge variant="outline">
+                            {subject.questionCount} question Bank
+                          </Badge>
+                          <Badge variant="outline">
+                            {" "}
+                            {subject.difficultyLevel}
+                          </Badge>
+                          <Badge variant="outline">
+                            {" "}
+                            Max Attempts: {subject.maxAttempts}
+                          </Badge>
+                          <Badge variant="outline">
+                            {" "}
+                            Time Limit: {subject.timeLimit} mins
+                          </Badge>
+                          <Badge variant="outline">
+                            {" "}
+                            Max Questions: {subject.maxQuestions}
+                          </Badge>
+                        </div>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
                         {subject.description}
@@ -271,54 +282,105 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Button
-  size="sm"
-  variant="outline"
-  onClick={() => handleEditQuestions(subject.id)}
-  className="flex items-center gap-2"
->
-  <Pencil className="h-4 w-4" /> {/* You can use lucide-react Pencil icon */}
-  Edit
-</Button>
+                      {/* Desktop view - show buttons inline */}
+                      <div className="hidden md:flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditQuestions(subject.id)}
+                          className="flex items-center gap-2"
+                        >
+                          <Pencil className="h-4 w-4" /> Edit
+                        </Button>
 
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewQuestions(subject.id)}
-                        className="flex items-center gap-2">
-                        <Eye className="h-4 w-4" />
-                        View 
-                      </Button>
-                      
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleViewQuestions(subject.id)}
+                          className="flex items-center gap-2"
+                        >
+                          <Eye className="h-4 w-4" /> View
+                        </Button>
 
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditQuiz(subject)}>
-                        <Edit className="h-3 w-3" />
-                        Schedule
-                      </Button>
-                      <Button
-  size="sm"
-  variant="outline"
-  onClick={() => handleAssignQuiz(subject)} // pass full subject object
-  className="flex items-center gap-2"
->
-  <Users className="h-4 w-4" />
-  Assign
-</Button>
-                      <Button
-                        size="sm"
-                        variant={subject.isActive ? "destructive" : "default"}
-                        onClick={() => handleToggleStatus(subject.id)}>
-                        {subject.isActive ? "Deactivate" : "Activate"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteSubject(subject.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditQuiz(subject)}
+                          className="flex items-center gap-2"
+                        >
+                          <Edit className="h-3 w-3" /> Schedule
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleAssignQuiz(subject)}
+                          className="flex items-center gap-2"
+                        >
+                          <Users className="h-4 w-4" /> Assign
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant={subject.isActive ? "destructive" : "default"}
+                          onClick={() => handleToggleStatus(subject.id)}
+                        >
+                          {subject.isActive ? "Deactivate" : "Activate"}
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleDeleteSubject(subject.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+
+                      {/* Mobile / Tablet - collapse into dropdown */}
+                      <div className="md:hidden">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button size="sm" variant="outline">
+                              <MoreVertical className="h-5 w-5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              onClick={() => handleEditQuestions(subject.id)}
+                            >
+                              <Pencil className="h-4 w-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleViewQuestions(subject.id)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" /> View
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleEditQuiz(subject)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" /> Schedule
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleAssignQuiz(subject)}
+                            >
+                              <Users className="h-4 w-4 mr-2" /> Assign
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleToggleStatus(subject.id)}
+                            >
+                              <Power className="h-4 w-4 mr-2" />{" "}
+                              {subject.isActive ? "Deactivate" : "Activate"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-red-600"
+                              onClick={() => handleDeleteSubject(subject.id)}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -344,17 +406,19 @@ const [editQuestionsModal, setEditQuestionsModal] = useState({
         }
         onSave={handleSaveQuiz}
       />
-     <AssignQuizModal
-  quizId={assignModal.quizId}
-  quizName={assignModal.quizName} // <- pass the quiz name here
-  open={assignModal.open}
-  onClose={() => setAssignModal({ open: false, quizId: null, quizName: null })}
-/>
-<EditQuestionsModal
-  quizId={editQuestionsModal.quizId}
-  open={editQuestionsModal.open}
-  onClose={() => setEditQuestionsModal({ open: false, quizId: null })}
-/>
+      <AssignQuizModal
+        quizId={assignModal.quizId}
+        quizName={assignModal.quizName} // <- pass the quiz name here
+        open={assignModal.open}
+        onClose={() =>
+          setAssignModal({ open: false, quizId: null, quizName: null })
+        }
+      />
+      <EditQuestionsModal
+        quizId={editQuestionsModal.quizId}
+        open={editQuestionsModal.open}
+        onClose={() => setEditQuestionsModal({ open: false, quizId: null })}
+      />
 
       <ViewQuestionsModal
         quizId={viewQuestionsModal.quizId}
