@@ -82,10 +82,15 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
         allowReview: quiz.allowReview ?? true,
         isPublic: quiz.isPublic ?? false,
         tags: quiz.tags || [],
-        scheduleStartDate: quiz.scheduleStartDate || "",
-        scheduleStartTime: quiz.scheduleStartTime || "",
-        scheduleEndDate: quiz.scheduleEndDate || "",
-        scheduleEndTime: quiz.scheduleEndTime || "",
+        scheduleStartDate: quiz.scheduleStartDate
+  ? new Date(quiz.scheduleStartDate).toLocaleDateString("en-CA")
+  : "",
+scheduleStartTime: quiz.scheduleStartTime || "",
+scheduleEndDate: quiz.scheduleEndDate
+  ? new Date(quiz.scheduleEndDate).toLocaleDateString("en-CA")
+  : "",
+scheduleEndTime: quiz.scheduleEndTime || "",
+
       });
     } else {
       // Reset to default values for new quiz
@@ -130,10 +135,15 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
           allowReview: quiz.allowReview ?? true,
           isPublic: quiz.isPublic ?? false,
           tags: quiz.tags || [],
-          scheduleStartDate: quiz.scheduleStartDate || "",
-          scheduleStartTime: quiz.scheduleStartTime || "",
-          scheduleEndDate: quiz.scheduleEndDate || "",
-          scheduleEndTime: quiz.scheduleEndTime || "",
+         scheduleStartDate: quiz.scheduleStartDate
+  ? new Date(quiz.scheduleStartDate).toLocaleDateString("en-CA")
+  : "",
+scheduleStartTime: quiz.scheduleStartTime || "",
+scheduleEndDate: quiz.scheduleEndDate
+  ? new Date(quiz.scheduleEndDate).toLocaleDateString("en-CA")
+  : "",
+scheduleEndTime: quiz.scheduleEndTime || "",
+
         });
       } else {
         setFormData({
@@ -164,20 +174,28 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
   const handleSave = async () => {
     setLoading(true);
 
-    const quizData = {
-      name: formData.name,
-      description: formData.description,
-      subject_id: formData.subject || null,
-      difficulty_level: formData.difficulty || "medium",
-      timeLimit: formData.timeLimit,
-      passingScore: formData.passingScore,
-      maxAttempts: formData.maxAttempts,
-      maxQuestions: formData.maxQuestions || 0,
-      scheduleStartDate: formData.scheduleStartDate || null,
-      scheduleStartTime: formData.scheduleStartTime || null,
-      scheduleEndDate: formData.scheduleEndDate || null,
-      scheduleEndTime: formData.scheduleEndTime || null,
-    };
+   const normalizeDate = (dateStr) => {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return null;
+  return d.toLocaleDateString("en-CA"); // always YYYY-MM-DD
+};
+
+const quizData = {
+  name: formData.name,
+  description: formData.description,
+  subject_id: formData.subject || null,
+  difficulty_level: formData.difficulty || "medium",
+  timeLimit: formData.timeLimit,
+  passingScore: formData.passingScore,
+  maxAttempts: formData.maxAttempts,
+  maxQuestions: formData.maxQuestions || 0,
+  scheduleStartDate: normalizeDate(formData.scheduleStartDate),
+  scheduleStartTime: formData.scheduleStartTime || null,
+  scheduleEndDate: normalizeDate(formData.scheduleEndDate),
+  scheduleEndTime: formData.scheduleEndTime || null,
+};
+
     try {
       if (isEditing && quiz?.id) {
         console.log("Editing quiz with id:", quiz.id);
@@ -531,349 +549,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
       </DialogContent>
     </Dialog>
   );
+ 
 
-// return (
-//   <Dialog open={open} onOpenChange={onOpenChange}>
-//     <DialogContent className="max-w-5xl h-[90vh] flex flex-col bg-white dark:bg-slate-900">
-//       <DialogHeader className="pb-6 border-b border-slate-200 dark:border-slate-700">
-//         <DialogTitle className="flex items-center gap-3 text-xl font-semibold text-slate-900 dark:text-slate-100">
-//           <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-//             {isEditing ? (
-//               <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-//             ) : (
-//               <Plus className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-//             )}
-//           </div>
-//           {isEditing ? "Edit Quiz" : "Create New Quiz"}
-//         </DialogTitle>
-//         <DialogDescription className="text-slate-600 dark:text-slate-400">
-//           {isEditing
-//             ? "Modify the quiz settings and configuration"
-//             : "Set up a new quiz with questions and settings"}
-//         </DialogDescription>
 
-//         {isEditing && quiz?.name && (
-//           <div className="mt-4 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-//             <div className="text-sm text-slate-600 dark:text-slate-400">
-//               Selected Quiz: <span className="font-medium text-slate-900 dark:text-slate-100">{quiz.name}</span>
-//             </div>
-//           </div>
-//         )}
-//       </DialogHeader>
-
-//       <div className="flex-1 overflow-y-auto px-6 pb-6">
-//         <Tabs defaultValue="basic" className="w-full mt-6">
-//           <TabsList className="grid w-full grid-cols-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-//             <TabsTrigger 
-//               value="basic" 
-//               className="rounded-md data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm"
-//             >
-//               Basic Info
-//             </TabsTrigger>
-//           </TabsList>
-
-//           <TabsContent value="basic" className="space-y-6 mt-6">
-//             {/* Basic Info - Full Width */}
-//             <div className="space-y-4">
-//               <div className="grid grid-cols-2 gap-4">
-//                 <div className="space-y-2">
-//                   <Label htmlFor="quiz-name" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                     Quiz Name *
-//                   </Label>
-//                   <Input
-//                     id="quiz-name"
-//                     placeholder="Enter quiz name..."
-//                     value={formData.name}
-//                     onChange={(e) =>
-//                       setFormData({ ...formData, name: e.target.value })
-//                     }
-//                     className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg"
-//                   />
-//                 </div>
-
-//                 <div className="space-y-2">
-//                   <Label htmlFor="time-limit" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                     Time Limit (minutes)
-//                   </Label>
-//                   <Input
-//                     id="time-limit"
-//                     type="number"
-//                     placeholder="30"
-//                     value={formData.timeLimit}
-//                     onChange={(e) =>
-//                       setFormData({ ...formData, timeLimit: e.target.value })
-//                     }
-//                     className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg"
-//                   />
-//                 </div>
-//               </div>
-//             </div>
-
-//           {/* Schedule Section */}
-//           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-//             <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100">Schedule</h3>
-            
-//             <div className="grid grid-cols-2 gap-4">
-//               {/* Start Date/Time */}
-//               <div className="space-y-2">
-//                 <Label htmlFor="schedule-start-date" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                   Start Date
-//                 </Label>
-//                 <Popover>
-//                   <PopoverTrigger asChild>
-//                     <Button
-//                       variant="outline"
-//                       className={`w-full h-11 justify-start text-left font-normal ${
-//                         !formData.scheduleStartDate && "text-muted-foreground"
-//                       }`}>
-//                       <CalendarIcon className="mr-2 h-4 w-4" />
-//                       {formData.scheduleStartDate
-//                         ? format(new Date(formData.scheduleStartDate), "PPP")
-//                         : "Pick a date"}
-//                     </Button>
-//                   </PopoverTrigger>
-//                   <PopoverContent className="w-auto p-0" align="start">
-//                     <Calendar
-//                       mode="single"
-//                       selected={
-//                         formData.scheduleStartDate
-//                           ? new Date(formData.scheduleStartDate)
-//                           : undefined
-//                       }
-//                       onSelect={(date) =>
-//                         setFormData({
-//                           ...formData,
-//                           scheduleStartDate: date
-//                             ? date.toLocaleDateString("en-CA")
-//                             : "",
-//                         })
-//                       }
-//                       initialFocus
-//                     />
-//                   </PopoverContent>
-//                 </Popover>
-//               </div>
-
-//               <div className="space-y-2">
-//                 <Label htmlFor="schedule-start-time" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                   Start Time
-//                 </Label>
-//                 <Input
-//                   id="schedule-start-time"
-//                   type="time"
-//                   value={formData.scheduleStartTime || ""}
-//                   onChange={(e) =>
-//                     setFormData({
-//                       ...formData,
-//                       scheduleStartTime: e.target.value,
-//                     })
-//                   }
-//                   className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg"
-//                 />
-//               </div>
-
-//               {/* End Date/Time */}
-//               <div className="space-y-2">
-//                 <Label htmlFor="schedule-end-date" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                   End Date
-//                 </Label>
-//                 <Popover>
-//                   <PopoverTrigger asChild>
-//                     <Button
-//                       variant="outline"
-//                       className={`w-full h-11 justify-start text-left font-normal ${
-//                         !formData.scheduleEndDate && "text-muted-foreground"
-//                       }`}>
-//                       <CalendarIcon className="mr-2 h-4 w-4" />
-//                       {formData.scheduleEndDate
-//                         ? format(new Date(formData.scheduleEndDate), "PPP")
-//                         : "Pick a date"}
-//                     </Button>
-//                   </PopoverTrigger>
-//                   <PopoverContent className="w-[280px] p-0" align="start">
-//                     <Calendar
-//                       mode="single"
-//                       selected={
-//                         formData.scheduleEndDate
-//                           ? new Date(formData.scheduleEndDate)
-//                           : undefined
-//                       }
-//                       disabled={{
-//                         before: formData.scheduleStartDate
-//                           ? new Date(formData.scheduleStartDate)
-//                           : undefined,
-//                       }}
-//                       onSelect={(date) =>
-//                         setFormData({
-//                           ...formData,
-//                           scheduleEndDate: date
-//                             ? date.toLocaleDateString("en-CA")
-//                             : "",
-//                         })
-//                       }
-//                       initialFocus
-//                     />
-//                   </PopoverContent>
-//                 </Popover>
-//               </div>
-
-//               <div className="space-y-2">
-//                 <Label htmlFor="schedule-end-time" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                   End Time
-//                 </Label>
-//                 <Input
-//                   id="schedule-end-time"
-//                   type="time"
-//                   className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg cursor-pointer"
-//                   value={formData.scheduleEndTime || ""}
-//                   onChange={(e) => {
-//                     const newEndTime = e.target.value;
-//                     const {
-//                       scheduleStartDate,
-//                       scheduleEndDate,
-//                       scheduleStartTime,
-//                     } = formData;
-
-//                     if (
-//                       scheduleStartDate &&
-//                       scheduleEndDate &&
-//                       scheduleStartDate === scheduleEndDate &&
-//                       scheduleStartTime &&
-//                       newEndTime <= scheduleStartTime
-//                     ) {
-//                       toast({
-//                         title: "Error",
-//                         description:
-//                           error.response?.data?.message ||
-//                           "End time must be after start time on the same day",
-//                         variant: "error",
-//                       });
-//                       return;
-//                     }
-
-//                     setFormData({
-//                       ...formData,
-//                       scheduleEndTime: newEndTime,
-//                     });
-//                   }}
-//                 />
-//               </div>
-//             </div>
-//           </div>
-
-//           {/* Quiz Behavior Section */}
-//           <div className="space-y-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-//             <h3 className="text-lg font-medium text-slate-900 dark:text-slate-100 flex items-center gap-2">
-//               <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-//               Quiz Behavior
-//             </h3>
-
-//             <div className="grid grid-cols-3 gap-4">
-//               <div className="space-y-2">
-//                 <Label htmlFor="passing-score" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                   Passing Score (%)
-//                 </Label>
-//                 <Input
-//                   id="passing-score"
-//                   type="number"
-//                   min="0"
-//                   max="100"
-//                   value={formData.passingScore}
-//                   onChange={(e) =>
-//                     setFormData({ ...formData, passingScore: e.target.value })
-//                   }
-//                   className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg"
-//                 />
-//               </div>
-
-//               <div className="space-y-2">
-//                 <Label htmlFor="max-attempts" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                   Maximum Attempts
-//                 </Label>
-//                 <Select
-//                   value={formData.maxAttempts}
-//                   onValueChange={(value) =>
-//                     setFormData({ ...formData, maxAttempts: value })
-//                   }>
-//                   <SelectTrigger className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg">
-//                     <SelectValue />
-//                   </SelectTrigger>
-//                   <SelectContent>
-//                     <SelectItem value="1">1 attempt</SelectItem>
-//                     <SelectItem value="3">3 attempts</SelectItem>
-//                     <SelectItem value="5">5 attempts</SelectItem>
-//                     <SelectItem value="unlimited">Unlimited</SelectItem>
-//                   </SelectContent>
-//                 </Select>
-//               </div>
-
-//               <div className="space-y-2">
-//                 <Label htmlFor="max-questions" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-//                   Maximum Questions
-//                 </Label>
-//                 <Input
-//                   id="max-questions"
-//                   type="number"
-//                   min="1"
-//                   max={quiz?.questionCount || 1}
-//                   value={formData.maxQuestions}
-//                   onChange={(e) => {
-//                     const value = Math.min(Number(e.target.value), quiz?.questionCount || 1);
-//                     setFormData({ ...formData, maxQuestions: value });
-//                   }}
-//                   placeholder={`Up to ${quiz?.questionCount || 1}`}
-//                   className="h-11 border-slate-300 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 rounded-lg"
-//                 />
-//                 {quiz?.questionCount && (
-//                   <p className="text-xs text-slate-500 dark:text-slate-400">
-//                     Max {quiz.questionCount} questions allowed.
-//                   </p>
-//                 )}
-//               </div>
-//             </div>
-//           </div>
-//         </TabsContent>
-//               </Tabs>
-//       </div>
-
-//       <div className="flex justify-end gap-3 p-6 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-//         <Button 
-//           variant="outline" 
-//           onClick={() => onOpenChange(false)}
-//           className="h-10 px-6 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
-//         >
-//           Cancel
-//         </Button>
-//         <Button 
-//           onClick={handleSave} 
-//           disabled={loading}
-//           className="h-10 px-8 bg-blue-600 hover:bg-blue-700 text-white"
-//         >
-//           {loading ? (
-//             <svg
-//               className="animate-spin h-4 w-4 mr-2 text-white"
-//               xmlns="http://www.w3.org/2000/svg"
-//               fill="none"
-//               viewBox="0 0 24 24">
-//               <circle
-//                 className="opacity-25"
-//                 cx="12"
-//                 cy="12"
-//                 r="10"
-//                 stroke="currentColor"
-//                 strokeWidth="4"></circle>
-//               <path
-//                 className="opacity-75"
-//                 fill="currentColor"
-//                 d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-//             </svg>
-//           ) : (
-//             <Save className="h-4 w-4 mr-2" />
-//           )}
-//           {loading ? "Saving..." : isEditing ? "Update Quiz" : "Create Quiz"}
-//         </Button>
-//       </div>
-//     </DialogContent>
-//   </Dialog>
-// );
 }

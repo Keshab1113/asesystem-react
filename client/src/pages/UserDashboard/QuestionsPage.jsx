@@ -83,10 +83,10 @@ const assignmentId = searchParams.get("assesment_id");
     }
 
     const fetchQuestions = async () => {
-      if (questions.length > 0) {
-        setLoading(false);
-        return;
-      }
+      // if (questions.length > 0) {
+      //   setLoading(false);
+      //   return;
+      // }
 
       try {
         const res = await fetch(
@@ -94,7 +94,7 @@ const assignmentId = searchParams.get("assesment_id");
     );
 
         const data = await res.json();
-console.log("Fetched questions data:", data); // Debug log
+// console.log("Fetched questions data:", data); // Debug log
         if (data.success) {
           dispatch(setQuizQuestions({ quizId, questions: data.data }));
         }
@@ -301,7 +301,9 @@ console.log("Fetched questions data:", data); // Debug log
         variant: "success",
       });
 
-      navigate(`/user-dashboard/results?${quizId}`);
+      // navigate(`/user-dashboard/results?${assignmentId}`);
+      navigate(`/user-dashboard/results?assignmentId=${assignmentId}`);
+
     } catch (err) {
       console.error("Error ending assessment:", err);
       toast({
