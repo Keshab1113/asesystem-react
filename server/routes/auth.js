@@ -15,6 +15,7 @@ const {
   verifyOtp,
   resendOtp,
   login,
+  deleteUser,
 } = require("../controllers/authController");
 const { authenticate } = require("../middleware/authMiddleware");
 const multer = require("multer");
@@ -37,6 +38,7 @@ router.post("/register", register);
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
 router.post("/login", login);
+router.post("/delete", authenticate, deleteUser);
 
 
 module.exports = router;

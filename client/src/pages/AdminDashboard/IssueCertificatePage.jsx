@@ -32,7 +32,7 @@ import { useSelector } from "react-redux";
 
 export function IssueCertificatePage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUser, setSelectedUser] = useState("");
+  const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserDetails, setSelectedUserDetails] = useState(null);
   const [certificateText, setCertificateText] = useState("");
   const [selectedQuiz, setSelectedQuiz] = useState(null);
@@ -67,7 +67,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Validation Error",
         description: "Please select a user and quiz",
-        variant: "warning"
+        variant: "warning",
       });
       setIsLoadingCertificate(false);
       return;
@@ -85,6 +85,7 @@ export function IssueCertificatePage() {
         certificateText,
         certificateNumber: certNo,
         attemptId: selectedUserDetails?.id,
+        generateFrom: "manual",
       };
 
       const response = await axios.post(
@@ -101,10 +102,10 @@ export function IssueCertificatePage() {
       toast({
         title: "Certificate Generated",
         description: "You can now download the certificate",
-        variant: "success"
+        variant: "success",
       });
       setIsLoadingCertificate(false);
-      setSelectedUser("");
+      setSelectedUser(null);
       setSelectedQuiz(null);
       setCertificateText("");
       setSelectedUserDetails(null);
@@ -114,7 +115,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Error",
         description: "Failed to generate certificate",
-        variant: "error"
+        variant: "error",
       });
     }
   };
@@ -158,21 +159,37 @@ export function IssueCertificatePage() {
     );
   });
 
-  const handleUserSelect = (user) => {
-    setSelectedUser(user.user_name);
+  const fetchAssignments = async (userID) => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${userID}`
+      );
+      const data = await res.json();
+      return data.data;
+    } catch (err) {
+      console.error("Error on user dashboard: ", err);
+      return [];
+    }
+  };
+
+  const handleUserSelect = async (user) => {
+    setSelectedUser(user.id);
     setSelectedUserDetails(user);
-    const quizzes = allUsers
-      .filter((u) => u.user_name === user.user_name)
-      .map((u) => ({
-        id: u.quiz_id,
-        title: u.quiz_title,
-      }));
-    const uniqueQuizzes = Array.from(
-      new Map(quizzes.map((q) => [q.id, q])).values()
-    );
-    setUserQuizzes(uniqueQuizzes);
+
+    const fetchedAssignments = await fetchAssignments(user.id);
+
+    // create proper objects {id, title}
+    const allAssessment =
+      fetchedAssignments?.map((ass) => ({
+        id: ass.quiz_id,
+        title: ass.quiz_title,
+      })) || [];
+
+    setUserQuizzes(allAssessment);
     setSelectedQuiz(null);
   };
+
+  console.log("userQuizzes: ", userQuizzes);
 
   const handleManualSubmit = async () => {
     setIsLoadingCertificate(true);
@@ -180,7 +197,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Validation Error",
         description: "Please enter user name and quiz",
-        variant: "warning"
+        variant: "warning",
       });
       return;
     }
@@ -193,6 +210,7 @@ export function IssueCertificatePage() {
         date: new Date().toLocaleDateString(),
         certificateText: manualUser.certificate_text,
         certificateNumber: certNo,
+        generateFrom: "manual",
       };
 
       const response = await axios.post(
@@ -215,7 +233,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Certificate Generated",
         description: "You can now download the certificate",
-        variant: "success"
+        variant: "success",
       });
     } catch (error) {
       setIsLoadingCertificate(false);
@@ -223,7 +241,7 @@ export function IssueCertificatePage() {
       toast({
         title: "Error",
         description: "Failed to generate certificate",
-        variant: "error"
+        variant: "error",
       });
     }
   };
@@ -309,18 +327,22 @@ export function IssueCertificatePage() {
                 <div
                   key={user.id}
                   className={`p-3 border rounded-lg cursor-pointer transition-colors  ${
-                    selectedUser === user.user_name
+                    selectedUser === user.id
                       ? "bg-primary/10 border-primary"
                       : "hover:bg-muted"
                   }`}
                   onClick={() => handleUserSelect(user)}
                 >
-                  <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[300px]">{user.name}</div>
+                  <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[300px]">
+                    {user.name}
+                  </div>
                   <div className="text-sm text-muted-foreground">
                     {user.email}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline">{user.quiz_title || "Undefined"}</Badge>
+                    <Badge variant="outline">
+                      {user.quiz_title || "Undefined"}
+                    </Badge>
                     <span className="text-xs">Score: {user.score || 0}%</span>
                   </div>
                 </div>
@@ -367,7 +389,7 @@ export function IssueCertificatePage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="quiz_select">Select Quiz *</Label>
+                      <Label htmlFor="quiz_select">Select Assessment *</Label>
                       <Select
                         value={manualUser?.quiz_select?.id}
                         onValueChange={(value) => {
@@ -379,13 +401,13 @@ export function IssueCertificatePage() {
                         }}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Choose quiz" />
+                          <SelectValue placeholder="Choose Assessment" />
                         </SelectTrigger>
                         <SelectContent>
                           {(userQuizzes.length > 0 ? userQuizzes : allQuiz).map(
                             (quiz) => (
-                              <SelectItem key={quiz.id} value={quiz.id}>
-                                {quiz.title}
+                              <SelectItem key={quiz} value={quiz}>
+                                {quiz}
                               </SelectItem>
                             )
                           )}
@@ -451,13 +473,13 @@ export function IssueCertificatePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="quiz-select">Select Quiz</Label>
+              <Label htmlFor="quiz-select">Select Assessment</Label>
               <Select
                 value={selectedQuiz?.name}
                 onValueChange={setSelectedQuiz}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Choose quiz" />
+                  <SelectValue placeholder="Choose Assessment" />
                 </SelectTrigger>
                 <SelectContent>
                   {(userQuizzes.length > 0 ? userQuizzes : allQuiz).map(

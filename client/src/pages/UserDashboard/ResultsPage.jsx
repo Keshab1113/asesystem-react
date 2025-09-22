@@ -31,9 +31,8 @@ export default function ResultsPage() {
   const [certificateNumber, setCertificateNumber] = useState("");
   const [certificateURL, setCertificateURL] = useState(null);
   const [isLoadingCertificate, setIsLoadingCertificate] = useState(false);
-  const [searchParams] = useSearchParams();
-  const quizId = searchParams.get("quizId");
-  // const attemptId = searchParams.get("attemptId");
+  const { quizId } = useParams();
+  const numQuizId = Number(quizId);
   const [allQuiz, setAllQuiz] = useState([]);
 
   useEffect(() => {
@@ -111,7 +110,7 @@ export default function ResultsPage() {
     (quiz) => quiz.id.toString() === quizId.toString()
   );
 
-  const handleDownload = async () => {
+  const handleDownload = async (certificateURL, certificateNumber) => {
     try {
       const downloadURL = `${
         import.meta.env.VITE_BACKEND_URL
@@ -136,26 +135,21 @@ export default function ResultsPage() {
   };
 
   const handleCertificate = async () => {
+    console.log("Clicked handleCertificate");
     try {
-      setIsLoadingCertificate(true);
+      console.log("Entering in try...");
 
+      setIsLoadingCertificate(true);
       // Step 1: Check if certificate already exists
       const checkResponse = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/certificates/ispresent`,
-        {
-          user_id: user.id,
-          quiz_id: quizId,
-          // attempt_id: attemptId,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        `${import.meta.env.VITE_BACKEND_URL}/api/certificates/get`,
+        { user_id: user.id, quiz_id: numQuizId },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       if (checkResponse.data.success && checkResponse.data.certificate) {
         // Certificate already exists, no need to generate
-        setCertificateURL(checkResponse.data.certificate.certificate_url);
-        setCertificateNumber(checkResponse.data.certificate.certificate_number);
+        setCertificateURL(checkResponse?.data?.certificate?.certificate_url);
+        setCertificateNumber(checkResponse?.data?.certificate?.certificate_number);
         setIsLoadingCertificate(false);
 
         toast({
@@ -164,20 +158,20 @@ export default function ResultsPage() {
           variant: "info",
         });
 
-        await handleDownload(); // download existing certificate
+        await handleDownload(checkResponse?.data?.certificate?.certificate_url, checkResponse?.data?.certificate?.certificate_number);
         return;
       }
 
       // Step 2: Generate new certificate
-      const certNo = generateCertificateNumber();
+      const certNo = await generateCertificateNumber();
       const payload = {
         userName: user.name,
-        quizID: quizId,
-        quizTitle: foundQuizTitle?.title,
+        quizID: numQuizId,
+        quizTitle: foundQuizTitle?.title || "Undefined",
         date: new Date().toLocaleDateString(),
         certificateText: "",
         certificateNumber: certNo,
-        // attemptId: attemptId,
+        generateFrom: "manual",
       };
 
       const response = await axios.post(
@@ -198,7 +192,7 @@ export default function ResultsPage() {
         variant: "success",
       });
 
-      await handleDownload();
+      await handleDownload(response?.data?.certificate_url, certNo);
     } catch (error) {
       setIsLoadingCertificate(false);
       console.error("❌ Error generating certificate:", error);
@@ -626,7 +620,7 @@ export default function ResultsPage() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/user-dashboard")}
             className="flex items-center"
             size="lg"
           >

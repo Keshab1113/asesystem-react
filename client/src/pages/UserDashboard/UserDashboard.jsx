@@ -241,7 +241,8 @@ export default function DashboardPage() {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-red-600 dark:text-red-400"
                   : "text-slate-400 dark:text-slate-500"
-              }`}>
+              }`}
+            >
               {assessment?.score ? `${assessment.score}%` : "—"}
             </p>
           </div>
@@ -429,184 +430,191 @@ export default function DashboardPage() {
               // };
 
               const handleStartAssessment = async () => {
-                 console.log("Clicked Start Assessment");
-  const assignmentId = assessment.assignment_id || assessment.assesment_id;
-console.log("Assignment ID:", assignmentId);
+                console.log("Clicked Start Assessment");
+                const assignmentId =
+                  assessment.assignment_id || assessment.assesment_id;
+                console.log("Assignment ID:", assignmentId);
 
+                if (!assignmentId) {
+                  toast({
+                    title: "Assignment not found",
+                    description: "Cannot start assessment.",
+                    variant: "error",
+                  });
+                  return;
+                }
 
-  if (!assignmentId) {
-    toast({
-      title: "Assignment not found",
-      description: "Cannot start assessment.",
-      variant: "error",
-    });
-    return;
-  }
+                try {
+                  // Step 1: Mark assessment as started
+                  const startRes = await axios.post(
+                    `${
+                      import.meta.env.VITE_BACKEND_URL
+                    }/api/quiz-assignments/start`,
+                    {
+                      quiz_id: assessment.quiz_id,
+                      user_id: user.id,
+                    }
+                  );
 
-  try {
-    // Step 1: Mark assessment as started
-    const startRes = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
-      {
-        quiz_id: assessment.quiz_id,
-        user_id: user.id,
-      }
-    );
+                  console.log("Start Assessment Response:", startRes.data);
 
-    console.log("Start Assessment Response:", startRes.data);
+                  if (!startRes.data.success) {
+                    toast({
+                      title: "Error",
+                      description:
+                        startRes.data.message || "Failed to start assessment",
+                      variant: "error",
+                    });
+                    return;
+                  }
 
-    if (!startRes.data.success) {
-      toast({
-        title: "Error",
-        description: startRes.data.message || "Failed to start assessment",
-        variant: "error",
-      });
-      return;
-    }
+                  // Step 2: Assign random questions
+                  const assignRes = await axios.post(
+                    `${
+                      import.meta.env.VITE_BACKEND_URL
+                    }/api/quiz-assignments/assign-random`,
+                    {
+                      quizId: assessment.quiz_id,
+                      userId: user.id,
+                      assignmentId: assignmentId,
+                    }
+                  );
 
-    // Step 2: Assign random questions
-    const assignRes = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/assign-random`,
-      {
-        quizId: assessment.quiz_id,
-        userId: user.id,
-        assignmentId: assignmentId,
-      }
-    );
+                  console.log("Assign Random Response:", assignRes.data);
 
-    console.log("Assign Random Response:", assignRes.data);
+                  if (!assignRes.data.success) {
+                    toast({
+                      title: "Error",
+                      description:
+                        assignRes.data.message || "Failed to assign questions",
+                      variant: "error",
+                    });
+                    return;
+                  }
 
-    if (!assignRes.data.success) {
-      toast({
-        title: "Error",
-        description: assignRes.data.message || "Failed to assign questions",
-        variant: "error",
-      });
-      return;
-    }
-
-    // Step 3: Navigate to QuestionsPage
-    navigate(
-      `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
-    );
-
-  } catch (err) {
-    console.error("Error starting assessment:", err);
-    toast({
-      title: "Try again",
-      description: "Failed to start assessment.",
-      variant: "error",
-    });
-  }
-};
+                  // Step 3: Navigate to QuestionsPage
+                  navigate(
+                    `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
+                  );
+                } catch (err) {
+                  console.error("Error starting assessment:", err);
+                  toast({
+                    title: "Try again",
+                    description: "Failed to start assessment.",
+                    variant: "error",
+                  });
+                }
+              };
 
               return (
                 <Button
                   onClick={handleStartAssessment}
                   disabled={isExpired} // disable if expired
-                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer">
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
                   <Play className="w-4 h-4 mr-2" />
                   Start Assessment
                   <ChevronRight className="w-4 h-4 ml-auto" />
                 </Button>
               );
             })()}
-          
+
           {assessment.status === "in_progress" &&
-
-
             (() => {
-              
               const handleStartAssessment = async () => {
-                 console.log("Clicked Start Assessment");
-  const assignmentId = assessment.assignment_id || assessment.assesment_id;
-console.log("Assignment ID:", assignmentId);
+                console.log("Clicked Start Assessment");
+                const assignmentId =
+                  assessment.assignment_id || assessment.assesment_id;
+                console.log("Assignment ID:", assignmentId);
 
+                if (!assignmentId) {
+                  toast({
+                    title: "Assignment not found",
+                    description: "Cannot start assessment.",
+                    variant: "error",
+                  });
+                  return;
+                }
 
-  if (!assignmentId) {
-    toast({
-      title: "Assignment not found",
-      description: "Cannot start assessment.",
-      variant: "error",
-    });
-    return;
-  }
+                try {
+                  // Step 1: Mark assessment as started
+                  const startRes = await axios.post(
+                    `${
+                      import.meta.env.VITE_BACKEND_URL
+                    }/api/quiz-assignments/start`,
+                    {
+                      quiz_id: assessment.quiz_id,
+                      user_id: user.id,
+                    }
+                  );
 
-  try {
-    // Step 1: Mark assessment as started
-    const startRes = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
-      {
-        quiz_id: assessment.quiz_id,
-        user_id: user.id,
-      }
-    );
+                  console.log("Start Assessment Response:", startRes.data);
 
-    console.log("Start Assessment Response:", startRes.data);
+                  if (!startRes.data.success) {
+                    toast({
+                      title: "Error",
+                      description:
+                        startRes.data.message || "Failed to start assessment",
+                      variant: "error",
+                    });
+                    return;
+                  }
 
-    if (!startRes.data.success) {
-      toast({
-        title: "Error",
-        description: startRes.data.message || "Failed to start assessment",
-        variant: "error",
-      });
-      return;
-    }
+                  // Step 2: Assign random questions
+                  const assignRes = await axios.post(
+                    `${
+                      import.meta.env.VITE_BACKEND_URL
+                    }/api/quiz-assignments/assign-random`,
+                    {
+                      quizId: assessment.quiz_id,
+                      userId: user.id,
+                      assignmentId: assignmentId,
+                    }
+                  );
 
-    // Step 2: Assign random questions
-    const assignRes = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/assign-random`,
-      {
-        quizId: assessment.quiz_id,
-        userId: user.id,
-        assignmentId: assignmentId,
-      }
-    );
+                  console.log("Assign Random Response:", assignRes.data);
 
-    console.log("Assign Random Response:", assignRes.data);
+                  if (!assignRes.data.success) {
+                    toast({
+                      title: "Error",
+                      description:
+                        assignRes.data.message || "Failed to assign questions",
+                      variant: "error",
+                    });
+                    return;
+                  }
 
-    if (!assignRes.data.success) {
-      toast({
-        title: "Error",
-        description: assignRes.data.message || "Failed to assign questions",
-        variant: "error",
-      });
-      return;
-    }
-
-    // Step 3: Navigate to QuestionsPage
-    navigate(
-      `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
-    );
-
-  } catch (err) {
-    console.error("Error starting assessment:", err);
-    toast({
-      title: "Try again",
-      description: "Failed to start assessment.",
-      variant: "error",
-    });
-  }
-};
+                  // Step 3: Navigate to QuestionsPage
+                  navigate(
+                    `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
+                  );
+                } catch (err) {
+                  console.error("Error starting assessment:", err);
+                  toast({
+                    title: "Try again",
+                    description: "Failed to start assessment.",
+                    variant: "error",
+                  });
+                }
+              };
               return (
+                <Button
+                  onClick={handleStartAssessment}
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Continue Assessment
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </Button>
+              );
+            })()}
 
-              
-              <Button
-              onClick={handleStartAssessment}
-              className="flex-1 text-white dark:text-slate-900 shadow-sm">
-              <Play className="w-4 h-4 mr-2" />
-              Continue Assessment
-              <ChevronRight className="w-4 h-4 ml-auto" />
-            </Button>
-          );
-          })()}
-
-            
-          
           {["passed", "failed", "under_review"].includes(assessment.status) && (
             <Button
               variant="outline"
-              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800">
+              onClick={()=> navigate(`results/${assessment.quiz_id}`)}
+              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
               <Eye className="w-4 h-4 mr-2" />
               View Results
               <ChevronRight className="w-4 h-4 ml-auto" />
@@ -643,7 +651,8 @@ console.log("Assignment ID:", assignmentId);
   });
 
   const completed = assignments.filter((a) => {
-    if (["passed","in_progress", "failed", "under_review"].includes(a.status)) return true;
+    if (["passed", "in_progress", "failed", "under_review"].includes(a.status))
+      return true;
 
     if (
       a.status === "scheduled" &&
@@ -705,7 +714,8 @@ console.log("Assignment ID:", assignmentId);
           </h2>
           <Badge
             variant="outline"
-            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+          >
             {scheduled.length}
           </Badge>
         </div>

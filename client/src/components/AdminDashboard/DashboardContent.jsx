@@ -70,42 +70,46 @@ export function DashboardContent() {
   const { toast } = useToast();
 
   useEffect(() => {
-  const fetchReports = async () => {
-    try {
-      // First, get all quizzes
-      const quizzesRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`);
-      const quizzes = quizzesRes.data.data;
+    const fetchReports = async () => {
+      try {
+        // First, get all quizzes
+        const quizzesRes = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`
+        );
+        const quizzes = quizzesRes.data.data;
 
-      // Now fetch assignments summary for each quiz
-      const reportsWithSummary = await Promise.all(
-        quizzes.map(async (q) => {
-          const assignRes = await axios.get(
-            `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.id}`
-          );
-          const { summary } = assignRes.data.data;
-        console.log("Fetched summary for quiz ID", q.id, ":", summary); // Debug log
-          return {
-            id: q.id,
-             name: q.title,
-            participants: summary.total_assigned ?? 0,
-            completedCount: summary.passed_count ?? 0,
-            inProgressCount: summary.in_progress_count ?? 0,
-            failedCount: summary.failed_count ?? 0,
-            averageScore: q.average_score ?? 0, // optional: calculate if needed
-            date: q.created_at ? new Date(q.created_at).toLocaleDateString() : "-",
-            status: q.is_active === 1 ? "Active" : "Completed",
-          };
-        })
-      );
+        // Now fetch assignments summary for each quiz
+        const reportsWithSummary = await Promise.all(
+          quizzes.map(async (q) => {
+            const assignRes = await axios.get(
+              `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.id}`
+            );
+            const { summary } = assignRes.data.data;
+            console.log("Fetched summary for quiz ID", q.id, ":", summary); // Debug log
+            return {
+              id: q.id,
+              name: q.title,
+              participants: summary.total_assigned ?? 0,
+              completedCount: summary.passed_count ?? 0,
+              inProgressCount: summary.in_progress_count ?? 0,
+              failedCount: summary.failed_count ?? 0,
+              averageScore: q.average_score ?? 0, // optional: calculate if needed
+              date: q.created_at
+                ? new Date(q.created_at).toLocaleDateString()
+                : "-",
+              status: q.is_active === 1 ? "Active" : "Completed",
+            };
+          })
+        );
 
-      setQuizzes(reportsWithSummary);
-    } catch (error) {
-      console.error("Error fetching reports:", error);
-    }
-  };
+        setQuizzes(reportsWithSummary);
+      } catch (error) {
+        console.error("Error fetching reports:", error);
+      }
+    };
 
-  fetchReports();
-}, []);
+    fetchReports();
+  }, []);
 
   const debouncedSearch = useDebouncedValue(filters.search, 300);
 
@@ -178,8 +182,8 @@ export function DashboardContent() {
     (sum, quiz) => sum + quiz.participants,
     0
   );
-  console.log("totalParticipants: ",totalParticipants);
-  console.log("quizzes: ",quizzes);
+  console.log("totalParticipants: ", totalParticipants);
+  console.log("quizzes: ", quizzes);
 
   const setLoading = (id, loading) => {
     setLoadingStates((prev) => ({ ...prev, [id]: loading }));
@@ -351,8 +355,6 @@ export function DashboardContent() {
     }
   };
 
-  
-
   return (
     <section className=" ">
       {/* Dashboard stats */}
@@ -444,9 +446,12 @@ export function DashboardContent() {
             Add New Quiz
           </Button> */}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
           {filteredAndSortedQuizzes.map((quiz) => (
-            <Card key={quiz.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={quiz.id}
+              className="hover:shadow-md transition-shadow overflow-hidden"
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -488,7 +493,7 @@ export function DashboardContent() {
                   Subject: {quiz.subject} • Difficulty: {quiz.difficulty} •
                   Created: {quiz.date}
                 </div>
-                <div className="flex gap-2 pt-2">
+                <div className="flex gap-2 pt-2 flex-wrap">
                   <Button
                     size="sm"
                     variant="outline"
@@ -539,9 +544,15 @@ export function DashboardContent() {
                     disabled={loadingStates[quiz.id]}
                   >
                     {loadingStates[quiz.id] ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        <span className=" md:block hidden">Deleting...</span>
+                      </>
                     ) : (
-                      <Trash2 className="h-3 w-3" />
+                      <>
+                        <Trash2 className="h-3 w-3" />
+                        <span className=" md:block hidden">Delete</span>
+                      </>
                     )}
                   </Button>
                 </div>

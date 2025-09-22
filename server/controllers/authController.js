@@ -531,7 +531,7 @@ const login = async (req, res) => {
     }
 
     const [users] = await pool.execute(
-      "SELECT id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at,location, phone, `group`, controlling_team, employee_id FROM users WHERE email = ?",
+      "SELECT id, group_id, team_id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at,location, phone, `group`, controlling_team, employee_id FROM users WHERE email = ?",
       [email]
     );
 
@@ -585,6 +585,48 @@ const login = async (req, res) => {
   }
 };
 
+// Delete user by ID (admin only)
+const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.body; // user ID from request body
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    // Check if user exists
+    const [users] = await db.execute(
+      "SELECT id FROM users WHERE id = ?",
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Delete user
+    await db.execute("DELETE FROM users WHERE id = ?", [userId]);
+
+    return res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    console.error("Delete user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while deleting user",
+    });
+  }
+};
+
+
 module.exports = {
   changePassword,
   updateUser,
@@ -596,4 +638,5 @@ module.exports = {
   verifyOtp,
   resendOtp,
   login,
+  deleteUser,
 };

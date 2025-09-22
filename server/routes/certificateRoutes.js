@@ -4,7 +4,7 @@ const { authenticate } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 router.post("/generate", authenticate, generateCertificate);
-router.post("/ispresent", authenticate, getCertificate);
+router.post("/get", authenticate, getCertificate);
 
 router.get("/download", authenticate, async (req, res) => {
   try {

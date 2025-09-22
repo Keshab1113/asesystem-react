@@ -51,6 +51,7 @@ import { useSelector } from "react-redux";
 import ContractorDeleteButton from "../../components/AdminDashboard/AlertDialog";
 import axios from "axios";
 import { SearchableSelect } from "../../components/SearchableSelect";
+import { ConfirmationDialog } from "../../components/AdminDashboard/ConfirmationDialog";
 
 export function ContractorMasterPage() {
   const [contractors, setContractors] = useState([]);
@@ -93,6 +94,10 @@ export function ContractorMasterPage() {
     active: "",
     address: "",
     profile_pic: null,
+  });
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    userId: null,
   });
   const [allUsers, setAllUsers] = useState([]);
 
@@ -513,6 +518,41 @@ export function ContractorMasterPage() {
 
   const AllGroupOption = [...new Set(contractors.map((c) => c.company_name))];
 
+  const openDeleteDialog = (id) => {
+    setDeleteDialog({ open: true, userId: id });
+  };
+
+  const confirmDelete = async () => {
+    if (deleteDialog.userId) {
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/auth/delete`,
+          { userId: deleteDialog.userId },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+
+        if (response.data.success) {
+          toast({
+            title: "✅ User Deleted",
+            description: "User has been deleted successfully.",
+            variant: "success",
+          });
+
+          fetchAttempts();
+        }
+      } catch (error) {
+        console.error("Error deleting User:", error);
+        toast({
+          title: "❌ Error",
+          description: "Failed to delete User. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between ">
@@ -789,15 +829,6 @@ export function ContractorMasterPage() {
           <CardHeader className=" flex md:flex-row flex-col justify-between items-center">
             <CardTitle>All Teams ({filteredContractors.length})</CardTitle>
             <div className="flex gap-2 items-center md:mt-0 mt-4">
-              <div className="relative max-w-40 min-w-40">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search Team..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
               <Select
                 value={selectedGroup}
                 onValueChange={(e) => setSelectedGroup(e)}
@@ -812,6 +843,15 @@ export function ContractorMasterPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <div className="relative max-w-40 min-w-40">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search Team..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -955,6 +995,23 @@ export function ContractorMasterPage() {
                       <Button onClick={() => handleUserClick(user)}>
                         <Edit className="h-5 w-5" />
                       </Button>
+                      <ConfirmationDialog
+                        open={deleteDialog.open}
+                        onOpenChange={(open) =>
+                          setDeleteDialog({ open, quizId: null })
+                        }
+                        title="Delete User"
+                        description="Are you sure you want to delete this user? This action cannot be undone and will remove all associated data."
+                        confirmText="Delete User"
+                        variant="destructive"
+                        onConfirm={confirmDelete}
+                      />
+                      <Button
+                        onClick={() => openDeleteDialog(user.id)}
+                        className=" hover:bg-red-500 hover:text-white"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </Button>
                     </div>
                   </div>
                 );
@@ -989,6 +1046,18 @@ export function ContractorMasterPage() {
                         setFormData((prev) => ({
                           ...prev,
                           email: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>User Phone Number *</Label>
+                    <Input
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
                         }))
                       }
                     />

@@ -15,6 +15,7 @@ exports.generateCertificate = async (req, res) => {
       score,
       expiry_date,
       quizID,
+      generateFrom,
     } = req.body;
     const user_id = req.userId;
 
@@ -37,8 +38,8 @@ exports.generateCertificate = async (req, res) => {
         const issued_date = new Date();
         const [result] = await db.execute(
           `INSERT INTO certificates 
-            (user_id, quiz_id, attempt_id, certificate_number, score, issued_date, expiry_date, is_valid, certificate_url) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            (user_id, quiz_id, attempt_id, certificate_number, score, issued_date, expiry_date, is_valid, certificate_url, generateFrom) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             user_id,
             quizID,
@@ -49,6 +50,7 @@ exports.generateCertificate = async (req, res) => {
             expiry_date || null,
             1,
             certUrl,
+            generateFrom || "automatic"
           ]
         );
         res.status(200).json({
@@ -135,8 +137,9 @@ exports.getCertificate = async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
+        certificate: null,
         message: "Certificate not found",
       });
     }

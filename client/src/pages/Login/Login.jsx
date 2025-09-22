@@ -75,6 +75,8 @@ export default function LoginPage() {
           description: "Logged in successfully",
           variant: "success",
         });
+        console.log("data.user: ",data.user);
+        
         dispatch(loginSuccess({ user: data.user, token: data.token }));
 
         if (data.user.role === "super_admin") {

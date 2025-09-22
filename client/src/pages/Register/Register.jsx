@@ -121,10 +121,9 @@ export default function RegisterPage() {
     }
     if (!formData.email.trim()) {
       newErrors.email = t("auth.emailAddress") + " is required";
+    } else if (!formData.email.endsWith("@kockw.com")) {
+      newErrors.email = t("auth.emailDomainError");
     }
-    // else if (!formData.email.endsWith("@kockw.com")) {
-    //   newErrors.email = t("auth.emailDomainError");
-    // }
     if (!formData.password) {
       newErrors.password = t("auth.password") + " is required";
     } else if (formData.password.length < 6) {
@@ -181,7 +180,6 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   };
-  
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4 pt-14 md:pt-4">
