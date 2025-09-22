@@ -83,10 +83,10 @@ export default function QuestionsPage() {
     }
 
     const fetchQuestions = async () => {
-      if (questions.length > 0) {
-        setLoading(false);
-        return;
-      }
+      // if (questions.length > 0) {
+      //   setLoading(false);
+      //   return;
+      // }
 
       try {
         const res = await fetch(
@@ -98,6 +98,7 @@ export default function QuestionsPage() {
         );
 
         const data = await res.json();
+        // console.log("Fetched questions data:", data); // Debug log
         if (data.success) {
           dispatch(setQuizQuestions({ quizId, questions: data.data }));
         }
@@ -113,8 +114,11 @@ export default function QuestionsPage() {
 
   useEffect(() => {
     if (!timerStarted || !acceptedInstructions) return;
+
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
+        console.log("timeRemaining: ", prev);
+
         // ⚠️ 2-minute warning
         if (prev === 121) {
           try {
@@ -145,67 +149,95 @@ export default function QuestionsPage() {
         return prev - 1;
       });
     }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timerStarted, acceptedInstructions]);
+
+  useEffect(() => {
+    if (!timerStarted || !acceptedInstructions) return;
+
+    // Disable right-click (desktop only)
     const disableRightClick = (e) => {
       e.preventDefault();
       setShowWarning(true);
       setTimeout(() => setShowWarning(false), 3000);
     };
+
+    // Disable developer tools shortcuts
     const disableKeys = (e) => {
+      const key = e.key.toUpperCase();
+
       if (
-        e.key === "F12" ||
-        (e.ctrlKey &&
-          e.shiftKey &&
-          ["I", "J", "C"].includes(e.key.toUpperCase())) ||
-        (e.ctrlKey && e.key.toUpperCase() === "U")
+        key === "F12" ||
+        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(key)) ||
+        (e.ctrlKey && key === "U")
       ) {
         e.preventDefault();
         setShowWarning(true);
         setTimeout(() => setShowWarning(false), 3000);
       }
     };
-    const handleBlur = () => {
-      setWarnings((prev) => {
-        const newWarnings = prev + 1;
-        if (newWarnings >= 2) {
-          handleSubmit(
-            true,
-            "Multiple violations detected. Quiz auto-submitted."
-          );
-        } else {
-          setShowWarning(true);
-          setTimeout(() => setShowWarning(false), 3000);
-        }
-        return newWarnings;
-      });
+
+    // Track focus/blur (works better than blur on window in some browsers)
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setWarnings((prev) => {
+          const newWarnings = prev + 1;
+          if (newWarnings >= 2) {
+            handleSubmit(
+              true,
+              "Multiple violations detected. Quiz auto-submitted."
+            );
+          } else {
+            setShowWarning(true);
+            setTimeout(() => setShowWarning(false), 3000);
+          }
+          return newWarnings;
+        });
+      }
     };
+
+    // Request fullscreen (cross-browser)
     const requestFullscreen = () => {
       const el = document.documentElement;
       if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
     };
     requestFullscreen();
 
-    // If user exits fullscreen → submit
+    // Detect exit fullscreen (cross-browser)
     const exitHandler = () => {
-      if (!document.fullscreenElement) {
+      if (
+        !document.fullscreenElement &&
+        !document.webkitFullscreenElement &&
+        !document.mozFullScreenElement &&
+        !document.msFullscreenElement
+      ) {
         handleSubmit(true, "Fullscreen exited. Quiz auto-submitted.");
       }
     };
 
     // Register events
-    // document.addEventListener("contextmenu", disableRightClick);
+    document.addEventListener("contextmenu", disableRightClick);
     document.addEventListener("keydown", disableKeys);
-    window.addEventListener("blur", handleBlur);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     document.addEventListener("fullscreenchange", exitHandler);
+    document.addEventListener("webkitfullscreenchange", exitHandler);
+    document.addEventListener("mozfullscreenchange", exitHandler);
+    document.addEventListener("MSFullscreenChange", exitHandler);
 
-    // Cleanup
     return () => {
-      clearInterval(timer);
-      // document.removeEventListener("contextmenu", disableRightClick);
+      document.removeEventListener("contextmenu", disableRightClick);
       document.removeEventListener("keydown", disableKeys);
-      window.removeEventListener("blur", handleBlur);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("fullscreenchange", exitHandler);
+      document.removeEventListener("webkitfullscreenchange", exitHandler);
+      document.removeEventListener("mozfullscreenchange", exitHandler);
+      document.removeEventListener("MSFullscreenChange", exitHandler);
     };
-  }, [quizId, questions, dispatch, toast, timerStarted, acceptedInstructions]);
+  }, [timerStarted, acceptedInstructions]);
 
   const handleAnswerChange = (questionId, option) => {
     dispatch(setAnswer({ quizId, questionId, answer: option }));
@@ -230,12 +262,30 @@ export default function QuestionsPage() {
     }
   };
 
-  const handleAcceptInstructions = () => {
+  const handleAcceptInstructions = async () => {
     setAcceptedInstructions(true);
     setShowInstructions(false);
     setTimerStarted(true);
     // Store in localStorage to remember user accepted for this quiz
     localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
+    const startRes = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
+      {
+        quiz_id: quizId,
+        user_id: user.id,
+      }
+    );
+
+    console.log("Start Assessment Response:", startRes.data);
+
+    if (!startRes.data.success) {
+      toast({
+        title: "Error",
+        description: startRes.data.message || "Failed to start assessment",
+        variant: "error",
+      });
+      return;
+    }
   };
   const calculateScore = () => {
     let score = 0;
@@ -295,7 +345,8 @@ export default function QuestionsPage() {
         variant: "success",
       });
 
-      navigate(`/user-dashboard/results/${quizId}`);
+      // navigate(`/user-dashboard/results?${assignmentId}`);
+      navigate(`/user-dashboard/results?assignmentId=${assignmentId}`);
     } catch (err) {
       console.error("Error ending assessment:", err);
       toast({

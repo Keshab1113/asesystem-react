@@ -446,27 +446,7 @@ export default function DashboardPage() {
 
                 try {
                   // Step 1: Mark assessment as started
-                  const startRes = await axios.post(
-                    `${
-                      import.meta.env.VITE_BACKEND_URL
-                    }/api/quiz-assignments/start`,
-                    {
-                      quiz_id: assessment.quiz_id,
-                      user_id: user.id,
-                    }
-                  );
-
-                  console.log("Start Assessment Response:", startRes.data);
-
-                  if (!startRes.data.success) {
-                    toast({
-                      title: "Error",
-                      description:
-                        startRes.data.message || "Failed to start assessment",
-                      variant: "error",
-                    });
-                    return;
-                  }
+                  
 
                   // Step 2: Assign random questions
                   const assignRes = await axios.post(
@@ -537,28 +517,7 @@ export default function DashboardPage() {
                 }
 
                 try {
-                  // Step 1: Mark assessment as started
-                  const startRes = await axios.post(
-                    `${
-                      import.meta.env.VITE_BACKEND_URL
-                    }/api/quiz-assignments/start`,
-                    {
-                      quiz_id: assessment.quiz_id,
-                      user_id: user.id,
-                    }
-                  );
-
-                  console.log("Start Assessment Response:", startRes.data);
-
-                  if (!startRes.data.success) {
-                    toast({
-                      title: "Error",
-                      description:
-                        startRes.data.message || "Failed to start assessment",
-                      variant: "error",
-                    });
-                    return;
-                  }
+                 
 
                   // Step 2: Assign random questions
                   const assignRes = await axios.post(
@@ -612,7 +571,7 @@ export default function DashboardPage() {
           {["passed", "failed", "under_review"].includes(assessment.status) && (
             <Button
               variant="outline"
-              onClick={()=> navigate(`results/${assessment.quiz_id}`)}
+              onClick={()=> navigate(`results?assignmentId=${assessment.assignment_id}`)}
               className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <Eye className="w-4 h-4 mr-2" />

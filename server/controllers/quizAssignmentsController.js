@@ -102,40 +102,7 @@ exports.startAssessment = async (req, res) => {
   }
 };
 
-// End Assessment
-// exports.endAssessment = async (req, res) => {
-//   try {
-//     const { quiz_id, user_id, score, passing_score } = req.body;
-
-//     if (!quiz_id || !user_id) {
-//       return res
-//         .status(400)
-//         .json({ success: false, message: "quiz_id and user_id required" });
-//     }
-
-//     const endedAt = new Date();
-//     const percentage = score * 10;
-//     const status = percentage >= passing_score ? "passed" : "failed";
-
-//     // Update the quiz_assignments table
-//     await db.query(
-//       `UPDATE quiz_assignments 
-//        SET user_ended_at = ?, status = ?, score = ? 
-//        WHERE quiz_id = ? AND user_id = ?`,
-//       [endedAt, status, percentage, quiz_id, user_id]
-//     );
-
-//     return res.json({
-//       success: true,
-//       message: "Assessment ended",
-//       user_ended_at: endedAt,
-//     });
-//   } catch (error) {
-//     console.error("Error in endAssessment:", error);
-//     return res.status(500).json({ success: false, message: "Server Error" });
-//   }
-// };
-
+ 
 exports.endAssessment = async (req, res) => {
   try {
     const { quiz_id, user_id, assignment_id, passing_score, answers } = req.body;
@@ -218,58 +185,7 @@ exports.endAssessment = async (req, res) => {
 
 
 
-
-// exports.assignRandomQuestions = async (req, res) => {
-//   console.log("Assign random questions:", req.body);
-//   const { quizId, userId, assignmentId } = req.body;
-//   if (!quizId || !userId || !assignmentId) {
-//     return res.status(400).json({ success: false, message: "quizId, userId, and assignmentId are required" });
-//   }
-
-//   try {
-//     // 1. Get quiz info (max_questions)
-//     const [quizRows] = await db.query(`SELECT max_questions FROM quizzes WHERE id = ?`, [quizId]);
-//     if (!quizRows.length) return res.status(404).json({ success: false, message: "Quiz not found" });
-
-//     const maxQuestions = quizRows[0].max_questions || 10;
-
-//     // 2. Get all active questions
-//     const [questionRows] = await db.query(
-//       `SELECT id, question_text, question_type, options, correct_answer, explanation, difficulty_level
-//        FROM questions 
-//        WHERE quiz_id = ? AND is_active = 1`,
-//       [quizId]
-//     );
-//     if (!questionRows.length) return res.status(404).json({ success: false, message: "No active questions found" });
-
-//     // 3. Shuffle + pick
-//     const shuffled = [...questionRows].sort(() => Math.random() - 0.5);
-//     const selected = shuffled.slice(0, maxQuestions);
-
-//     // 4. Save in assigned_questions
-//     // 4. Save in assigned_questions
-// await Promise.all(
-//   selected.map((q) =>
-//     db.query(
-//       `INSERT INTO assigned_questions 
-//          (quiz_id, user_id, assignment_id, question_id, answer_id, is_correct, correct_answers, score) 
-//        VALUES (?, ?, ?, ?, NULL, 0, 0, 0)`,
-//       [quizId, userId, assignmentId, q.id]
-//     )
-//   )
-// );
-
-
-//     return res.json({ success: true, message: "Random questions assigned successfully", data: selected });
-//   } catch (err) {
-//     console.error("Error assigning random questions:", err);
-//     return res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
-
-
-// Fetch assigned questions for a specific quiz, user, and assignment
-
+ 
 exports.assignRandomQuestions = async (req, res) => {
    
   const { quizId, userId, assignmentId } = req.body;

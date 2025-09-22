@@ -31,8 +31,11 @@ export default function ResultsPage() {
   const [certificateNumber, setCertificateNumber] = useState("");
   const [certificateURL, setCertificateURL] = useState(null);
   const [isLoadingCertificate, setIsLoadingCertificate] = useState(false);
-  const { quizId } = useParams();
-  const numQuizId = Number(quizId);
+  const [isUserPass, setIsUserPass] = useState(false);
+  const [searchParams] = useSearchParams();
+  const assignmentId = searchParams.get("assignmentId"); // now it will get 110
+
+  // const attemptId = searchParams.get("attemptId");
   const [allQuiz, setAllQuiz] = useState([]);
 
   useEffect(() => {
@@ -51,48 +54,51 @@ export default function ResultsPage() {
     fetchQuizTitle();
   }, []);
 
-  // Mock data - in a real app, this would come from your backend/state
-  const results = {
-    totalQuestions: 10,
-    correctAnswers: 7,
-    timeSpent: "12:45",
-    score: 70,
-    passingScore: 60,
-    wrongAnswers: [
-      {
-        id: 3,
-        question: "Which React hook is used to manage side effects?",
-        options: ["useState", "useEffect", "useContext", "useReducer"],
-        userAnswer: "useState",
-        correctAnswer: "useEffect",
-      },
-      {
-        id: 7,
-        question: "What is the virtual DOM in React?",
-        options: [
-          "A direct representation of the actual DOM",
-          "A programming concept where a virtual representation is kept in memory",
-          "A browser extension for debugging",
-          "A React-specific database for storing components",
-        ],
-        userAnswer: "A direct representation of the actual DOM",
-        correctAnswer:
-          "A programming concept where a virtual representation is kept in memory",
-      },
-      {
-        id: 9,
-        question: "Which method is used to change state in React?",
-        options: [
-          "changeState()",
-          "setState()",
-          "updateState()",
-          "modifyState()",
-        ],
-        userAnswer: "changeState()",
-        correctAnswer: "setState()",
-      },
-    ],
-  };
+  const [results, setResults] = useState({
+    totalQuestions: 0,
+    correctAnswers: 0,
+    timeSpent: "0:00",
+    score: 0,
+    passingScore: 0,
+    wrongAnswers: [],
+  });
+
+  useEffect(() => {
+    const fetchResults = async () => {
+      console.log("fetching results data");
+      console.log("assignmentId:", assignmentId); // Debug log
+      if (!assignmentId) return;
+
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/results/${assignmentId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        console.log("Fetched results data:", res.data); // Debug log
+        if (res.data) {
+          const passScore = res?.data?.passingScore;
+          const userScore = Number(res?.data?.score);
+          if (userScore >= passScore) {
+            setIsUserPass(true);
+          } else {
+            setIsUserPass(false);
+          }
+          setResults(res.data);
+          // Now you can access quizId directly
+          console.log("Quiz ID from backend:", res.data.quizId);
+        }
+      } catch (err) {
+        console.error("Error fetching results:", err);
+        toast({
+          title: "Error",
+          description: "Failed to fetch assessment results",
+          variant: "error",
+        });
+      }
+    };
+
+    fetchResults();
+  }, [assignmentId, token]);
 
   const correctCount = results.correctAnswers;
   const wrongCount = results.totalQuestions - results.correctAnswers;
@@ -106,8 +112,10 @@ export default function ResultsPage() {
     const randomNum = Math.floor(100000 + Math.random() * 900000);
     return `${orgCode}${month}${year}${randomNum}`;
   };
+
+  const quizId = results.quizId; // get quizId directly from backend
   const foundQuizTitle = allQuiz.find(
-    (quiz) => quiz.id.toString() === quizId.toString()
+    (quiz) => quiz.id.toString() === quizId?.toString()
   );
 
   const handleDownload = async (certificateURL, certificateNumber) => {
@@ -143,13 +151,15 @@ export default function ResultsPage() {
       // Step 1: Check if certificate already exists
       const checkResponse = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/certificates/get`,
-        { user_id: user.id, quiz_id: numQuizId },
+        { user_id: user.id, quiz_id: quizId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (checkResponse.data.success && checkResponse.data.certificate) {
         // Certificate already exists, no need to generate
         setCertificateURL(checkResponse?.data?.certificate?.certificate_url);
-        setCertificateNumber(checkResponse?.data?.certificate?.certificate_number);
+        setCertificateNumber(
+          checkResponse?.data?.certificate?.certificate_number
+        );
         setIsLoadingCertificate(false);
 
         toast({
@@ -158,7 +168,10 @@ export default function ResultsPage() {
           variant: "info",
         });
 
-        await handleDownload(checkResponse?.data?.certificate?.certificate_url, checkResponse?.data?.certificate?.certificate_number);
+        await handleDownload(
+          checkResponse?.data?.certificate?.certificate_url,
+          checkResponse?.data?.certificate?.certificate_number
+        );
         return;
       }
 
@@ -166,7 +179,7 @@ export default function ResultsPage() {
       const certNo = await generateCertificateNumber();
       const payload = {
         userName: user.name,
-        quizID: numQuizId,
+        quizID: quizId,
         quizTitle: foundQuizTitle?.title || "Undefined",
         date: new Date().toLocaleDateString(),
         certificateText: "",
@@ -549,7 +562,7 @@ export default function ResultsPage() {
                     <Progress
                       value={(wrongCount / results.totalQuestions) * 100}
                       className="h-2 mt-1 bg-red-100 dark:bg-red-900/20"
-                      indicatorClassName="bg-red-500"
+                      // indicatorClassName="bg-red-500"
                     />
                   </div>
                 </div>
@@ -627,17 +640,18 @@ export default function ResultsPage() {
             <Home className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-
-          <Button
-            onClick={handleCertificate}
-            variant="outline"
-            className="flex items-center"
-            size="lg"
-            disabled={isLoadingCertificate}
-          >
-            <BookOpen className="w-4 h-4 mr-2" />
-            {isLoadingCertificate ? "Generating..." : "Download Certificate"}
-          </Button>
+          {isUserPass && (
+            <Button
+              onClick={handleCertificate}
+              variant="outline"
+              className="flex items-center"
+              size="lg"
+              disabled={isLoadingCertificate}
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              {isLoadingCertificate ? "Generating..." : "Download Certificate"}
+            </Button>
+          )}
         </div>
       </div>
     </div>

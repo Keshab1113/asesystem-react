@@ -141,7 +141,7 @@ After the options, clearly specify the correct answer${
             { role: "system", content: "You are an expert interviewer." },
             { role: "user", content: batchPrompt },
           ],
-          temperature: 0.7,
+          temperature: 0.4,
           max_tokens: 8000,
         })
       );

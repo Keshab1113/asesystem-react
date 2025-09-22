@@ -84,6 +84,88 @@ ORDER BY q.created_at DESC
   }
 };
 
+// exports.updateQuiz = async (req, res) => {
+//   const { id } = req.params;
+//   const {
+//     name,
+//     timeLimit,
+//     passingScore,
+//     maxAttempts,
+//     maxQuestions, // <-- new
+//     scheduleStartDate,
+//     scheduleStartTime,
+//     scheduleEndDate,
+//     scheduleEndTime,
+//   } = req.body;
+
+//   // Fetch current quiz first
+//   const [existing] = await db.query(
+//     "SELECT time_limit, max_attempts FROM quizzes WHERE id = ?",
+//     [id]
+//   );
+//   if (!existing.length) {
+//     return res.status(404).json({ success: false, message: "Quiz not found" });
+//   }
+//   const currentQuiz = existing[0];
+
+//   // If not already set in DB, then require them
+//   if (
+//     (currentQuiz.time_limit == null &&
+//       (timeLimit === undefined || timeLimit === null)) ||
+//     (currentQuiz.max_attempts == null &&
+//       (maxAttempts === undefined || maxAttempts === null))
+//   ) {
+//     return res
+//       .status(400)
+//       .json({
+//         success: false,
+//         message: "Time limit and max attempts are required",
+//       });
+//   }
+
+//   try {
+//     const [result] = await db.query(
+//       `UPDATE quizzes SET 
+//   ${name ? "title = ?," : ""}
+//   ${timeLimit !== undefined ? "time_limit = ?," : ""}
+//   passing_score = ?,
+//    ${maxAttempts !== undefined ? "max_attempts = ?," : ""}
+//     ${maxQuestions !== undefined ? "max_questions = ?," : ""}
+//   schedule_start_date = ?,
+//   schedule_start_time = ?,
+//   schedule_end_date = ?,
+//   schedule_end_time = ?,
+//   updated_at = NOW()
+// WHERE id = ?`,
+//       [
+//         ...(name ? [name] : []),
+//         ...(timeLimit !== undefined ? [timeLimit] : []),
+//         passingScore,
+//         ...(maxAttempts !== undefined ? [maxAttempts] : []),
+//         ...(maxQuestions !== undefined ? [maxQuestions] : []), // <-- include
+//         scheduleStartDate,
+//         scheduleStartTime,
+//         scheduleEndDate,
+//         scheduleEndTime,
+//         id,
+//       ]
+//     );
+
+//     if (result.affectedRows === 0) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Quiz not found" });
+//     }
+
+//     res
+//       .status(200)
+//       .json({ success: true, message: "Quiz updated successfully" });
+//   } catch (error) {
+//     console.error("Error updating quiz:", error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
 exports.updateQuiz = async (req, res) => {
   const { id } = req.params;
   const {
@@ -91,75 +173,94 @@ exports.updateQuiz = async (req, res) => {
     timeLimit,
     passingScore,
     maxAttempts,
-    maxQuestions, // <-- new
+    maxQuestions,
     scheduleStartDate,
     scheduleStartTime,
     scheduleEndDate,
     scheduleEndTime,
   } = req.body;
+console.log("update quiz",req.body);
+  try {
+    // ✅ Get existing quiz
+    const [existing] = await db.query("SELECT * FROM quizzes WHERE id = ?", [id]);
+    if (!existing.length) {
+      return res.status(404).json({ success: false, message: "Quiz not found" });
+    }
+    const currentQuiz = existing[0];
 
-  // Fetch current quiz first
-  const [existing] = await db.query(
-    "SELECT time_limit, max_attempts FROM quizzes WHERE id = ?",
-    [id]
-  );
-  if (!existing.length) {
-    return res.status(404).json({ success: false, message: "Quiz not found" });
-  }
-  const currentQuiz = existing[0];
-
-  // If not already set in DB, then require them
-  if (
-    (currentQuiz.time_limit == null &&
-      (timeLimit === undefined || timeLimit === null)) ||
-    (currentQuiz.max_attempts == null &&
-      (maxAttempts === undefined || maxAttempts === null))
-  ) {
-    return res
-      .status(400)
-      .json({
+    // ✅ Require values if they were never set before
+    if (
+      (currentQuiz.time_limit == null &&
+        (timeLimit === undefined || timeLimit === null)) ||
+      (currentQuiz.max_attempts == null &&
+        (maxAttempts === undefined || maxAttempts === null))
+    ) {
+      return res.status(400).json({
         success: false,
         message: "Time limit and max attempts are required",
       });
-  }
-
-  try {
-    const [result] = await db.query(
-      `UPDATE quizzes SET 
-  ${name ? "title = ?," : ""}
-  ${timeLimit !== undefined ? "time_limit = ?," : ""}
-  passing_score = ?,
-   ${maxAttempts !== undefined ? "max_attempts = ?," : ""}
-    ${maxQuestions !== undefined ? "max_questions = ?," : ""}
-  schedule_start_date = ?,
-  schedule_start_time = ?,
-  schedule_end_date = ?,
-  schedule_end_time = ?,
-  updated_at = NOW()
-WHERE id = ?`,
-      [
-        ...(name ? [name] : []),
-        ...(timeLimit !== undefined ? [timeLimit] : []),
-        passingScore,
-        ...(maxAttempts !== undefined ? [maxAttempts] : []),
-        ...(maxQuestions !== undefined ? [maxQuestions] : []), // <-- include
-        scheduleStartDate,
-        scheduleStartTime,
-        scheduleEndDate,
-        scheduleEndTime,
-        id,
-      ]
-    );
-
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Quiz not found" });
     }
 
-    res
-      .status(200)
-      .json({ success: true, message: "Quiz updated successfully" });
+    // ✅ Build dynamic update query
+    const updates = [];
+    const values = [];
+
+    if (name !== undefined) {
+      updates.push("title = ?");
+      values.push(name);
+    }
+    if (timeLimit !== undefined) {
+      updates.push("time_limit = ?");
+      values.push(timeLimit);
+    }
+    if (passingScore !== undefined) {
+      updates.push("passing_score = ?");
+      values.push(passingScore);
+    }
+    if (maxAttempts !== undefined) {
+      updates.push("max_attempts = ?");
+      values.push(maxAttempts);
+    }
+    if (maxQuestions !== undefined) {
+      updates.push("max_questions = ?");
+      values.push(maxQuestions);
+    }
+    if (scheduleStartDate !== undefined) {
+      updates.push("schedule_start_date = ?");
+      values.push(scheduleStartDate);
+    }
+    if (scheduleStartTime !== undefined) {
+      updates.push("schedule_start_time = ?");
+      values.push(scheduleStartTime);
+    }
+    if (scheduleEndDate !== undefined) {
+      updates.push("schedule_end_date = ?");
+      values.push(scheduleEndDate);
+    }
+    if (scheduleEndTime !== undefined) {
+      updates.push("schedule_end_time = ?");
+      values.push(scheduleEndTime);
+    }
+
+    updates.push("updated_at = NOW()");
+
+    if (updates.length === 1) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid fields provided for update",
+      });
+    }
+
+    const sql = `UPDATE quizzes SET ${updates.join(", ")} WHERE id = ?`;
+    values.push(id);
+
+    const [result] = await db.query(sql, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Quiz not found" });
+    }
+
+    res.status(200).json({ success: true, message: "Quiz updated successfully" });
   } catch (error) {
     console.error("Error updating quiz:", error);
     res.status(500).json({ success: false, message: "Server error" });
