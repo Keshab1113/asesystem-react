@@ -270,7 +270,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
         </DialogHeader>
 
         <Tabs defaultValue="basic" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
           </TabsList>
 
@@ -304,9 +304,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
             <div className="flex flex-col gap-4">
               {/* Existing fields */}
 
-              <div className="flex   gap-6">
-                {/* Schedule Start */}
-
+              <div className="flex gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="schedule-start-date">Start Date</Label>
                   <Popover>
@@ -347,7 +345,6 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                     </PopoverContent>
                   </Popover>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="schedule-start-time">Start Time</Label>
                   <Input
@@ -360,7 +357,6 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                         scheduleStartTime: e.target.value,
                       })
                     }
-                    className=" dark:text-white"
                   />
                 </div>
               </div>

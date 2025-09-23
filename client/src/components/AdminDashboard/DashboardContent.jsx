@@ -292,15 +292,15 @@ export function DashboardContent() {
       );
       setQuizzes((prev) => prev.filter((quiz) => quiz.id !== id));
       toast({
-        title: "✅ Quiz Deleted",
-        description: `Quiz has been deleted successfully.`,
+        title: "✅ Assessment Deleted",
+        description: `Assessment has been deleted successfully.`,
         variant: "success",
       });
     } catch (error) {
-      console.error("Error deleting quiz:", error);
+      console.error("Error deleting Assessment:", error);
       toast({
         title: "❌ Error",
-        description: "Failed to delete quiz. Please try again.",
+        description: "Failed to delete Assessment. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -183,9 +183,6 @@ exports.endAssessment = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
-
-
  
 exports.assignRandomQuestions = async (req, res) => {
    

@@ -32,6 +32,8 @@ import {
   Send,
   IdCard,
   MonitorCog,
+  Loader2,
+  Download,
 } from "lucide-react";
 import {
   Select,
@@ -63,7 +65,9 @@ export function ContractorMasterPage() {
   const updateRef = useRef(null);
   const [selectedTeam, setSelectedTeam] = useState("");
   const [selectedGroup, setSelectedGroup] = useState("");
+  const [selectedGroup2, setSelectedGroup2] = useState({ id: "", name: "" });
   const { user, token } = useSelector((state) => state.auth);
+  const [isDownloading, setIsDownloading] = useState(false);
   const [newContractor, setNewContractor] = useState({
     name: "",
     email: "",
@@ -100,6 +104,52 @@ export function ContractorMasterPage() {
     userId: null,
   });
   const [allUsers, setAllUsers] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!selectedGroup2) return;
+    const fetchTeams = async () => {
+      try {
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/contractors/teams/${
+            selectedGroup2.id
+          }`
+        );
+        console.log("response.data.data: ", response.data.data);
+
+        setTeams(response.data.data);
+      } catch (error) {
+        console.error("Error fetching teams:", error);
+        setTeams([]);
+      }
+    };
+
+    fetchTeams();
+  }, [selectedGroup2]);
+
+  useEffect(() => {
+    if (!selectedGroup2?.id || !selectedTeam) return;
+
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/auth/users/${
+            selectedGroup2.id
+          }/${selectedTeam}`
+        );
+        setAllUsers(response.data.data || []);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        setAllUsers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [selectedGroup2, selectedTeam]);
 
   const filteredContractors = contractors.filter((contractor) => {
     const search = searchTerm.toLowerCase();
@@ -509,15 +559,14 @@ export function ContractorMasterPage() {
   const isFormValid2 =
     newContractor.name.trim() !== "" && newContractor.company_name !== "";
 
-  const filteredUsers = selectedTeam
-    ? allUsers.filter(
-        (user) =>
-          user.controlling_team === selectedTeam && user.group === selectedGroup
-      )
-    : allUsers;
-
-  const AllGroupOption = [...new Set(contractors.map((c) => c.company_name))];
-
+  const AllGroupOption = [
+    ...new Map(
+      contractors.map((c) => [
+        c.company_id,
+        { id: c.company_id, name: c.company_name },
+      ])
+    ).values(),
+  ];
   const openDeleteDialog = (id) => {
     setDeleteDialog({ open: true, userId: id });
   };
@@ -549,6 +598,130 @@ export function ContractorMasterPage() {
           description: "Failed to delete User. Please try again.",
           variant: "destructive",
         });
+      }
+    }
+  };
+
+  const downloadUsersExcel = async () => {
+    if (!selectedGroup2?.id || !selectedTeam) {
+      try {
+        setIsDownloading(true);
+
+        const response = await axios({
+          method: "GET",
+          url: `${import.meta.env.VITE_BACKEND_URL}/api/auth/download-allusers`,
+          responseType: "blob", // Important for file download
+          headers: {
+            Authorization: `Bearer ${token}`, // If using authentication
+            "Content-Type": "application/json",
+          },
+        });
+
+        // Create blob from response
+        const blob = new Blob([response.data], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+
+        // Get filename from response headers or create custom one
+        const contentDisposition = response.headers["content-disposition"];
+        let filename = `users-report-${
+          new Date().toISOString().split("T")[0]
+        }.xlsx`;
+
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+          if (filenameMatch.length === 2) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Error downloading Excel file:", error);
+
+        // Handle specific error cases
+        if (error.response?.status === 400) {
+          alert("Please select both a group and a team.");
+        } else if (error.response?.status === 404) {
+          alert("No users found for the selected criteria.");
+        } else if (error.response?.status === 500) {
+          alert("Server error occurred while generating the report.");
+        } else {
+          alert("Failed to download user list. Please try again.");
+        }
+      } finally {
+        setIsDownloading(false);
+      }
+    } else {
+      try {
+        setIsDownloading(true);
+
+        const response = await axios({
+          method: "GET",
+          url: `${import.meta.env.VITE_BACKEND_URL}/api/auth/download-users`,
+          params: {
+            group_id: selectedGroup2.id,
+            team_id: selectedTeam,
+          },
+          responseType: "blob", // Important for file download
+          headers: {
+            Authorization: `Bearer ${token}`, // If using authentication
+            "Content-Type": "application/json",
+          },
+        });
+
+        // Create blob from response
+        const blob = new Blob([response.data], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+
+        // Get filename from response headers or create custom one
+        const contentDisposition = response.headers["content-disposition"];
+        let filename = `users-report-${
+          new Date().toISOString().split("T")[0]
+        }.xlsx`;
+
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
+          if (filenameMatch.length === 2) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        link.setAttribute("download", filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error("Error downloading Excel file:", error);
+
+        // Handle specific error cases
+        if (error.response?.status === 400) {
+          alert("Please select both a group and a team.");
+        } else if (error.response?.status === 404) {
+          alert("No users found for the selected criteria.");
+        } else if (error.response?.status === 500) {
+          alert("Server error occurred while generating the report.");
+        } else {
+          alert("Failed to download user list. Please try again.");
+        }
+      } finally {
+        setIsDownloading(false);
       }
     }
   };
@@ -830,8 +1003,11 @@ export function ContractorMasterPage() {
             <CardTitle>All Teams ({filteredContractors.length})</CardTitle>
             <div className="flex gap-2 items-center md:mt-0 mt-4">
               <Select
-                value={selectedGroup}
-                onValueChange={(e) => setSelectedGroup(e)}
+                value={selectedGroup2.id}
+                onValueChange={(id) => {
+                  const selected = AllGroupOption.find((g) => g.id === id);
+                  setSelectedGroup2(selected || { id: "", name: "" });
+                }}
                 className="border rounded-md p-2 text-sm"
               >
                 <SelectTrigger className="max-w-40 min-w-40">
@@ -839,19 +1015,30 @@ export function ContractorMasterPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {AllGroupOption.map((company) => (
-                    <SelectItem value={company}>{company}</SelectItem>
+                    <SelectItem key={company.id} value={company.id}>
+                      {company.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <div className="relative max-w-40 min-w-40">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search Team..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+
+              <Select
+                value={selectedTeam}
+                onValueChange={(teamId) => {
+                  setSelectedTeam(teamId);
+                }}
+              >
+                <SelectTrigger className="max-w-40 min-w-40">
+                  <SelectValue placeholder="Select Team" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </CardHeader>
           <CardContent>
@@ -860,12 +1047,15 @@ export function ContractorMasterPage() {
                 <div
                   key={contractor.id}
                   className={`p-4 border rounded-lg hover:cursor-pointer hover:border-blue-600 ${
-                    contractor.name === selectedTeam &&
+                    contractor.id === selectedTeam &&
                     "border-2 border-slate-700"
                   }`}
                   onClick={() => {
-                    setSelectedGroup(contractor.company_name);
-                    setSelectedTeam(contractor.name);
+                    setSelectedGroup2({
+                      id: contractor.company_id,
+                      name: contractor.company_name,
+                    });
+                    setSelectedTeam(contractor.id);
                   }}
                 >
                   <div className="flex items-start justify-between">
@@ -962,61 +1152,80 @@ export function ContractorMasterPage() {
               ))}
               {filteredContractors.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
-                  No contractors found matching your criteria.
+                  No Teams found matching your criteria.
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className=" flex md:flex-row flex-col justify-between items-center">
-            <CardTitle>All Members ({filteredUsers.length})</CardTitle>
+          <CardHeader className=" flex md:flex-row flex-row justify-between items-center">
+            <CardTitle>All Members ({allUsers.length})</CardTitle>
+            <Button onClick={downloadUsersExcel} disabled={isDownloading}>
+              {isDownloading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  Download <Download className="h-4 w-4 mr-2" />
+                </>
+              )}
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2 max-h-[30rem] overflow-y-auto">
-              {filteredUsers.map((user) => {
-                return (
-                  <div
-                    key={user.id}
-                    className={`p-3 border rounded-lg cursor-pointer transition-colors flex justify-between md:flex-row flex-col`}
-                  >
-                    <div className=" flex flex-col">
-                      <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[220px]">
-                        {user.name}
+              {allUsers.length > 0 ? (
+                allUsers.map((user) => {
+                  return (
+                    <div
+                      key={user.id}
+                      className={`p-3 border rounded-lg cursor-pointer transition-colors flex justify-between md:flex-row flex-col`}
+                    >
+                      <div className=" flex flex-col">
+                        <div className="font-medium truncate overflow-hidden whitespace-nowrap max-w-[220px]">
+                          {user.name}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.email}
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {user.email}
+                      <div className="  flex flex-row md:justify-center justify-between items-center gap-2 ">
+                        <p className=" text-xs">
+                          Profile Completed: {user?.is_active ? "100" : "50"}%
+                        </p>
+                        <div className=" gap-2 flex">
+                          <Button onClick={() => handleUserClick(user)}>
+                            <Edit className="h-5 w-5" />
+                          </Button>
+
+                          <Button
+                            onClick={() => openDeleteDialog(user.id)}
+                            className=" hover:bg-red-500 hover:text-white"
+                          >
+                            <Trash2 className="h-5 w-5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                    <div className="  flex flex-row md:justify-center justify-between items-center gap-2 ">
-                      <p className=" text-xs">
-                        Profile Completed: {user?.is_active ? "100" : "50"}%
-                      </p>
-                      <Button onClick={() => handleUserClick(user)}>
-                        <Edit className="h-5 w-5" />
-                      </Button>
-                      <ConfirmationDialog
-                        open={deleteDialog.open}
-                        onOpenChange={(open) =>
-                          setDeleteDialog({ open, quizId: null })
-                        }
-                        title="Delete User"
-                        description="Are you sure you want to delete this user? This action cannot be undone and will remove all associated data."
-                        confirmText="Delete User"
-                        variant="destructive"
-                        onConfirm={confirmDelete}
-                      />
-                      <Button
-                        onClick={() => openDeleteDialog(user.id)}
-                        className=" hover:bg-red-500 hover:text-white"
-                      >
-                        <Trash2 className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              ) : (
+                <p className=" text-slate-600 mx-auto w-full h-full flex justify-center items-center">
+                  User not found
+                </p>
+              )}
             </div>
+            <ConfirmationDialog
+              open={deleteDialog.open}
+              onOpenChange={(open) => setDeleteDialog({ open, quizId: null })}
+              title="Delete User"
+              description="Are you sure you want to delete this user? This action cannot be undone and will remove all associated data."
+              confirmText="Delete User"
+              variant="destructive"
+              onConfirm={confirmDelete}
+            />
             <Dialog open={openModal} onOpenChange={setOpenModal}>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>

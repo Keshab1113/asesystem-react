@@ -37,12 +37,12 @@ import ViewQuestionsModal from "../../components/AdminDashboard/ViewQuestionsMod
 import EditQuestionsModal from "../../components/AdminDashboard/EditQuestionModal";
 import useToast from "../../hooks/ToastContext";
 import { Eye, Users, Pencil } from "lucide-react";
+import { ConfirmationDialog } from "../../components/AdminDashboard/ConfirmationDialog";
 
 export function SubjectMasterPage() {
   const [subjects, setSubjects] = useState([]);
   const [assignModal, setAssignModal] = useState({ open: false, quizId: null });
   const [searchTerm, setSearchTerm] = useState("");
-  const [isEditing, setIsEditing] = useState(null);
   const [formModal, setFormModal] = useState({
     open: false,
     quiz: null,
@@ -55,6 +55,10 @@ export function SubjectMasterPage() {
     open: false,
     quizId: null,
   });
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    assessmentId: null,
+  });
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -63,7 +67,7 @@ export function SubjectMasterPage() {
     const fetchSubjects = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list/2`
         );
         // Map backend fields to frontend display fields
         const quizzes = response.data.data.map((q) => ({
@@ -116,19 +120,61 @@ export function SubjectMasterPage() {
   );
 
   const handleDeleteSubject = (id) => {
-    if (confirm("Are you sure you want to delete this subject?")) {
-      setSubjects(subjects.filter((subject) => subject.id !== id));
+    setDeleteDialog({ open: true, assessmentId: id });
+  };
+  const handleDeleteQuiz = async () => {
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${
+          deleteDialog.assessmentId
+        }`
+      );
+      setSubjects(
+        subjects.filter((subject) => subject.id !== deleteDialog.assessmentId)
+      );
+      toast({
+        title: "✅ Assessment Deleted",
+        description: `Assessment has been deleted successfully.`,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Error deleting Assessment:", error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to delete Assessment. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleToggleStatus = (id) => {
-    setSubjects(
-      subjects.map((subject) =>
-        subject.id === id
-          ? { ...subject, isActive: !subject.isActive }
-          : subject
-      )
-    );
+  const handleToggleStatus = async (id, is_active) => {
+    try {
+      await axios.put(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}/status`,
+        {
+          is_active,
+        }
+      );
+      toast({
+        title: "✅ Assessment Update",
+        description: `Assessment has been updated successfully.`,
+        variant: "success",
+      });
+      setSubjects(
+        subjects.map((subject) =>
+          subject.id === id
+            ? { ...subject, isActive: !subject.isActive }
+            : subject
+        )
+      );
+    } catch (error) {
+      toast({
+        title: "❌ Error",
+        description: "Failed to Update Assessment. Please try again.",
+        variant: "destructive",
+      });
+      console.error("Error updating status:", error);
+    }
   };
 
   const handleViewQuestions = (quizId) => {
@@ -235,7 +281,9 @@ export function SubjectMasterPage() {
                         <h3 className="font-semibold">{subject.name}</h3>
                         <div className=" flex flex-wrap gap-2">
                           <Badge
-                            variant={subject.isActive ? "default" : "secondary"}
+                            variant={
+                              subject.isActive ? "success" : "destructive"
+                            }
                           >
                             {subject.isActive ? "Active" : "Inactive"}
                           </Badge>
@@ -323,7 +371,12 @@ export function SubjectMasterPage() {
                         <Button
                           size="sm"
                           variant={subject.isActive ? "destructive" : "default"}
-                          onClick={() => handleToggleStatus(subject.id)}
+                          onClick={() =>
+                            handleToggleStatus(
+                              subject.id,
+                              subject.isActive ? 0 : 1
+                            )
+                          }
                         >
                           {subject.isActive ? "Deactivate" : "Activate"}
                         </Button>
@@ -367,7 +420,7 @@ export function SubjectMasterPage() {
                               <Users className="h-4 w-4 mr-2" /> Assign
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleToggleStatus(subject.id)}
+                              onClick={() => handleToggleStatus(subject.id, subject.isActive ? 0 : 1)}
                             >
                               <Power className="h-4 w-4 mr-2" />{" "}
                               {subject.isActive ? "Deactivate" : "Activate"}
@@ -424,6 +477,15 @@ export function SubjectMasterPage() {
         quizId={viewQuestionsModal.quizId}
         open={viewQuestionsModal.open}
         onClose={() => setViewQuestionsModal({ open: false, quizId: null })}
+      />
+      <ConfirmationDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, assessmentId: null })}
+        title="Delete Assessment"
+        description="Are you sure you want to delete this Assessment? This action cannot be undone and will remove all associated data."
+        confirmText="Delete Assessment"
+        variant="destructive"
+        onConfirm={handleDeleteQuiz}
       />
     </div>
   );

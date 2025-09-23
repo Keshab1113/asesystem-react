@@ -18,6 +18,7 @@ const quizRoutes = require('./routes/quizRoutes');
 const certificateRoutes = require('./routes/certificateRoutes');
 const quizAssignmentsRoutes = require("./routes/quizAssignmentsRoutes");
 const resultRoutes = require("./routes/resultRoutes");
+const userDownloadRoutes = require("./routes/userDownloadRoutes");
 
  
 // Middleware
@@ -40,6 +41,7 @@ app.get('/api/test-db', async (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/auth', userDownloadRoutes);
 app.use("/api/contractors", contractorRoutes);
 app.use("/api/companies", companyRoutes);
 app.use('/api/ai-questions', aiQuestionsRoutes);

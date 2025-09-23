@@ -227,6 +227,32 @@ const getNormalUsers = async (req, res) => {
   }
 };
 
+const getUsersByGroupAndTeam = async (req, res) => {
+  try {
+    const { group_id, team_id } = req.params;
+
+    if (!group_id || !team_id) {
+      return res.status(400).json({
+        success: false,
+        message: "group_id and team_id are required",
+      });
+    }
+
+    const [rows] = await db.execute(
+      `SELECT id, name, location, employee_id, team_id, group_id, controlling_team, \`group\`, email, role, phone, position, bio, is_active, profile_pic_url, created_at, updated_at
+       FROM users
+       WHERE role = 'user' AND group_id = ? AND team_id = ?
+       ORDER BY created_at DESC`,
+      [group_id, team_id]
+    );
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error("Get users by group_id and team_id error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 const forgotPasswordLogin = async (req, res) => {
   try {
     const { email } = req.body;
@@ -639,4 +665,5 @@ module.exports = {
   resendOtp,
   login,
   deleteUser,
+  getUsersByGroupAndTeam
 };

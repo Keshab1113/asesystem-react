@@ -16,6 +16,7 @@ const {
   resendOtp,
   login,
   deleteUser,
+  getUsersByGroupAndTeam,
 } = require("../controllers/authController");
 const { authenticate } = require("../middleware/authMiddleware");
 const multer = require("multer");
@@ -32,6 +33,7 @@ router.post(
   uploadProfilePicture
 );
 router.get("/role/user", getNormalUsers);
+router.get("/users/:group_id/:team_id", getUsersByGroupAndTeam);
 router.post("/forgot-password", forgotPasswordLogin);
 router.post("/reset-password", resetPasswordLogin);
 router.post("/register", register);

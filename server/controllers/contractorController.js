@@ -71,7 +71,6 @@ exports.createContractor = async (req, res) => {
   }
 };
 
-
 // Get All Contractors
 exports.getContractors = async (req, res) => {
   try {
@@ -84,6 +83,38 @@ exports.getContractors = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// Get Contractors by Company ID
+exports.getTeamsByGroupId = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      return res.status(400).json({
+        success: false,
+        message: "Group ID is required",
+      });
+    }
+
+    const [rows] = await pool.execute(
+      `SELECT * FROM teams WHERE company_id = ? ORDER BY created_at DESC`,
+      [groupId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No teams found for this group",
+      });
+    }
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error("Error fetching teams by groups:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 
 // Update Contractor
 exports.updateContractor = async (req, res) => {

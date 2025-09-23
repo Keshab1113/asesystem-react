@@ -56,6 +56,32 @@ exports.getAllQuizTitles = async (req, res) => {
   }
 };
 
+exports.getAllQuizzesWithNoActive = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT 
+   q.*,
+   COUNT(ques.id) AS question_count
+FROM quizzes q
+LEFT JOIN questions ques ON ques.quiz_id = q.id
+WHERE q.is_active IN (0, 1)
+GROUP BY q.id
+ORDER BY q.created_at DESC
+`
+    );
+
+    res.status(200).json({
+      success: true,
+      data: rows,
+    });
+  } catch (error) {
+    console.error("Error fetching quizzes:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 exports.getAllQuizzes = async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -67,7 +93,6 @@ LEFT JOIN questions ques ON ques.quiz_id = q.id
 WHERE q.is_active = 1
 GROUP BY q.id
 ORDER BY q.created_at DESC
-
 `
     );
 
@@ -125,7 +150,7 @@ ORDER BY q.created_at DESC
 
 //   try {
 //     const [result] = await db.query(
-//       `UPDATE quizzes SET 
+//       `UPDATE quizzes SET
 //   ${name ? "title = ?," : ""}
 //   ${timeLimit !== undefined ? "time_limit = ?," : ""}
 //   passing_score = ?,
@@ -179,12 +204,16 @@ exports.updateQuiz = async (req, res) => {
     scheduleEndDate,
     scheduleEndTime,
   } = req.body;
-console.log("update quiz",req.body);
+  console.log("update quiz", req.body);
   try {
     // ✅ Get existing quiz
-    const [existing] = await db.query("SELECT * FROM quizzes WHERE id = ?", [id]);
+    const [existing] = await db.query("SELECT * FROM quizzes WHERE id = ?", [
+      id,
+    ]);
     if (!existing.length) {
-      return res.status(404).json({ success: false, message: "Quiz not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Quiz not found" });
     }
     const currentQuiz = existing[0];
 
@@ -257,10 +286,14 @@ console.log("update quiz",req.body);
     const [result] = await db.query(sql, values);
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "Quiz not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Quiz not found" });
     }
 
-    res.status(200).json({ success: true, message: "Quiz updated successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Quiz updated successfully" });
   } catch (error) {
     console.error("Error updating quiz:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -281,7 +314,7 @@ exports.deleteQuiz = async (req, res) => {
     if (!existing.length) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found",
+        message: "Assessment not found",
       });
     }
 
@@ -291,16 +324,16 @@ exports.deleteQuiz = async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({
         success: false,
-        message: "Quiz not found or already deleted",
+        message: "Assessment not found or already deleted",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: "Quiz deleted successfully",
+      message: "Assessment deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting quiz:", error);
+    console.error("Error deleting Assessment:", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -699,5 +732,52 @@ exports.getQuizReportDetails = async (req, res) => {
   } catch (error) {
     console.error("Error fetching quiz report details:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// Update quiz is_active status
+exports.updateQuizStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_active } = req.body;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Assessment ID is required",
+      });
+    }
+
+    if (typeof is_active === "undefined") {
+      return res.status(400).json({
+        success: false,
+        message: "is_active value is required",
+      });
+    }
+
+    const [result] = await db.query(
+      `UPDATE quizzes 
+       SET is_active = ? 
+       WHERE id = ?`,
+      [is_active, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Assessment not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Assessment status updated successfully (id: ${id}, is_active: ${is_active})`,
+    });
+  } catch (error) {
+    console.error("Error updating Assessment status:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
