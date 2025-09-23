@@ -305,7 +305,8 @@ export default function AddSubjectPage() {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setDifficulty("easy")}
-                className={`flex-1 px-3 py-2 rounded-md text-sm cursor-pointer border ${
+                disabled={loadingGenerate}
+                className={`flex-1 px-3 py-2 disabled:cursor-not-allowed rounded-md text-sm cursor-pointer border ${
                   difficulty === "easy"
                     ? "bg-green-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -315,7 +316,8 @@ export default function AddSubjectPage() {
               </button>
               <button
                 onClick={() => setDifficulty("medium")}
-                className={`flex-1 px-3 py-2 rounded-md text-sm cursor-pointer border ${
+                disabled={loadingGenerate}
+                className={`flex-1 px-3 py-2 disabled:cursor-not-allowed rounded-md text-sm cursor-pointer border ${
                   difficulty === "medium"
                     ? "bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -325,7 +327,8 @@ export default function AddSubjectPage() {
               </button>
               <button
                 onClick={() => setDifficulty("hard")}
-                className={`flex-1 px-3 py-2 rounded-md text-sm cursor-pointer border ${
+                disabled={loadingGenerate}
+                className={`flex-1 px-3 py-2 disabled:cursor-not-allowed rounded-md text-sm cursor-pointer border ${
                   difficulty === "hard"
                     ? "bg-red-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
@@ -418,7 +421,8 @@ export default function AddSubjectPage() {
 
             <Button
               onClick={generateQuestions}
-              className="w-full flex items-center justify-center gap-2"
+              disabled={loadingGenerate}
+              className="w-full flex items-center justify-center gap-2 disabled:cursor-not-allowed"
             >
               {loadingGenerate ? (
                 <>
@@ -494,7 +498,8 @@ export default function AddSubjectPage() {
                   },
                 ])
               }
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
+              disabled={loadingGenerate || loadingSave}
+              className="flex disabled:cursor-not-allowed items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
             >
               <svg
                 className="w-4 h-4"
@@ -725,7 +730,8 @@ export default function AddSubjectPage() {
               <div className="flex gap-3 pt-2 border-t border-gray-200 dark:border-gray-700  ">
                 <Button
                   onClick={handleSave}
-                  className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center justify-center gap-2 py-3 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+                  disabled={loadingSave}
+                  className="flex-1 disabled:cursor-not-allowed bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white flex items-center justify-center gap-2 py-3 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   {loadingSave ? (
                     <>
@@ -779,62 +785,6 @@ export default function AddSubjectPage() {
           </CardContent>
         </Card>
       </div>
-
-      <style>{`
-@keyframes slow-reverse-spin {
-  from { transform: rotate(360deg); }
-  to { transform: rotate(0deg); }
-}
-
-@keyframes gentle-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.8; }
-  50% { transform: scale(1.1); opacity: 1; }
-}
-
-@keyframes subtle-float-1 {
-  0%, 100% { transform: translate(0, 0); opacity: 0.4; }
-  50% { transform: translate(-8px, -12px); opacity: 0.8; }
-}
-
-@keyframes subtle-float-2 {
-  0%, 100% { transform: translate(0, 0); opacity: 0.4; }
-  50% { transform: translate(10px, -8px); opacity: 0.8; }
-}
-
-@keyframes subtle-float-3 {
-  0%, 100% { transform: translate(0, 0); opacity: 0.4; }
-  50% { transform: translate(-10px, 8px); opacity: 0.8; }
-}
-
-@keyframes subtle-float-4 {
-  0%, 100% { transform: translate(0, 0); opacity: 0.4; }
-  50% { transform: translate(8px, 12px); opacity: 0.8; }
-}
-
-.animate-slow-reverse-spin {
-  animation: slow-reverse-spin 3s linear infinite;
-}
-
-.animate-gentle-pulse {
-  animation: gentle-pulse 2s ease-in-out infinite;
-}
-
-.animate-subtle-float-1 {
-  animation: subtle-float-1 3s ease-in-out infinite;
-}
-
-.animate-subtle-float-2 {
-  animation: subtle-float-2 2.8s ease-in-out infinite;
-}
-
-.animate-subtle-float-3 {
-  animation: subtle-float-3 3.2s ease-in-out infinite;
-}
-
-.animate-subtle-float-4 {
-  animation: subtle-float-4 2.9s ease-in-out infinite;
-}
-`}</style>
     </div>
   );
 }

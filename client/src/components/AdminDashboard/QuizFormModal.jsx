@@ -57,7 +57,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
     timeLimit: "30",
     passingScore: "70",
     maxAttempts: "3",
-  maxQuestions: quiz?.questionCount || 0, // <-- new field
+    maxQuestions: quiz?.questionCount || 0, // <-- new field
     randomizeQuestions: true,
     showResults: true,
     allowReview: true,
@@ -83,14 +83,13 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
         isPublic: quiz.isPublic ?? false,
         tags: quiz.tags || [],
         scheduleStartDate: quiz.scheduleStartDate
-  ? new Date(quiz.scheduleStartDate).toLocaleDateString("en-CA")
-  : "",
-scheduleStartTime: quiz.scheduleStartTime || "",
-scheduleEndDate: quiz.scheduleEndDate
-  ? new Date(quiz.scheduleEndDate).toLocaleDateString("en-CA")
-  : "",
-scheduleEndTime: quiz.scheduleEndTime || "",
-
+          ? new Date(quiz.scheduleStartDate).toLocaleDateString("en-CA")
+          : "",
+        scheduleStartTime: quiz.scheduleStartTime || "",
+        scheduleEndDate: quiz.scheduleEndDate
+          ? new Date(quiz.scheduleEndDate).toLocaleDateString("en-CA")
+          : "",
+        scheduleEndTime: quiz.scheduleEndTime || "",
       });
     } else {
       // Reset to default values for new quiz
@@ -135,15 +134,14 @@ scheduleEndTime: quiz.scheduleEndTime || "",
           allowReview: quiz.allowReview ?? true,
           isPublic: quiz.isPublic ?? false,
           tags: quiz.tags || [],
-         scheduleStartDate: quiz.scheduleStartDate
-  ? new Date(quiz.scheduleStartDate).toLocaleDateString("en-CA")
-  : "",
-scheduleStartTime: quiz.scheduleStartTime || "",
-scheduleEndDate: quiz.scheduleEndDate
-  ? new Date(quiz.scheduleEndDate).toLocaleDateString("en-CA")
-  : "",
-scheduleEndTime: quiz.scheduleEndTime || "",
-
+          scheduleStartDate: quiz.scheduleStartDate
+            ? new Date(quiz.scheduleStartDate).toLocaleDateString("en-CA")
+            : "",
+          scheduleStartTime: quiz.scheduleStartTime || "",
+          scheduleEndDate: quiz.scheduleEndDate
+            ? new Date(quiz.scheduleEndDate).toLocaleDateString("en-CA")
+            : "",
+          scheduleEndTime: quiz.scheduleEndTime || "",
         });
       } else {
         setFormData({
@@ -174,27 +172,27 @@ scheduleEndTime: quiz.scheduleEndTime || "",
   const handleSave = async () => {
     setLoading(true);
 
-   const normalizeDate = (dateStr) => {
-  if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d)) return null;
-  return d.toLocaleDateString("en-CA"); // always YYYY-MM-DD
-};
+    const normalizeDate = (dateStr) => {
+      if (!dateStr) return null;
+      const d = new Date(dateStr);
+      if (isNaN(d)) return null;
+      return d.toLocaleDateString("en-CA"); // always YYYY-MM-DD
+    };
 
-const quizData = {
-  name: formData.name,
-  description: formData.description,
-  subject_id: formData.subject || null,
-  difficulty_level: formData.difficulty || "medium",
-  timeLimit: formData.timeLimit,
-  passingScore: formData.passingScore,
-  maxAttempts: formData.maxAttempts,
-  maxQuestions: formData.maxQuestions || 0,
-  scheduleStartDate: normalizeDate(formData.scheduleStartDate),
-  scheduleStartTime: formData.scheduleStartTime || null,
-  scheduleEndDate: normalizeDate(formData.scheduleEndDate),
-  scheduleEndTime: formData.scheduleEndTime || null,
-};
+    const quizData = {
+      name: formData.name,
+      description: formData.description,
+      subject_id: formData.subject || null,
+      difficulty_level: formData.difficulty || "medium",
+      timeLimit: formData.timeLimit,
+      passingScore: formData.passingScore,
+      maxAttempts: formData.maxAttempts,
+      maxQuestions: formData.maxQuestions || 0,
+      scheduleStartDate: normalizeDate(formData.scheduleStartDate),
+      scheduleStartTime: formData.scheduleStartTime || null,
+      scheduleEndDate: normalizeDate(formData.scheduleEndDate),
+      scheduleEndTime: formData.scheduleEndTime || null,
+    };
 
     try {
       if (isEditing && quiz?.id) {
@@ -244,7 +242,6 @@ const quizData = {
       setLoading(false);
     }
   };
- 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -256,7 +253,7 @@ const quizData = {
             ) : (
               <Plus className="h-5 w-5" />
             )}
-            {isEditing ? "Schedule Assignment" : "Create New Quiz"}
+            {isEditing ? "Schedule Assignment" : "Create New Assessment"}
           </DialogTitle>
           <DialogDescription>
             {isEditing
@@ -266,7 +263,8 @@ const quizData = {
 
           {isEditing && quiz?.name && (
             <div className="text-sm text-muted-foreground mt-2 px-1">
-              Selected Quiz: <span className="font-medium">{quiz.name}</span>
+              Selected Assessment:{" "}
+              <span className="font-medium">{quiz.name}</span>
             </div>
           )}
         </DialogHeader>
@@ -274,13 +272,12 @@ const quizData = {
         <Tabs defaultValue="basic" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="basic">Basic Info</TabsTrigger>
-          
           </TabsList>
 
           <TabsContent value="basic" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="quiz-name">Quiz Name *</Label>
+                <Label htmlFor="quiz-name">Assessment Name *</Label>
                 <Input
                   id="quiz-name"
                   placeholder="Enter quiz name..."
@@ -318,7 +315,8 @@ const quizData = {
                         variant="outline"
                         className={`w-full justify-start text-left font-normal ${
                           !formData.scheduleStartDate && "text-muted-foreground"
-                        }`}>
+                        }`}
+                      >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.scheduleStartDate
                           ? format(new Date(formData.scheduleStartDate), "PPP")
@@ -333,6 +331,9 @@ const quizData = {
                             ? new Date(formData.scheduleStartDate)
                             : undefined
                         }
+                        disabled={{
+                          before: new Date(),
+                        }}
                         onSelect={(date) =>
                           setFormData({
                             ...formData,
@@ -359,6 +360,7 @@ const quizData = {
                         scheduleStartTime: e.target.value,
                       })
                     }
+                    className=" dark:text-white"
                   />
                 </div>
               </div>
@@ -372,7 +374,8 @@ const quizData = {
                         variant="outline"
                         className={`w-full justify-start text-left font-normal ${
                           !formData.scheduleEndDate && "text-muted-foreground"
-                        }`}>
+                        }`}
+                      >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.scheduleEndDate
                           ? format(new Date(formData.scheduleEndDate), "PPP")
@@ -455,7 +458,7 @@ const quizData = {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  Quiz Behavior
+                  Assessment Behavior
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -479,7 +482,8 @@ const quizData = {
                     value={formData.maxAttempts}
                     onValueChange={(value) =>
                       setFormData({ ...formData, maxAttempts: value })
-                    }>
+                    }
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -492,26 +496,28 @@ const quizData = {
                   </Select>
                 </div>
                 <div className="space-y-2">
-  <Label htmlFor="max-questions">Maximum Questions</Label>
-  <Input
-    id="max-questions"
-    type="number"
-    min="1"
-    max={quiz?.questionCount || 1} // <-- cannot exceed number of questions
-    value={formData.maxQuestions}
-    onChange={(e) => {
-      const value = Math.min(Number(e.target.value), quiz?.questionCount || 1);
-      setFormData({ ...formData, maxQuestions: value });
-    }}
-    placeholder={`Up to ${quiz?.questionCount || 1}`}
-  />
-  {quiz?.questionCount && (
-    <p className="text-xs text-gray-500">
-      Max {quiz.questionCount} questions allowed.
-    </p>
-  )}
-</div>
-
+                  <Label htmlFor="max-questions">Maximum Questions</Label>
+                  <Input
+                    id="max-questions"
+                    type="number"
+                    min="1"
+                    max={quiz?.questionCount || 1} // <-- cannot exceed number of questions
+                    value={formData.maxQuestions}
+                    onChange={(e) => {
+                      const value = Math.min(
+                        Number(e.target.value),
+                        quiz?.questionCount || 1
+                      );
+                      setFormData({ ...formData, maxQuestions: value });
+                    }}
+                    placeholder={`Up to ${quiz?.questionCount || 1}`}
+                  />
+                  {quiz?.questionCount && (
+                    <p className="text-xs text-gray-500">
+                      Max {quiz.questionCount} questions allowed.
+                    </p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -527,29 +533,33 @@ const quizData = {
                 className="animate-spin h-4 w-4 mr-2 text-white"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
-                viewBox="0 0 24 24">
+                viewBox="0 0 24 24"
+              >
                 <circle
                   className="opacity-25"
                   cx="12"
                   cy="12"
                   r="10"
                   stroke="currentColor"
-                  strokeWidth="4"></circle>
+                  strokeWidth="4"
+                ></circle>
                 <path
                   className="opacity-75"
                   fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
               </svg>
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            {loading ? "Saving..." : isEditing ? "Update Quiz" : "Create Quiz"}
+            {loading
+              ? "Saving..."
+              : isEditing
+              ? "Update Assessment"
+              : "Create Assessment"}
           </Button>
         </div>
       </DialogContent>
     </Dialog>
   );
- 
-
-
 }

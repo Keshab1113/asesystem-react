@@ -446,7 +446,6 @@ export default function DashboardPage() {
 
                 try {
                   // Step 1: Mark assessment as started
-                  
 
                   // Step 2: Assign random questions
                   const assignRes = await axios.post(
@@ -517,8 +516,6 @@ export default function DashboardPage() {
                 }
 
                 try {
-                 
-
                   // Step 2: Assign random questions
                   const assignRes = await axios.post(
                     `${
@@ -571,7 +568,9 @@ export default function DashboardPage() {
           {["passed", "failed", "under_review"].includes(assessment.status) && (
             <Button
               variant="outline"
-              onClick={()=> navigate(`results?assignmentId=${assessment.assignment_id}`)}
+              onClick={() =>
+                navigate(`results?assignmentId=${assessment.assignment_id}`)
+              }
               className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
               <Eye className="w-4 h-4 mr-2" />
@@ -607,27 +606,31 @@ export default function DashboardPage() {
     }
 
     return true; // if no end date/time, keep it as scheduled
-  });
+  }).sort((a, b) => new Date(b.schedule_start_date) - new Date(a.schedule_start_date));
 
-  const completed = assignments.filter((a) => {
-    if (["passed", "in_progress", "failed", "under_review"].includes(a.status))
-      return true;
+  const completed = assignments
+    .filter((a) => {
+      if (
+        ["passed", "in_progress", "failed", "under_review"].includes(a.status)
+      )
+        return true;
 
-    if (
-      a.status === "scheduled" &&
-      a.schedule_end_date &&
-      a.schedule_end_time
-    ) {
-      const endDateTime = new Date(
-        `${a.schedule_end_date.split("T")[0]}T${a.schedule_end_time}`
-      );
-      return now > endDateTime; // expired scheduled treated as completed
-    }
+      if (
+        a.status === "scheduled" &&
+        a.schedule_end_date &&
+        a.schedule_end_time
+      ) {
+        const endDateTime = new Date(
+          `${a.schedule_end_date.split("T")[0]}T${a.schedule_end_time}`
+        );
+        return now > endDateTime; // expired scheduled treated as completed
+      }
 
-    return false;
-  });
+      return false;
+    })
+    .sort((a, b) => new Date(b.user_ended_at) - new Date(a.user_ended_at));
 
-  console.log("assignments: ", assignments);
+  // console.log("assignments: ", assignments);
 
   return (
     <div className="space-y-10">

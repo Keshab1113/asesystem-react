@@ -50,7 +50,8 @@ exports.getAssignmentById = async (req, res) => {
         q.schedule_end_time
       FROM quiz_assignments qa
       JOIN quizzes q ON qa.quiz_id = q.id
-      WHERE qa.user_id = ?`,
+      WHERE qa.user_id = ?
+      ORDER BY q.schedule_start_date DESC`,
       [id]
     );
 
