@@ -1,4 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { logout } from "./authSlice"; // import logout action
+
+const initialState = {
+  questionsByQuiz: {}, // { quizId: [questions] }
+  answers: {},         // { quizId: { questionId: answer } }
+};
 
 const quizSlice = createSlice({
   name: "quiz",
@@ -23,6 +29,9 @@ const quizSlice = createSlice({
       delete state.questionsByQuiz[quizId];
       delete state.answers[quizId];
     },
+  },
+   extraReducers: (builder) => {
+    builder.addCase(logout, () => initialState); // 👈 clear quiz state on logout
   },
 });
 

@@ -114,6 +114,9 @@ export default function AddSubjectPage() {
       }
 
       // ✅ Proceed with generating questions using uploaded files
+      // Combine previously uploaded file IDs with newly uploaded ones
+      const allFileIds = [...uploadedFileIds, ...uploadedFileIdsLocal];
+      
       const response = await fetch(
         `${
           import.meta.env.VITE_BACKEND_URL
@@ -128,7 +131,7 @@ export default function AddSubjectPage() {
             subjectId: Date.now() ?? null,
             description: newSubject.description ?? "",
             difficulty: difficulty ?? "medium",
-            fileIds: uploadedFileIdsLocal,
+            fileIds: allFileIds,
             numberOfQuestions: numQuestions || 25, // default to 25 if empty
           }),
         }
@@ -384,16 +387,33 @@ export default function AddSubjectPage() {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none mb-3"
               />
 
-              {/* Show selected files with remove option */}
-              {files.length > 0 && (
+              {/* Show selected files (not yet uploaded) with remove option */}
+              {(files.length > 0 || uploadedFiles.length > 0) && (
                 <div className="space-y-2 text-sm text-gray-700">
+                  {/* Show uploaded files */}
+                  {uploadedFiles.map((file, index) => (
+                    <div
+                      key={`uploaded-${file.file_id}`}
+                      className="flex items-center bg-green-50 border border-green-200 rounded-md px-3 py-2"
+                    >
+                      <span className="text-green-600 font-medium mr-3 min-w-[20px]">
+                        {index + 1}.
+                      </span>
+                      <span className="flex-1 truncate">{file.original_name}</span>
+                      <span className="text-green-600 text-xs ml-2 flex-shrink-0">
+                        ✓ Uploaded
+                      </span>
+                    </div>
+                  ))}
+                  
+                  {/* Show selected files (not yet uploaded) */}
                   {files.map((file, index) => (
                     <div
-                      key={index}
+                      key={`selected-${index}`}
                       className="flex items-center bg-gray-100 rounded-md px-3 py-2 hover:bg-gray-200 transition-colors"
                     >
                       <span className="text-indigo-600 font-medium mr-3 min-w-[20px]">
-                        {index + 1}.
+                        {uploadedFiles.length + index + 1}.
                       </span>
                       <span className="flex-1 truncate">{file.name}</span>
                       <button

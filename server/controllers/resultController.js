@@ -56,13 +56,16 @@ exports.getQuizResult = async (req, res) => {
       [assignmentId]
     );
 
-    const wrongAnswers = wrongRows.map((wa) => ({
-      id: wa.question_id,
-      question: wa.question_text,
-      options: JSON.parse(wa.options || "[]"),
-      userAnswer: wa.userAnswer || "",
-      correctAnswer: wa.correct_answer,
-    }));
+    const wrongAnswers = wrongRows
+  .map((wa) => ({
+    id: wa.question_id,
+    question: wa.question_text,
+    options: JSON.parse(wa.options || "[]"),
+    userAnswer: wa.userAnswer || "",
+    correctAnswer: wa.correct_answer,
+  }))
+  .filter((wa) => wa.userAnswer && wa.userAnswer.trim() !== "");
+
 
     // Time spent
     let timeSpent = null;

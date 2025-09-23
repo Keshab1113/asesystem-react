@@ -9,6 +9,7 @@ import {
 import ToggleTheme from "../ToggleTheme";
 import { useDispatch } from "react-redux";
 import { logout } from "../../redux/slices/authSlice";
+import { persistor } from "../../redux/store";
 import { useNavigate } from "react-router-dom";
 
 export function AdminHeader({ onMenuClick }) {
@@ -16,6 +17,7 @@ export function AdminHeader({ onMenuClick }) {
   const dispatch = useDispatch();
   const handleLogout = () => {
     dispatch(logout());
+    persistor.purge(); // Clear persisted Redux store
     navigate("/");
   };
   return (
