@@ -2,6 +2,8 @@ const PDFDocument = require("pdfkit");
 const QRCode = require("qrcode");
 const uploadToFTP = require("../config/uploadToFTP");
 const db = require("../config/database");
+const fs = require("fs");
+const path = require("path");
 
 exports.generateCertificate = async (req, res) => {
   try {
@@ -21,14 +23,24 @@ exports.generateCertificate = async (req, res) => {
 
     const frontendBaseURL = process.env.FRONTEND_URL;
     const qrLink = `${frontendBaseURL}/certificate-view?certNo=${certificateNumber}`;
-    const qrImage = await QRCode.toDataURL(qrLink);
+    const qrImage = await QRCode.toDataURL(qrLink, {
+      color: { dark: "#000000", light: "#00000000" }, // transparent background
+    });
     const qrBuffer = Buffer.from(qrImage.split(",")[1], "base64");
-
     const doc = new PDFDocument({ size: "A4", layout: "landscape" });
     const buffers = [];
     doc.on("data", (chunk) => buffers.push(chunk));
     doc.on("end", async () => {
       const pdfBuffer = Buffer.concat(buffers);
+      // const certificatesDir = path.join(__dirname, "../certificates");
+      // if (!fs.existsSync(certificatesDir)) {
+      //   fs.mkdirSync(certificatesDir, { recursive: true });
+      // }
+
+      // Save locally
+      // const filePath = path.join(certificatesDir, `${certificateNumber}.pdf`);
+      // fs.writeFileSync(filePath, pdfBuffer);
+
       try {
         const certUrl = await uploadToFTP(
           pdfBuffer,
@@ -50,7 +62,7 @@ exports.generateCertificate = async (req, res) => {
             expiry_date || null,
             1,
             certUrl,
-            generateFrom || "automatic"
+            generateFrom || "automatic",
           ]
         );
         res.status(200).json({
@@ -81,35 +93,46 @@ exports.generateCertificate = async (req, res) => {
       .fillColor("#0056A6")
       .text(userName, 0, 150, { align: "center", width: pageWidth });
 
+    const boxWidth = 550;
+    const boxHeight = 100;
+    const boxX = pageWidth - boxWidth - 60; // right aligned with margin
+    const boxY = 220;
+
+    doc.rect(boxX, boxY, boxWidth, boxHeight);
+    doc.fillColor("#454544");
+
     doc
       .font("Helvetica-Bold")
-      .fontSize(18)
-      .fillColor("#454544")
+      .fontSize(16)
       .text(
-        `${date} under the topic "${quizTitle}." ${certificateText || ""}`,
-        260,
-        237,
-        { align: "center", width: pageWidth - 270 }
+        `Has successfully completed the "KOC HSE MS ASSESSMENT" on ${date} under the topic "${quizTitle}". ${
+          certificateText || ""
+        }`,
+        boxX + 15,
+        boxY + 15,
+        { align: "left", width: boxWidth - 30 }
       );
 
     const qrSize = 100;
-    const qrX = (pageWidth - qrSize) / 2;
-    const qrY = pageHeight - qrSize - 40;
+    const qrX = pageWidth - qrSize - 40;
+    const qrY = pageHeight - qrSize - 140;
 
     doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
 
-    doc
-      .fontSize(12)
-      .fillColor("#000")
-      .text(`Certificate No: ${certificateNumber}`, qrX - 200, qrY + 20, {
-        width: 180,
-        align: "right",
-      })
-      .moveDown(0.5)
-      .text(`Date: ${date}`, qrX - 200, qrY + 50, {
-        width: 180,
-        align: "right",
-      });
+    const infoX = 60;
+    const infoY = pageHeight - 150;
+
+    doc.fontSize(12).fillColor("#000");
+
+    // Fix: explicitly set position before each line
+    doc.text(`Certificate No: ${certificateNumber}`, infoX, infoY, {
+      align: "left",
+      width: 250,
+    });
+    doc.text(`Date: ${date}`, infoX, infoY + 20, {
+      align: "left",
+      width: 200,
+    });
 
     doc.end();
   } catch (err) {
@@ -157,3 +180,43 @@ exports.getCertificate = async (req, res) => {
     });
   }
 };
+
+exports.getCertificateByNumber = async (req, res) => {
+  try {
+    const { certificate_number } = req.body;
+
+    if (!certificate_number) {
+      return res.status(400).json({
+        success: false,
+        message: "certificate_number is required",
+      });
+    }
+
+    const [rows] = await db.execute(
+      `SELECT certificate_url, certificate_number 
+       FROM certificates 
+       WHERE certificate_number = ? AND is_valid = 1`,
+      [certificate_number]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Certificate not found",
+      });
+    }
+
+    const certificate = rows[0];
+    res.status(200).json({
+      success: true,
+      certificate,
+    });
+  } catch (err) {
+    console.error("❌ Error fetching certificate by number:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+

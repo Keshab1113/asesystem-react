@@ -30,6 +30,7 @@ export default function ResultsPage() {
   const { toast } = useToast();
   const [certificateNumber, setCertificateNumber] = useState("");
   const [certificateURL, setCertificateURL] = useState(null);
+  const [questionNumber, setQuestionNumber] = useState(1);
   const [isLoadingCertificate, setIsLoadingCertificate] = useState(false);
   const [isUserPass, setIsUserPass] = useState(false);
   const [searchParams] = useSearchParams();
@@ -143,19 +144,14 @@ export default function ResultsPage() {
   };
 
   const handleCertificate = async () => {
-    console.log("Clicked handleCertificate");
     try {
-      console.log("Entering in try...");
-
       setIsLoadingCertificate(true);
-      // Step 1: Check if certificate already exists
       const checkResponse = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/certificates/get`,
         { user_id: user.id, quiz_id: quizId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (checkResponse.data.success && checkResponse.data.certificate) {
-        // Certificate already exists, no need to generate
         setCertificateURL(checkResponse?.data?.certificate?.certificate_url);
         setCertificateNumber(
           checkResponse?.data?.certificate?.certificate_number
@@ -245,7 +241,7 @@ export default function ResultsPage() {
             <CardHeader className="bg-gradient-to-r py-4 !pb-2 from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border-b">
               <div className="flex justify-between items-center">
                 <CardTitle className="text-xl text-gray-900 dark:text-white">
-                  Question #{results.wrongAnswers[currentWrongQuestion].id}
+                  Question #{questionNumber}
                 </CardTitle>
                 <Badge variant="destructive" className="text-sm">
                   Incorrect
@@ -270,7 +266,7 @@ export default function ResultsPage() {
                     >
                       <div className="flex items-center">
                         <div
-                          className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 ${
+                          className={`min-w-6 min-h-6 rounded-full flex items-center justify-center mr-3 ${
                             option === question.userAnswer
                               ? "bg-red-500 text-white"
                               : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
@@ -296,7 +292,8 @@ export default function ResultsPage() {
                           65 + question.options.indexOf(question.userAnswer)
                         )}
                       </strong>
-                      . Review this concept to improve your understanding.
+                      <br />
+                      Review this procedure to improve your understanding.
                     </p>
                   </div>
                 </div>
@@ -314,28 +311,30 @@ export default function ResultsPage() {
 
                 <div className="flex gap-2">
                   <Button
-                    onClick={() =>
-                      setCurrentWrongQuestion((prev) => Math.max(prev - 1, 0))
-                    }
+                    onClick={() => {
+                      setQuestionNumber(questionNumber - 1);
+                      setCurrentWrongQuestion((prev) => Math.max(prev - 1, 0));
+                    }}
                     disabled={currentWrongQuestion === 0}
                     variant="outline"
                   >
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                    Previous
+                    <ChevronLeft className="w-4 h-4" />
+                    <span className=" md:block hidden md:ml-2">Previous</span>
                   </Button>
 
                   <Button
-                    onClick={() =>
+                    onClick={() => {
                       setCurrentWrongQuestion((prev) =>
                         Math.min(prev + 1, results.wrongAnswers.length - 1)
-                      )
-                    }
+                      );
+                      setQuestionNumber(questionNumber + 1);
+                    }}
                     disabled={
                       currentWrongQuestion === results.wrongAnswers.length - 1
                     }
                   >
-                    Next
-                    <ChevronRight className="w-4 h-4 ml-2" />
+                    <span className=" md:block hidden md:mr-2">Next</span>
+                    <ChevronRight className="w-4 h-4 " />
                   </Button>
                 </div>
               </div>

@@ -1,24 +1,58 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Download } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
+import axios from "axios";
 
 export default function CertificateView() {
   const [searchParams] = useSearchParams();
-  const certificateURL = searchParams.get("url");
   const certificateNumber = searchParams.get("certNo");
 
-  if (!certificateURL) {
-    return <p className="text-center mt-10">No certificate found</p>;
-  }
+  const [certificateURL, setCertificateURL] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!certificateNumber) {
+      setError("Certificate number not provided");
+      setLoading(false);
+      return;
+    }
+
+    const fetchCertificate = async () => {
+      try {
+        const response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/api/certificates/get-by-number`,
+          { certificate_number: certificateNumber }
+        );
+
+        if (response.data.success && response.data.certificate) {
+          setCertificateURL(response.data.certificate.certificate_url);
+        } else {
+          setError("Certificate not found");
+        }
+      } catch (err) {
+        console.error("Error fetching certificate:", err);
+        setError("Failed to fetch certificate");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCertificate();
+  }, [certificateNumber]);
 
   const handleDownload = () => {
+    if (!certificateURL) return;
     const a = document.createElement("a");
     a.href = certificateURL;
     a.target = "_blank";
     a.download = `${certificateNumber}.pdf`;
     a.click();
   };
+
+  if (loading) return <p className="text-center mt-10">Loading...</p>;
+  if (error) return <p className="text-center mt-10 text-red-500">Certificate Not Found</p>;
 
   return (
     <div className="p-6 space-y-4">

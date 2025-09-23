@@ -1,10 +1,11 @@
 const express = require("express");
-const { generateCertificate, getCertificate } = require("../controllers/certificateController");
+const { generateCertificate, getCertificate, getCertificateByNumber } = require("../controllers/certificateController");
 const { authenticate } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 router.post("/generate", authenticate, generateCertificate);
 router.post("/get", authenticate, getCertificate);
+router.post("/get-by-number", getCertificateByNumber);
 
 router.get("/download", authenticate, async (req, res) => {
   try {
@@ -35,5 +36,6 @@ router.get("/download", authenticate, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 
 module.exports = router;

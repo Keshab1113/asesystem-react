@@ -488,7 +488,7 @@ export default function QuestionsPage() {
                 onClick={handleAcceptInstructions}
                 disabled={!accepted}
                 size="lg"
-                className="px-8 py-3 text-lg bg-blue-600 hover:bg-blue-700"
+                className="px-8 py-3 text-lg bg-blue-600 hover:bg-blue-700 text-white"
               >
                 I Accept - Start Assessment
               </Button>
@@ -778,7 +778,7 @@ export default function QuestionsPage() {
                         <Button
                           onClick={() => handleSubmit(false)}
                           size="lg"
-                          className={`px-8 py-3 text-lg font-semibold transition-all ${
+                          className={`px-8 py-3 text-lg font-semibold transition-all text-white ${
                             allQuestionsAnswered
                               ? "bg-green-600 hover:bg-green-700 shadow-lg"
                               : "bg-gray-400 cursor-not-allowed"
@@ -792,7 +792,7 @@ export default function QuestionsPage() {
                         <Button
                           onClick={handleNext}
                           size="lg"
-                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg"
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white"
                         >
                           <h4 className=" md:block hidden">Next</h4>
                           <ArrowRight className="w-4 h-4 md:ml-2" />
