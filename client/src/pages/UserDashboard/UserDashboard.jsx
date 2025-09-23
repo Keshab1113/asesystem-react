@@ -34,8 +34,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import useToast from "../../hooks/ToastContext";
+ 
+
+
 
 export default function DashboardPage() {
+ 
   const { t } = useLanguage();
   const { user } = useSelector((state) => state.auth);
   const [assignments, setAssignments] = useState([]);
@@ -662,7 +666,7 @@ export default function DashboardPage() {
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
             {inProgress.map((assessment) => (
-              <AssessmentCard key={assessment.id} assessment={assessment} />
+              <AssessmentCard key={assessment.assignment_id} assessment={assessment} />
             ))}
           </div>
         </section>
@@ -696,7 +700,7 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             {scheduled.map((assessment) => (
-              <AssessmentCard key={assessment.id} assessment={assessment} />
+              <AssessmentCard key={assessment.assignment_id} assessment={assessment} />
             ))}
           </div>
         )}
@@ -728,7 +732,7 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             {completed.map((assessment) => (
-              <AssessmentCard key={assessment.id} assessment={assessment} />
+              <AssessmentCard key={assessment.assignment_id} assessment={assessment} />
             ))}
           </div>
         )}

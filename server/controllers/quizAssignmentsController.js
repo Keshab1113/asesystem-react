@@ -50,7 +50,7 @@ exports.getAssignmentById = async (req, res) => {
         q.schedule_end_time
       FROM quiz_assignments qa
       JOIN quizzes q ON qa.quiz_id = q.id
-      WHERE qa.user_id = ?
+      WHERE qa.user_id = ? AND q.is_active = 1
       ORDER BY q.schedule_start_date DESC`,
       [id]
     );
@@ -159,8 +159,8 @@ exports.endAssessment = async (req, res) => {
 }
 
 
-    // ✅ Calculate percentage & status
-    const percentage = (score / answers.length) * 100;
+  const totalAnswered = answers.length || 1; // avoid divide by zero
+const percentage = (score / totalAnswered) * 100;
     const status = percentage >= passing_score ? "passed" : "failed";
 
     // ✅ Update quiz_assignments
@@ -187,6 +187,7 @@ exports.endAssessment = async (req, res) => {
 exports.assignRandomQuestions = async (req, res) => {
    
   const { quizId, userId, assignmentId } = req.body;
+ console.log(req.body);
 
   if (!quizId || !userId || !assignmentId) {
     return res.status(400).json({ success: false, message: "quizId, userId, and assignmentId are required" });
@@ -221,6 +222,8 @@ exports.assignRandomQuestions = async (req, res) => {
       [quizId]
     );
     if (!questionRows.length) return res.status(404).json({ success: false, message: "No active questions found" });
+// console.log("maxQuestions from quiz:", maxQuestions);
+// console.log("Total active questions available:", questionRows.length);
 
     // 4. Shuffle + pick
     const shuffled = [...questionRows].sort(() => Math.random() - 0.5);
@@ -239,7 +242,8 @@ exports.assignRandomQuestions = async (req, res) => {
 );
 
 
-    return res.json({ success: true, message: "Random questions assigned successfully", data: selected });
+return res.json({ success: true, message: "Random questions assigned successfully", data: selected });
+
   } catch (err) {
     console.error("Error assigning random questions:", err);
     return res.status(500).json({ success: false, message: "Server error" });
