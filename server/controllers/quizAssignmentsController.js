@@ -100,10 +100,105 @@ exports.startAssessment = async (req, res) => {
   }
 };
 
+// exports.endAssessment = async (req, res) => {
+//   try {
+//     const { quiz_id, user_id, assignment_id, passing_score, answers } =
+//       req.body;
+
+//     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "quiz_id, user_id, assignment_id, and answers required",
+//       });
+//     }
+
+//     let score = 0;
+
+//     for (const { question_id, answer } of answers) {
+//       // question_id here might be assigned_questions.id, so map it
+//       const [aqRows] = await db.query(
+//         "SELECT question_id FROM assigned_questions WHERE id = ? AND assignment_id = ? AND user_id = ?",
+//         [question_id, assignment_id, user_id]
+//       );
+
+//       if (!aqRows.length) continue;
+//       const real_question_id = aqRows[0].question_id; // ✅ actual questions.id
+
+//       // Get correct answer from questions table
+//       const [qRows] = await db.query(
+//         "SELECT correct_answer FROM questions WHERE id = ?",
+//         [real_question_id]
+//       );
+//       if (!qRows.length) continue;
+
+//       const correct_answer = qRows[0].correct_answer;
+//       const is_correct = answer.trim() === correct_answer.trim() ? 1 : 0;
+
+//       // Insert into answers table with real question id
+//       const [ansRes] = await db.query(
+//         `INSERT INTO answers 
+//      (quiz_id, question_id, user_id, assignment_id, answer, is_correct) 
+//      VALUES (?, ?, ?, ?, ?, ?)`,
+//         [quiz_id, real_question_id, user_id, assignment_id, answer, is_correct]
+//       );
+
+//       const answer_id = ansRes.insertId;
+
+//       // Update assigned_questions row (using assigned_questions.id)
+//       await db.query(
+//         `UPDATE assigned_questions 
+//      SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+//      WHERE id = ? AND assignment_id = ? AND user_id = ?`,
+//         [
+//           answer_id,
+//           is_correct,
+//           correct_answer,
+//           is_correct,
+//           question_id,
+//           assignment_id,
+//           user_id,
+//         ]
+//       );
+
+//       if (is_correct) score++;
+//     }
+
+
+//   // ✅ Use total assigned questions instead of total answered
+//   const [assignedCountRows] = await db.query(
+//     "SELECT COUNT(*) as totalAssigned FROM assigned_questions WHERE assignment_id = ? AND user_id = ?",
+//     [assignment_id, user_id]
+//   );
+//   const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
+
+//   const percentage = (score / totalAssigned) * 100;
+//   const status = percentage >= passing_score ? "passed" : "failed";
+
+//     // ✅ Update quiz_assignments
+//     await db.query(
+//       `UPDATE quiz_assignments 
+//        SET user_ended_at = ?, status = ?, score = ? 
+//        WHERE id = ? AND quiz_id = ? AND user_id = ?`,
+//       [new Date(), status, percentage, assignment_id, quiz_id, user_id]
+//     );
+
+//     return res.json({
+//       success: true,
+//       message: "Assessment ended",
+//       score,
+//       percentage,
+//       status,
+//     });
+//   } catch (error) {
+//     console.error("Error in endAssessment:", error);
+//     return res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
+
 exports.endAssessment = async (req, res) => {
   try {
-    const { quiz_id, user_id, assignment_id, passing_score, answers } =
-      req.body;
+    const { quiz_id, user_id, assignment_id, passing_score, answers } = req.body;
 
     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
       return res.status(400).json({
@@ -114,6 +209,7 @@ exports.endAssessment = async (req, res) => {
 
     let score = 0;
 
+    // 🔹 Insert/update each answer
     for (const { question_id, answer } of answers) {
       // question_id here might be assigned_questions.id, so map it
       const [aqRows] = await db.query(
@@ -132,14 +228,15 @@ exports.endAssessment = async (req, res) => {
       if (!qRows.length) continue;
 
       const correct_answer = qRows[0].correct_answer;
-      const is_correct = answer.trim() === correct_answer.trim() ? 1 : 0;
+      const is_correct =
+        answer && answer.trim() === correct_answer.trim() ? 1 : 0;
 
       // Insert into answers table with real question id
       const [ansRes] = await db.query(
         `INSERT INTO answers 
-     (quiz_id, question_id, user_id, assignment_id, answer, is_correct) 
-     VALUES (?, ?, ?, ?, ?, ?)`,
-        [quiz_id, real_question_id, user_id, assignment_id, answer, is_correct]
+         (quiz_id, question_id, user_id, assignment_id, answer, is_correct) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [quiz_id, real_question_id, user_id, assignment_id, answer || "", is_correct]
       );
 
       const answer_id = ansRes.insertId;
@@ -147,8 +244,8 @@ exports.endAssessment = async (req, res) => {
       // Update assigned_questions row (using assigned_questions.id)
       await db.query(
         `UPDATE assigned_questions 
-     SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
-     WHERE id = ? AND assignment_id = ? AND user_id = ?`,
+         SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+         WHERE id = ? AND assignment_id = ? AND user_id = ?`,
         [
           answer_id,
           is_correct,
@@ -163,16 +260,28 @@ exports.endAssessment = async (req, res) => {
       if (is_correct) score++;
     }
 
+    // 🔹 Total assigned questions
+    const [assignedCountRows] = await db.query(
+      "SELECT COUNT(*) as totalAssigned FROM assigned_questions WHERE assignment_id = ? AND user_id = ?",
+      [assignment_id, user_id]
+    );
+    const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
 
-  // ✅ Use total assigned questions instead of total answered
-  const [assignedCountRows] = await db.query(
-    "SELECT COUNT(*) as totalAssigned FROM assigned_questions WHERE assignment_id = ? AND user_id = ?",
-    [assignment_id, user_id]
-  );
-  const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
+    // 🔹 Count how many answered
+    const [answeredCountRows] = await db.query(
+      "SELECT COUNT(*) as totalAnswered FROM assigned_questions WHERE assignment_id = ? AND user_id = ? AND answer_id IS NOT NULL",
+      [assignment_id, user_id]
+    );
+    const totalAnswered = answeredCountRows[0]?.totalAnswered || 0;
 
-  const percentage = (score / totalAssigned) * 100;
-  const status = percentage >= passing_score ? "passed" : "failed";
+    let status = "terminated";
+    let percentage = 0;
+
+    if (totalAnswered === totalAssigned) {
+      // All answered → calculate result
+      percentage = (score / totalAssigned) * 100;
+      status = percentage >= passing_score ? "passed" : "failed";
+    }
 
     // ✅ Update quiz_assignments
     await db.query(

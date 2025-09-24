@@ -21,6 +21,7 @@ import {
 import { useSelector } from "react-redux";
 import axios from "axios";
 import useToast from "../../hooks/ToastContext";
+import { useExam } from "../../lib/ExamContext";
 
 export default function ResultsPage() {
   const navigate = useNavigate();
@@ -34,7 +35,8 @@ export default function ResultsPage() {
   const [isLoadingCertificate, setIsLoadingCertificate] = useState(false);
   const [isUserPass, setIsUserPass] = useState(false);
   const [searchParams] = useSearchParams();
-  const assignmentId = searchParams.get("assignmentId"); // now it will get 110
+  const assignmentId = searchParams.get("assignmentId");
+  const { setExamState } = useExam();
 
   // const attemptId = searchParams.get("attemptId");
   const [allQuiz, setAllQuiz] = useState([]);
@@ -100,6 +102,21 @@ export default function ResultsPage() {
 
     fetchResults();
   }, [assignmentId, token]);
+
+  useEffect(() => {
+    // setExamState((prev) => ({
+    //   ...prev,
+    //   started: false,
+    //   completed: true,
+    //   resultPage: true,
+    // }));
+    return () => {
+      setExamState((prev) => ({
+        ...prev,
+        resultPage: false,
+      }));
+    };
+  }, [setExamState]);
 
   const correctCount = results.correctAnswers;
   const scorePercentage = results.score;
@@ -547,6 +564,25 @@ export default function ResultsPage() {
               </div>
 
               <div className="w-full md:w-1/2 space-y-4">
+                {!results?.totalQuestions -
+                  (results?.correctAnswers + results?.wrongAnswers.length) ===
+                  0 && (
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-[#3b82f6] mr-2"></div>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-700 dark:text-gray-300">
+                          UnAnswered
+                        </span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {results?.totalQuestions -
+                            (results?.correctAnswers +
+                              results?.wrongAnswers.length)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
                   <div className="flex-1">

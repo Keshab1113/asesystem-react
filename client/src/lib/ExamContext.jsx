@@ -6,6 +6,7 @@ export const ExamProvider = ({ children }) => {
   const [examState, setExamState] = useState({
     started: false,
     completed: false,
+    resultPage: false,
   });
 
   return (

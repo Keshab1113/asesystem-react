@@ -150,6 +150,13 @@ export default function DashboardPage() {
             Under Review
           </Badge>
         );
+        case "terminated":
+        return (
+          <Badge variant="destructive">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Terminated
+          </Badge>
+        );
 
       default:
         return null;
@@ -472,7 +479,7 @@ export default function DashboardPage() {
                     });
                     return;
                   }
-                  setExamState({ started: true, completed: false });
+                  setExamState({ started: true, completed: false, resultPage: true });
                   // Step 3: Navigate to QuestionsPage
                   navigate(
                     `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
@@ -567,7 +574,7 @@ export default function DashboardPage() {
               );
             })()}
 
-          {["passed", "failed", "under_review"].includes(assessment.status) && (
+          {["passed", "failed", "under_review", "terminated"].includes(assessment.status) && (
             <Button
               variant="outline"
               onClick={() =>
@@ -618,7 +625,7 @@ export default function DashboardPage() {
   const completed = assignments
     .filter((a) => {
       if (
-        ["passed", "in_progress", "failed", "under_review"].includes(a.status)
+        ["passed", "in_progress", "failed", "under_review", "terminated"].includes(a.status)
       )
         return true;
 

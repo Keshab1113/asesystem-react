@@ -132,14 +132,14 @@ exports.generateCertificate = async (req, res) => {
     });
 
     // percentage on the next line
-    doc.text(`Percentage: ${score}%`, infoX, infoY + 13, {
+    doc.fillColor("#3BB143").text(`Passed: ${score}%`, infoX, infoY + 13, {
       align: "left",
       width: 450,
       indent: 120,
     });
 
     // date on the line after that
-    doc.text(`Date: ${date}`, infoX, infoY + 26, {
+    doc.fillColor("#000").text(`Date: ${date}`, infoX, infoY + 26, {
       align: "left",
       width: 450,
       indent: 120,

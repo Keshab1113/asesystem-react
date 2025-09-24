@@ -199,7 +199,7 @@ export default function QuestionsPage() {
           if (newWarnings >= 2) {
             handleSubmit(
               true,
-              "Multiple violations detected. Quiz auto-submitted."
+              "Multiple violations detected. Assessment auto-submitted."
             );
           } else {
             setShowWarning(true);
@@ -218,7 +218,7 @@ export default function QuestionsPage() {
         !document.mozFullScreenElement &&
         !document.msFullscreenElement
       ) {
-        handleSubmit(true, "Fullscreen exited. Quiz auto-submitted.");
+        handleSubmit(true, "Fullscreen exited. Assessment auto-submitted.");
       }
     };
     // Handle window/tab blur
@@ -226,7 +226,7 @@ export default function QuestionsPage() {
       setWarnings((prev) => {
         const newWarnings = prev + 1;
         if (newWarnings >= 2) {
-          handleSubmit(true, "Window/tab switched. Quiz auto-submitted.");
+          handleSubmit(true, "Window/tab switched. Assessment auto-submitted.");
         }
         return newWarnings;
       });
@@ -238,7 +238,7 @@ export default function QuestionsPage() {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(true, "Focus lost. Quiz auto-submitted.");
+            handleSubmit(true, "Focus lost. Assessment auto-submitted.");
           }
           return newWarnings;
         });
@@ -260,7 +260,7 @@ export default function QuestionsPage() {
 
           const newWarnings = prev + 1;
           if (newWarnings >= limit) {
-            handleSubmit(true, "App/tab switch detected. Quiz auto-submitted.");
+            handleSubmit(true, "App/tab switch detected. Assessment auto-submitted.");
           }
           return newWarnings;
         });
@@ -444,7 +444,7 @@ export default function QuestionsPage() {
                 })),
         }
       );
-      setExamState({ started: false, completed: true });
+      setExamState({ started: false, completed: true, resultPage: true });
       localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
       dispatch(resetQuiz(quizId));
       toast({
@@ -452,8 +452,9 @@ export default function QuestionsPage() {
         description: message || "✅ Assessment submitted successfully!",
         variant: "success",
       });
-
-      navigate(`/user-dashboard/results?assignmentId=${assignmentId}`);
+      navigate(`/user-dashboard/results?assignmentId=${assignmentId}`, {
+        replace: true,
+      });
     } catch (err) {
       console.error("Error ending assessment:", err);
       toast({
