@@ -4,17 +4,28 @@ import { useSelector } from "react-redux";
 import { Outlet, useNavigate } from "react-router-dom";
 import { AdminHeader } from "../../components/AdminDashboard/AdminHeader";
 import { AdminSidebar } from "../../components/AdminDashboard/AdminSidebar";
+// import { useExam } from "../../lib/ExamContext";
 
 export default function AdminDashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const router = useNavigate();
+  // const { setExamState } = useExam();
 
   useEffect(() => {
     if (!isAuthenticated && !user) {
       router.push("/login");
     }
   }, [user, isAuthenticated, router]);
+
+  // useEffect(() => {
+  //   return () => {
+  //     setExamState((prev) => ({
+  //       ...prev,
+  //       resultPage: false,
+  //     }));
+  //   };
+  // }, [setExamState]);
 
   if (!isAuthenticated) {
     return (

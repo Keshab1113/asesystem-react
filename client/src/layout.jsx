@@ -8,7 +8,11 @@ function Layout() {
 
   useEffect(() => {
     if (token && user) {
-      navigate("/user-dashboard", { replace: true });
+      if (user.role === "super_admin") {
+        navigate("/admin-dashboard", { replace: true });
+      } else {
+        navigate("/user-dashboard", { replace: true });
+      }
     }
   }, [token, user]);
 
