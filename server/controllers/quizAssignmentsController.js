@@ -45,13 +45,15 @@ exports.getAssignmentById = async (req, res) => {
         q.created_at AS quiz_created_at,
         q.updated_at AS quiz_updated_at,
         q.schedule_start_date,
+        q.schedule_start_at,
+        q.schedule_end_at,
         q.schedule_start_time,
         q.schedule_end_date,
         q.schedule_end_time
       FROM quiz_assignments qa
       JOIN quizzes q ON qa.quiz_id = q.id
       WHERE qa.user_id = ? AND q.is_active = 1
-      ORDER BY q.schedule_start_date DESC`,
+      ORDER BY q.schedule_start_at DESC`,
       [id]
     );
 

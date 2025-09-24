@@ -296,20 +296,16 @@ export default function DashboardPage() {
                 Assessment Start Date:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {assessment.schedule_start_date &&
-                assessment.schedule_start_time
-                  ? new Date(
-                      `${assessment.schedule_start_date.split("T")[0]}T${
-                        assessment.schedule_start_time
-                      }`
-                    ).toLocaleString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Null"}
+               {assessment.schedule_start_at
+  ? new Date(assessment.schedule_start_at).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  : "Null"}
+
               </span>
             </div>
           )}
@@ -339,19 +335,16 @@ export default function DashboardPage() {
                 Assessment End Date:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {assessment.schedule_end_date && assessment.schedule_end_time
-                  ? new Date(
-                      `${assessment.schedule_end_date.split("T")[0]}T${
-                        assessment.schedule_end_time
-                      }`
-                    ).toLocaleString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Null"}
+                {assessment.schedule_end_at
+  ? new Date(assessment.schedule_end_at).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  : "Null"}
+
               </span>
             </div>
           )}
@@ -379,15 +372,15 @@ export default function DashboardPage() {
           {assessment.status === "scheduled" &&
             (() => {
               // Combine date + time into a single Date object
-              const endDateTime = new Date(
-                `${assessment?.schedule_end_date?.split("T")[0]}T${
-                  assessment?.schedule_end_time
-                }`
-              );
+              const endDateTime = assessment.schedule_end_at
+  ? new Date(assessment.schedule_end_at)
+  : null;
+
 
               const now = new Date();
 
-              const isExpired = now > endDateTime;
+             const isExpired = endDateTime ? now > endDateTime : false;
+
 
               
 
