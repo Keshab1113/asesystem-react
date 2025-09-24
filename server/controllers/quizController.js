@@ -1,4 +1,7 @@
 const db = require("../config/database");
+const { Document, Packer, Paragraph, TextRun } = require("docx");
+const fs = require("fs");
+const path = require("path");
 
 exports.getAllQuizAttempts = async (req, res) => {
   try {
@@ -781,3 +784,122 @@ exports.updateQuizStatus = async (req, res) => {
     });
   }
 };
+
+
+
+exports.downloadQuizQuestions = async (req, res) => {
+  const { id } = req.params; // quizId
+  const quizId = id;
+
+  if (!quizId) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Assessment ID is required" });
+  }
+
+  try {
+    // Fetch quiz
+    const [quizRows] = await db.query(
+      `SELECT title FROM quizzes WHERE id = ?`,
+      [quizId]
+    );
+    const quiz = quizRows[0];
+
+    // Fetch questions
+    const [rows] = await db.query(
+      `SELECT q.id, q.question_text, q.options, q.correct_answer, 
+              q.explanation, q.difficulty_level, qu.title AS quiz_name
+       FROM questions q
+       JOIN quizzes qu ON q.quiz_id = qu.id
+       WHERE q.quiz_id = ? AND q.is_active = 1
+       ORDER BY q.id ASC`,
+      [quizId]
+    );
+
+    // Build Word document (questions only)
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Quiz Title: ${quiz?.title || "Untitled Quiz"}`,
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+            }),
+            new Paragraph(""),
+            ...rows
+              .map((q, i) => {
+                let options = [];
+                try {
+                  options = JSON.parse(q.options || "[]");
+                } catch {
+                  options = [];
+                }
+
+                return [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `Q${i + 1}. ${q.question_text}`,
+                        bold: true,
+                      }),
+                    ],
+                  }),
+                  ...options.map(
+                    (opt, idx) =>
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: `   ${String.fromCharCode(65 + idx)}. ${opt}`,
+                          }),
+                        ],
+                      })
+                  ),
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `Answer: ${q.correct_answer}`,
+                        bold: true,
+                      }),
+                    ],
+                  }),
+                  q.explanation
+                    ? new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: `Explanation: ${q.explanation}`,
+                          }),
+                        ],
+                      })
+                    : new Paragraph(""),
+                  new Paragraph(""),
+                ];
+              })
+              .flat(),
+          ],
+        },
+      ],
+    });
+
+    // Generate buffer
+    const buffer = await Packer.toBuffer(doc);
+
+    // Send file
+    const fileName = `${quiz?.title || "quiz"}-questions.docx`;
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    );
+    res.send(buffer);
+  } catch (error) {
+    console.error("Error generating quiz Word file:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+

@@ -178,11 +178,13 @@ export function SubjectMasterPage() {
   };
 
   const handleViewQuestions = (quizId) => {
-    setViewQuestionsModal({ open: true, quizId });
+    
+    
+    setViewQuestionsModal({ open: true, quizId:quizId });
   };
 
   const handleEditQuestions = (quizId) => {
-    setEditQuestionsModal({ open: true, quizId });
+    setEditQuestionsModal({ open: true, quizId:quizId });
   };
 
   const handleAssignQuiz = (quiz) => {

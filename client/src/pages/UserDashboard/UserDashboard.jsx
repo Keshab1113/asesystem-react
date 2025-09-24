@@ -74,50 +74,14 @@ export default function DashboardPage() {
 
   const getStatusBadge = (assessment) => {
     switch (assessment.status) {
-      case "scheduled": {
-        if (
-          assessment.schedule_start_date &&
-          assessment.schedule_start_time &&
-          assessment.schedule_end_date &&
-          assessment.schedule_end_time
-        ) {
-          // Merge date + time into Date objects
-          const startDateTime = new Date(
-            `${assessment.schedule_start_date.split("T")[0]}T${
-              assessment.schedule_start_time
-            }`
-          );
-          const endDateTime = new Date(
-            `${assessment.schedule_end_date.split("T")[0]}T${
-              assessment.schedule_end_time
-            }`
-          );
-          const now = new Date();
-
-          if (now >= startDateTime && now <= endDateTime) {
-            return (
-              <Badge className=" bg-green-600">
-                <CheckCircle className="w-3 h-3 mr-1" />
-                Active
-              </Badge>
-            );
-          } else {
-            return (
-              <Badge variant="destructive">
-                <AlertCircle className="w-3 h-3 mr-1" />
-                Closed
-              </Badge>
-            );
-          }
-        }
-
+      case "scheduled": 
         return (
-          <Badge variant="outline">
+          <Badge variant="success">
             <Clock className="w-3 h-3 mr-1" />
             Scheduled
           </Badge>
         );
-      }
+      
 
       case "in_progress":
         return (

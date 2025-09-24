@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { Button } from "../ui/button";
+import { Download } from "lucide-react";
 
 const ViewQuestionsModal = ({ quizId, open, onClose }) => {
   const [questions, setQuestions] = useState([]);
@@ -28,6 +30,26 @@ const ViewQuestionsModal = ({ quizId, open, onClose }) => {
       setLoading(false);
     }
   };
+
+  const handleDownload = async () => {
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${quizId}/download`,
+      { responseType: "blob" } // 👈 important
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `quiz-${quizId}.docx`; // custom filename
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (err) {
+    console.error("Download failed", err);
+  }
+};
+
 
   if (!open) return null;
 
@@ -77,7 +99,11 @@ const ViewQuestionsModal = ({ quizId, open, onClose }) => {
             </ul>
           </div>
         )}
-
+        <div className=" w-full px-6 flex justify-end items-end">
+          <Button className=" w-fit mt-4 mx-6 flex" onClick={handleDownload}>
+            Download <Download className="h-4 w-4 ml-1" />
+          </Button>
+        </div>
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (

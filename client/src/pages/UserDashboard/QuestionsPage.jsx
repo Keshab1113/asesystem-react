@@ -447,11 +447,11 @@ export default function QuestionsPage() {
       setExamState({ started: false, completed: true, resultPage: true });
       localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
       dispatch(resetQuiz(quizId));
-      toast({
-        title: "Submitted",
-        description: message || "✅ Assessment submitted successfully!",
-        variant: "success",
-      });
+      // toast({
+      //   title: "Submitted",
+      //   description: message || "✅ Assessment submitted successfully!",
+      //   variant: "success",
+      // });
       navigate(`/user-dashboard/results?assignmentId=${assignmentId}`, {
         replace: true,
       });
