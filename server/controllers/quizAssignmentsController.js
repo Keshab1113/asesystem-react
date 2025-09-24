@@ -69,12 +69,9 @@ exports.getAssignmentById = async (req, res) => {
   }
 };
 
-
 exports.startAssessment = async (req, res) => {
-    
   try {
     const { quiz_id, user_id } = req.body;
- 
 
     if (!quiz_id || !user_id) {
       return res
@@ -103,7 +100,102 @@ exports.startAssessment = async (req, res) => {
   }
 };
 
- 
+// exports.endAssessment = async (req, res) => {
+//   try {
+//     const { quiz_id, user_id, assignment_id, passing_score, answers } =
+//       req.body;
+
+//     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "quiz_id, user_id, assignment_id, and answers required",
+//       });
+//     }
+
+//     let score = 0;
+
+//     for (const { question_id, answer } of answers) {
+//       // question_id here might be assigned_questions.id, so map it
+//       const [aqRows] = await db.query(
+//         "SELECT question_id FROM assigned_questions WHERE id = ? AND assignment_id = ? AND user_id = ?",
+//         [question_id, assignment_id, user_id]
+//       );
+
+//       if (!aqRows.length) continue;
+//       const real_question_id = aqRows[0].question_id; // ✅ actual questions.id
+
+//       // Get correct answer from questions table
+//       const [qRows] = await db.query(
+//         "SELECT correct_answer FROM questions WHERE id = ?",
+//         [real_question_id]
+//       );
+//       if (!qRows.length) continue;
+
+//       const correct_answer = qRows[0].correct_answer;
+//       const is_correct = answer.trim() === correct_answer.trim() ? 1 : 0;
+
+//       // Insert into answers table with real question id
+//       const [ansRes] = await db.query(
+//         `INSERT INTO answers 
+//      (quiz_id, question_id, user_id, assignment_id, answer, is_correct) 
+//      VALUES (?, ?, ?, ?, ?, ?)`,
+//         [quiz_id, real_question_id, user_id, assignment_id, answer, is_correct]
+//       );
+
+//       const answer_id = ansRes.insertId;
+
+//       // Update assigned_questions row (using assigned_questions.id)
+//       await db.query(
+//         `UPDATE assigned_questions 
+//      SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+//      WHERE id = ? AND assignment_id = ? AND user_id = ?`,
+//         [
+//           answer_id,
+//           is_correct,
+//           correct_answer,
+//           is_correct,
+//           question_id,
+//           assignment_id,
+//           user_id,
+//         ]
+//       );
+
+//       if (is_correct) score++;
+//     }
+
+
+//   // ✅ Use total assigned questions instead of total answered
+//   const [assignedCountRows] = await db.query(
+//     "SELECT COUNT(*) as totalAssigned FROM assigned_questions WHERE assignment_id = ? AND user_id = ?",
+//     [assignment_id, user_id]
+//   );
+//   const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
+
+//   const percentage = (score / totalAssigned) * 100;
+//   const status = percentage >= passing_score ? "passed" : "failed";
+
+//     // ✅ Update quiz_assignments
+//     await db.query(
+//       `UPDATE quiz_assignments 
+//        SET user_ended_at = ?, status = ?, score = ? 
+//        WHERE id = ? AND quiz_id = ? AND user_id = ?`,
+//       [new Date(), status, percentage, assignment_id, quiz_id, user_id]
+//     );
+
+//     return res.json({
+//       success: true,
+//       message: "Assessment ended",
+//       score,
+//       percentage,
+//       status,
+//     });
+//   } catch (error) {
+//     console.error("Error in endAssessment:", error);
+//     return res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
+
 exports.endAssessment = async (req, res) => {
   try {
     const { quiz_id, user_id, assignment_id, passing_score, answers } = req.body;
@@ -117,57 +209,79 @@ exports.endAssessment = async (req, res) => {
 
     let score = 0;
 
-   for (const { question_id, answer } of answers) {
-  // question_id here might be assigned_questions.id, so map it
-  const [aqRows] = await db.query(
-    "SELECT question_id FROM assigned_questions WHERE id = ? AND assignment_id = ? AND user_id = ?",
-    [question_id, assignment_id, user_id]
-  );
+    // 🔹 Insert/update each answer
+    for (const { question_id, answer } of answers) {
+      // question_id here might be assigned_questions.id, so map it
+      const [aqRows] = await db.query(
+        "SELECT question_id FROM assigned_questions WHERE id = ? AND assignment_id = ? AND user_id = ?",
+        [question_id, assignment_id, user_id]
+      );
 
-  if (!aqRows.length) continue;
-  const real_question_id = aqRows[0].question_id; // ✅ actual questions.id
+      if (!aqRows.length) continue;
+      const real_question_id = aqRows[0].question_id; // ✅ actual questions.id
 
-  // Get correct answer from questions table
-  const [qRows] = await db.query(
-    "SELECT correct_answer FROM questions WHERE id = ?",
-    [real_question_id]
-  );
-  if (!qRows.length) continue;
+      // Get correct answer from questions table
+      const [qRows] = await db.query(
+        "SELECT correct_answer FROM questions WHERE id = ?",
+        [real_question_id]
+      );
+      if (!qRows.length) continue;
 
-  const correct_answer = qRows[0].correct_answer;
-  const is_correct = answer.trim() === correct_answer.trim() ? 1 : 0;
+      const correct_answer = qRows[0].correct_answer;
+      const is_correct =
+        answer && answer.trim() === correct_answer.trim() ? 1 : 0;
 
-  // Insert into answers table with real question id
-  const [ansRes] = await db.query(
-    `INSERT INTO answers 
-     (quiz_id, question_id, user_id, assignment_id, answer, is_correct) 
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [quiz_id, real_question_id, user_id, assignment_id, answer, is_correct]
-  );
+      // Insert into answers table with real question id
+      const [ansRes] = await db.query(
+        `INSERT INTO answers 
+         (quiz_id, question_id, user_id, assignment_id, answer, is_correct) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [quiz_id, real_question_id, user_id, assignment_id, answer || "", is_correct]
+      );
 
-  const answer_id = ansRes.insertId;
+      const answer_id = ansRes.insertId;
 
-  // Update assigned_questions row (using assigned_questions.id)
-  await db.query(
-    `UPDATE assigned_questions 
-     SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
-     WHERE id = ? AND assignment_id = ? AND user_id = ?`,
-    [answer_id, is_correct, correct_answer, is_correct, question_id, assignment_id, user_id]
-  );
+      // Update assigned_questions row (using assigned_questions.id)
+      await db.query(
+        `UPDATE assigned_questions 
+         SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+         WHERE id = ? AND assignment_id = ? AND user_id = ?`,
+        [
+          answer_id,
+          is_correct,
+          correct_answer,
+          is_correct,
+          question_id,
+          assignment_id,
+          user_id,
+        ]
+      );
 
-  if (is_correct) score++;
-}
+      if (is_correct) score++;
+    }
 
+    // 🔹 Total assigned questions
+    const [assignedCountRows] = await db.query(
+      "SELECT COUNT(*) as totalAssigned FROM assigned_questions WHERE assignment_id = ? AND user_id = ?",
+      [assignment_id, user_id]
+    );
+    const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
 
-  // ✅ Use total assigned questions instead of total answered
-  const [assignedCountRows] = await db.query(
-    "SELECT COUNT(*) as totalAssigned FROM assigned_questions WHERE assignment_id = ? AND user_id = ?",
-    [assignment_id, user_id]
-  );
-  const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
+    // 🔹 Count how many answered
+    const [answeredCountRows] = await db.query(
+      "SELECT COUNT(*) as totalAnswered FROM assigned_questions WHERE assignment_id = ? AND user_id = ? AND answer_id IS NOT NULL",
+      [assignment_id, user_id]
+    );
+    const totalAnswered = answeredCountRows[0]?.totalAnswered || 0;
 
-  const percentage = (score / totalAssigned) * 100;
-  const status = percentage >= passing_score ? "passed" : "failed";
+    let status = "terminated";
+    let percentage = 0;
+
+    if (totalAnswered === totalAssigned) {
+      // All answered → calculate result
+      percentage = (score / totalAssigned) * 100;
+      status = percentage >= passing_score ? "passed" : "failed";
+    }
 
     // ✅ Update quiz_assignments
     await db.query(
@@ -189,14 +303,18 @@ exports.endAssessment = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
- 
+
 exports.assignRandomQuestions = async (req, res) => {
-   
   const { quizId, userId, assignmentId } = req.body;
- console.log(req.body);
+  console.log(req.body);
 
   if (!quizId || !userId || !assignmentId) {
-    return res.status(400).json({ success: false, message: "quizId, userId, and assignmentId are required" });
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "quizId, userId, and assignmentId are required",
+      });
   }
 
   try {
@@ -211,12 +329,22 @@ exports.assignRandomQuestions = async (req, res) => {
     );
 
     if (existingRows.length > 0) {
-      return res.json({ success: true, message: "Questions already assigned", data: existingRows });
+      return res.json({
+        success: true,
+        message: "Questions already assigned",
+        data: existingRows,
+      });
     }
 
     // 2. Get quiz info (max_questions)
-    const [quizRows] = await db.query(`SELECT max_questions FROM quizzes WHERE id = ?`, [quizId]);
-    if (!quizRows.length) return res.status(404).json({ success: false, message: "Quiz not found" });
+    const [quizRows] = await db.query(
+      `SELECT max_questions FROM quizzes WHERE id = ?`,
+      [quizId]
+    );
+    if (!quizRows.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "Quiz not found" });
 
     const maxQuestions = quizRows[0].max_questions || 10;
 
@@ -227,43 +355,51 @@ exports.assignRandomQuestions = async (req, res) => {
        WHERE quiz_id = ? AND is_active = 1`,
       [quizId]
     );
-    if (!questionRows.length) return res.status(404).json({ success: false, message: "No active questions found" });
-// console.log("maxQuestions from quiz:", maxQuestions);
-// console.log("Total active questions available:", questionRows.length);
+    if (!questionRows.length)
+      return res
+        .status(404)
+        .json({ success: false, message: "No active questions found" });
+    // console.log("maxQuestions from quiz:", maxQuestions);
+    // console.log("Total active questions available:", questionRows.length);
 
     // 4. Shuffle + pick
     const shuffled = [...questionRows].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, maxQuestions);
 
     // 5. Save in assigned_questions
-   await Promise.all(
-  selected.map((q) =>
-    db.query(
-      `INSERT INTO assigned_questions 
+    await Promise.all(
+      selected.map((q) =>
+        db.query(
+          `INSERT INTO assigned_questions 
          (quiz_id, user_id, assignment_id, question_id, answer_id, is_correct, correct_answers, score) 
        VALUES (?, ?, ?, ?, NULL, 0, ?, 0)`,
-      [quizId, userId, assignmentId, q.id, q.correct_answer]
-    )
-  )
-);
+          [quizId, userId, assignmentId, q.id, q.correct_answer]
+        )
+      )
+    );
 
-
-return res.json({ success: true, message: "Random questions assigned successfully", data: selected });
-
+    return res.json({
+      success: true,
+      message: "Random questions assigned successfully",
+      data: selected,
+    });
   } catch (err) {
     console.error("Error assigning random questions:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-
-
 exports.fetchAssignedQuestions = async (req, res) => {
   const { quizId } = req.params;
   const { userId, assignmentId } = req.query;
 
   if (!quizId || !userId || !assignmentId) {
-    return res.status(400).json({ success: false, message: "quizId, userId, and assignmentId are required" });
+    return res
+      .status(400)
+      .json({
+        success: false,
+        message: "quizId, userId, and assignmentId are required",
+      });
   }
 
   try {

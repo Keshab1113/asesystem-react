@@ -30,11 +30,30 @@ import { ChangePasswordPage } from "./pages/AdminDashboard/AdminDashboardProfile
 import ForgotPasswordPage from "./pages/ForgotPasswordPage/ForgotPasswordPage";
 import QuestionsPage from "./pages/UserDashboard/QuestionsPage";
 import ResultsPage from "./pages/UserDashboard/ResultsPage";
+import ProtectedAssessmentRoute from "./lib/ProtectedAssessmentRoute";
+import ProtectedResultsRoute from "./lib/ProtectedResultsRoute";
+import PublicRoute from "./lib/PublicRoute";
 
 function App() {
   return (
     <>
       <Routes>
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route
@@ -47,7 +66,10 @@ function App() {
           >
             <Route index element={<DashboardContent />} />
             <Route path="assessment-report" element={<QuizReportPage />} />
-            <Route path="assessment-report/:id" element={<QuizReportDetailsPage />} />
+            <Route
+              path="assessment-report/:id"
+              element={<QuizReportDetailsPage />}
+            />
             <Route
               path="issue-certificate"
               element={<IssueCertificatePage />}
@@ -69,7 +91,6 @@ function App() {
             <Route path="my-account" element={<MyAccountPage />} />
             <Route path="user-logs" element={<UserLogsPage />} />
             <Route path="modify-profile" element={<ModifyProfilePage />} />
-            
           </Route>
           <Route
             path="/certificate-view"
@@ -91,14 +112,27 @@ function App() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="upcoming" element={<UpcomingAssessmentsPage />} />
             <Route path="assessments" element={<AssessmentsPage />} />
-            <Route path="assessment/:quizId" element={<QuestionsPage />} />
-            <Route path="results" element={<ResultsPage />} />
+            <Route
+              path="assessment/:quizId"
+              element={
+                <ProtectedAssessmentRoute>
+                  <QuestionsPage />
+                </ProtectedAssessmentRoute>
+              }
+            />
+            <Route
+              path="results"
+              element={
+                // <ProtectedResultsRoute>
+                <ResultsPage />
+                // </ProtectedResultsRoute>
+              }
+            />
           </Route>
           <Route path="*" element={<NoPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+
           <Route path="/verify-otp" element={<VerifyOTPPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage/>} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
         </Route>
       </Routes>

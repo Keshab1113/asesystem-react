@@ -21,6 +21,7 @@ import {
 import { useSelector } from "react-redux";
 import axios from "axios";
 import useToast from "../../hooks/ToastContext";
+import { useExam } from "../../lib/ExamContext";
 
 export default function ResultsPage() {
   const navigate = useNavigate();
@@ -34,7 +35,8 @@ export default function ResultsPage() {
   const [isLoadingCertificate, setIsLoadingCertificate] = useState(false);
   const [isUserPass, setIsUserPass] = useState(false);
   const [searchParams] = useSearchParams();
-  const assignmentId = searchParams.get("assignmentId"); // now it will get 110
+  const assignmentId = searchParams.get("assignmentId");
+  const { setExamState } = useExam();
 
   // const attemptId = searchParams.get("attemptId");
   const [allQuiz, setAllQuiz] = useState([]);
@@ -101,8 +103,22 @@ export default function ResultsPage() {
     fetchResults();
   }, [assignmentId, token]);
 
+  useEffect(() => {
+    // setExamState((prev) => ({
+    //   ...prev,
+    //   started: false,
+    //   completed: true,
+    //   resultPage: true,
+    // }));
+    return () => {
+      setExamState((prev) => ({
+        ...prev,
+        resultPage: false,
+      }));
+    };
+  }, [setExamState]);
+
   const correctCount = results.correctAnswers;
-  const wrongCount = results.totalQuestions - results.correctAnswers;
   const scorePercentage = results.score;
 
   const generateCertificateNumber = () => {
@@ -181,6 +197,7 @@ export default function ResultsPage() {
         certificateText: "",
         certificateNumber: certNo,
         generateFrom: "manual",
+        score: scorePercentage,
       };
 
       const response = await axios.post(
@@ -222,125 +239,136 @@ export default function ResultsPage() {
   };
 
   if (view === "wrong-answers") {
-    const question = results.wrongAnswers[currentWrongQuestion];
+    const question = results.wrongAnswers[currentWrongQuestion] || [];
 
     return (
-      <div className="min-h-screen">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Review Incorrect Answers
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Question {currentWrongQuestion + 1} of{" "}
-              {results.wrongAnswers.length}
-            </p>
-          </div>
+      <div
+        className={`${results.wrongAnswers.length > 0 ? "min-h-screen" : ""}`}
+      >
+        {results.wrongAnswers.length > 0 ? (
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                Review Incorrect Answers
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400">
+                Question {currentWrongQuestion + 1} of{" "}
+                {results.wrongAnswers.length}
+              </p>
+            </div>
 
-          <Card className="shadow-lg border-0 py-0 overflow-hidden gap-0">
-            <CardHeader className="bg-gradient-to-r py-4 !pb-2 from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border-b">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl text-gray-900 dark:text-white">
-                  Question #{questionNumber}
-                </CardTitle>
-                <Badge variant="destructive" className="text-sm">
-                  Incorrect
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
-                  {question.question}
-                </h3>
-
-                <div className="space-y-3">
-                  {question.options.map((option, index) => (
-                    <div
-                      key={index}
-                      className={`p-3 rounded-lg border-2 transition-all ${
-                        option === question.userAnswer
-                          ? "border-red-500 bg-red-50 dark:bg-red-900/20"
-                          : "border-gray-200 dark:border-gray-600"
-                      }`}
-                    >
-                      <div className="flex items-center">
-                        <div
-                          className={`min-w-6 min-h-6 rounded-full flex items-center justify-center mr-3 ${
-                            option === question.userAnswer
-                              ? "bg-red-500 text-white"
-                              : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                          }`}
-                        >
-                          {String.fromCharCode(65 + index)}
-                        </div>
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {option}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+            <Card className="shadow-lg border-0 py-0 overflow-hidden gap-0">
+              <CardHeader className="bg-gradient-to-r py-4 !pb-2 from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border-b">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-xl text-gray-900 dark:text-white">
+                    Question #{questionNumber}
+                  </CardTitle>
+                  <Badge variant="destructive" className="text-sm">
+                    Incorrect
+                  </Badge>
                 </div>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="mb-6">
+                  <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">
+                    {question?.question}
+                  </h3>
 
-                <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
-                  <div className="flex items-start">
-                    <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-3 flex-shrink-0" />
-                    <p className="text-amber-800 dark:text-amber-200 text-sm">
-                      You selected option{" "}
-                      <strong>
-                        {String.fromCharCode(
-                          65 + question.options.indexOf(question.userAnswer)
-                        )}
-                      </strong>
-                      <br />
-                      Review this procedure to improve your understanding.
-                    </p>
+                  <div className="space-y-3">
+                    {question?.options?.map((option, index) => (
+                      <div
+                        key={index}
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          option === question.userAnswer
+                            ? "border-red-500 bg-red-50 dark:bg-red-900/20"
+                            : "border-gray-200 dark:border-gray-600"
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <div
+                            className={`min-w-6 min-h-6 rounded-full flex items-center justify-center mr-3 ${
+                              option === question.userAnswer
+                                ? "bg-red-500 text-white"
+                                : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
+                            }`}
+                          >
+                            {String.fromCharCode(65 + index)}
+                          </div>
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {option}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-700">
+                    <div className="flex items-start">
+                      <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 mr-3 flex-shrink-0" />
+                      <p className="text-amber-800 dark:text-amber-200 text-sm">
+                        You selected option{" "}
+                        <strong>
+                          {String.fromCharCode(
+                            65 +
+                              question?.options?.indexOf(question?.userAnswer)
+                          )}
+                        </strong>
+                        <br />
+                        Review this procedure to improve your understanding.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex justify-between mt-6">
-                <Button
-                  onClick={handleBackToSummary}
-                  variant="outline"
-                  className="flex items-center"
-                >
-                  <ChevronLeft className="w-4 h-4 mr-2" />
-                  Back to Summary
-                </Button>
-
-                <div className="flex gap-2">
+                <div className="flex justify-between mt-6">
                   <Button
-                    onClick={() => {
-                      setQuestionNumber(questionNumber - 1);
-                      setCurrentWrongQuestion((prev) => Math.max(prev - 1, 0));
-                    }}
-                    disabled={currentWrongQuestion === 0}
+                    onClick={handleBackToSummary}
                     variant="outline"
+                    className="flex items-center"
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                    <span className=" md:block hidden md:ml-2">Previous</span>
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                    Back to Summary
                   </Button>
 
-                  <Button
-                    onClick={() => {
-                      setCurrentWrongQuestion((prev) =>
-                        Math.min(prev + 1, results.wrongAnswers.length - 1)
-                      );
-                      setQuestionNumber(questionNumber + 1);
-                    }}
-                    disabled={
-                      currentWrongQuestion === results.wrongAnswers.length - 1
-                    }
-                  >
-                    <span className=" md:block hidden md:mr-2">Next</span>
-                    <ChevronRight className="w-4 h-4 " />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        setQuestionNumber(questionNumber - 1);
+                        setCurrentWrongQuestion((prev) =>
+                          Math.max(prev - 1, 0)
+                        );
+                      }}
+                      disabled={currentWrongQuestion === 0}
+                      variant="outline"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      <span className=" md:block hidden md:ml-2">Previous</span>
+                    </Button>
+
+                    <Button
+                      onClick={() => {
+                        setCurrentWrongQuestion((prev) =>
+                          Math.min(prev + 1, results.wrongAnswers.length - 1)
+                        );
+                        setQuestionNumber(questionNumber + 1);
+                      }}
+                      disabled={
+                        currentWrongQuestion === results.wrongAnswers.length - 1
+                      }
+                    >
+                      <span className=" md:block hidden md:mr-2">Next</span>
+                      <ChevronRight className="w-4 h-4 " />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto h-full flex justify-center items-center">
+            <h1>No wrong answers</h1>
+          </div>
+        )}
       </div>
     );
   }
@@ -355,6 +383,9 @@ export default function ResultsPage() {
           </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
             Assessment Completed!
+          </h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            {foundQuizTitle?.title}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             Congratulations on completing your assessment. Here's how you
@@ -451,6 +482,16 @@ export default function ResultsPage() {
                 <div className="flex items-center justify-center relative w-56 h-56 mx-auto">
                   {/* Chart visualization */}
                   <svg viewBox="0 0 100 100" className="w-full h-full">
+                    {/* Base circle (default color: blue) */}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="transparent"
+                      strokeWidth="10"
+                      stroke="#3b82f6" // Tailwind blue-500
+                    />
+
                     {/* Correct answers segment */}
                     <circle
                       cx="50"
@@ -474,7 +515,9 @@ export default function ResultsPage() {
                       strokeWidth="10"
                       stroke="url(#wrongGradient)"
                       strokeDasharray={`${
-                        (wrongCount / results.totalQuestions) * 282.6
+                        (results?.wrongAnswers?.length /
+                          results?.totalQuestions) *
+                        282.6
                       } 282.6`}
                       strokeDashoffset={`-${
                         (correctCount / results.totalQuestions) * 282.6
@@ -521,6 +564,25 @@ export default function ResultsPage() {
               </div>
 
               <div className="w-full md:w-1/2 space-y-4">
+                {!results?.totalQuestions -
+                  (results?.correctAnswers + results?.wrongAnswers.length) ===
+                  0 && (
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-[#3b82f6] mr-2"></div>
+                    <div className="flex-1">
+                      <div className="flex justify-between">
+                        <span className="text-gray-700 dark:text-gray-300">
+                          UnAnswered
+                        </span>
+                        <span className="font-medium text-gray-900 dark:text-white">
+                          {results?.totalQuestions -
+                            (results?.correctAnswers +
+                              results?.wrongAnswers.length)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center">
                   <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
                   <div className="flex-1">
@@ -529,15 +591,14 @@ export default function ResultsPage() {
                         Correct Answers
                       </span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {correctCount} (
-                        {Math.round(
-                          (correctCount / results.totalQuestions) * 100
-                        )}
-                        %)
+                        {results?.correctAnswers}
                       </span>
                     </div>
                     <Progress
-                      value={(correctCount / results.totalQuestions) * 100}
+                      value={
+                        (results?.correctAnswers / results?.totalQuestions) *
+                        100
+                      }
                       className="h-2 mt-1"
                     />
                   </div>
@@ -551,22 +612,22 @@ export default function ResultsPage() {
                         Wrong Answers
                       </span>
                       <span className="font-medium text-gray-900 dark:text-white">
-                        {wrongCount} (
-                        {Math.round(
-                          (wrongCount / results.totalQuestions) * 100
-                        )}
-                        %)
+                        {results?.wrongAnswers.length}
                       </span>
                     </div>
                     <Progress
-                      value={(wrongCount / results.totalQuestions) * 100}
+                      value={
+                        (results?.wrongAnswers.length /
+                          results.totalQuestions) *
+                        100
+                      }
                       className="h-2 mt-1 bg-red-100 dark:bg-red-900/20"
                       // indicatorClassName="bg-red-500"
                     />
                   </div>
                 </div>
 
-                {wrongCount > 0 && (
+                {results?.wrongAnswers.length > 0 && (
                   <Button
                     onClick={handleReviewWrongAnswers}
                     variant="outline"
@@ -601,7 +662,7 @@ export default function ResultsPage() {
                     <p className="text-green-700 dark:text-green-300 text-sm">
                       You've passed this assessment with a score of{" "}
                       {scorePercentage}%.
-                      {wrongCount > 0
+                      {results?.wrongAnswers?.length > 0
                         ? " Consider reviewing the questions you missed to strengthen your understanding."
                         : " Perfect score! You've demonstrated mastery of all concepts."}
                     </p>

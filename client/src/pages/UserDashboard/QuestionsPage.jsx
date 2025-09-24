@@ -32,6 +32,7 @@ import useToast from "../../hooks/ToastContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import axios from "axios";
 import { store } from "../../redux/store"; // ✅ named import
+import { useExam } from "../../lib/ExamContext";
 
 export default function QuestionsPage() {
   const { quizId } = useParams();
@@ -59,6 +60,7 @@ export default function QuestionsPage() {
   const { toast } = useToast();
   const { user } = useSelector((state) => state.auth);
   const [accepted, setAccepted] = useState(false);
+  const { setExamState } = useExam();
 
   // Calculate progress
   const answeredCount = Object.values(answers).filter(
@@ -80,13 +82,12 @@ export default function QuestionsPage() {
       `quiz_${quizId}_instructions_accepted`
     );
     if (hasAccepted === "true" && isFullscreenActive() && !isDevToolsOpen()) {
-  setAcceptedInstructions(true);
-  setShowInstructions(false);
-  setTimerStarted(true);
-} else {
-  localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
-}
-
+      setAcceptedInstructions(true);
+      setShowInstructions(false);
+      setTimerStarted(true);
+    } else {
+      localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
+    }
 
     const fetchQuestions = async () => {
       try {
@@ -198,7 +199,7 @@ export default function QuestionsPage() {
           if (newWarnings >= 2) {
             handleSubmit(
               true,
-              "Multiple violations detected. Quiz auto-submitted."
+              "Multiple violations detected. Assessment auto-submitted."
             );
           } else {
             setShowWarning(true);
@@ -209,8 +210,6 @@ export default function QuestionsPage() {
       }
     };
 
-    
-
     // Detect exit fullscreen (cross-browser)
     const exitHandler = () => {
       if (
@@ -219,7 +218,7 @@ export default function QuestionsPage() {
         !document.mozFullScreenElement &&
         !document.msFullscreenElement
       ) {
-        handleSubmit(true, "Fullscreen exited. Quiz auto-submitted.");
+        handleSubmit(true, "Fullscreen exited. Assessment auto-submitted.");
       }
     };
     // Handle window/tab blur
@@ -227,7 +226,7 @@ export default function QuestionsPage() {
       setWarnings((prev) => {
         const newWarnings = prev + 1;
         if (newWarnings >= 2) {
-          handleSubmit(true, "Window/tab switched. Quiz auto-submitted.");
+          handleSubmit(true, "Window/tab switched. Assessment auto-submitted.");
         }
         return newWarnings;
       });
@@ -239,7 +238,7 @@ export default function QuestionsPage() {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(true, "Focus lost. Quiz auto-submitted.");
+            handleSubmit(true, "Focus lost. Assessment auto-submitted.");
           }
           return newWarnings;
         });
@@ -261,7 +260,7 @@ export default function QuestionsPage() {
 
           const newWarnings = prev + 1;
           if (newWarnings >= limit) {
-            handleSubmit(true, "App/tab switch detected. Quiz auto-submitted.");
+            handleSubmit(true, "App/tab switch detected. Assessment auto-submitted.");
           }
           return newWarnings;
         });
@@ -316,84 +315,80 @@ export default function QuestionsPage() {
   };
 
   // ✅ Check if DevTools is open
-const isDevToolsOpen = () => {
-  const threshold = 160;
-  const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-  const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-  return widthThreshold || heightThreshold;
-};
+  const isDevToolsOpen = () => {
+    const threshold = 160;
+    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+    return widthThreshold || heightThreshold;
+  };
 
-// ✅ Check if fullscreen is active
-const isFullscreenActive = () => {
-  return (
-    document.fullscreenElement ||
-    document.webkitFullscreenElement ||
-    document.mozFullScreenElement ||
-    document.msFullscreenElement
-  );
-};
-
- 
+  // ✅ Check if fullscreen is active
+  const isFullscreenActive = () => {
+    return (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  };
 
   const handleAcceptInstructions = async () => {
-  // 🔎 Check secure state first
-  if (isDevToolsOpen() || !isFullscreenActive()) {
-  const reason = isDevToolsOpen()
-    ? "Developer Tools detected. Close them to start."
-    : "Fullscreen is required. Enter fullscreen to start.";
+    // 🔎 Check secure state first
+    if (isDevToolsOpen() || !isFullscreenActive()) {
+      const reason = isDevToolsOpen()
+        ? "Developer Tools detected. Close them to start."
+        : "Fullscreen is required. Enter fullscreen to start.";
 
-  toast({
-    title: "⚠️ Cannot Start Assessment",
-    description: reason,
-    variant: "destructive",
-  });
+      toast({
+        title: "⚠️ Cannot Start Assessment",
+        description: reason,
+        variant: "destructive",
+      });
 
-  // Request fullscreen if needed
-  if (!isFullscreenActive()) {
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-    else if (el.msRequestFullscreen) el.msRequestFullscreen();
-  }
+      // Request fullscreen if needed
+      if (!isFullscreenActive()) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+        else if (el.msRequestFullscreen) el.msRequestFullscreen();
+      }
 
-  return; // block start
-}
-
-
-  // ✅ If checks pass, allow start
-  setAcceptedInstructions(true);
-  setShowInstructions(false);
-  setTimerStarted(true);
-
-  // Lock screen orientation on mobile
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock("portrait").catch(() => {});
-  }
-
-  // Store accepted in localStorage
-  // localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
-
-  const startRes = await axios.post(
-    `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
-    {
-      quiz_id: quizId,
-      user_id: user.id,
+      return; // block start
     }
-  );
 
-  if (!startRes.data.success) {
-    toast({
-      title: "Error",
-      description: startRes.data.message || "Failed to start assessment",
-      variant: "error",
-    });
-    return;
-  }
-  // ✅ Save accepted only after backend success
-localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
+    // ✅ If checks pass, allow start
+    setAcceptedInstructions(true);
+    setShowInstructions(false);
+    setTimerStarted(true);
 
-};
+    // Lock screen orientation on mobile
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("portrait").catch(() => {});
+    }
+
+    // Store accepted in localStorage
+    // localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
+
+    const startRes = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
+      {
+        quiz_id: quizId,
+        user_id: user.id,
+      }
+    );
+
+    if (!startRes.data.success) {
+      toast({
+        title: "Error",
+        description: startRes.data.message || "Failed to start assessment",
+        variant: "error",
+      });
+      return;
+    }
+    // ✅ Save accepted only after backend success
+    localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
+  };
 
   const handleSubmit = async (forced = false, message = null) => {
     // 1. Manual submit (user action)
@@ -449,7 +444,7 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                 })),
         }
       );
-
+      setExamState({ started: false, completed: true, resultPage: true });
       localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
       dispatch(resetQuiz(quizId));
       toast({
@@ -457,8 +452,9 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
         description: message || "✅ Assessment submitted successfully!",
         variant: "success",
       });
-
-      navigate(`/user-dashboard/results?assignmentId=${assignmentId}`);
+      navigate(`/user-dashboard/results?assignmentId=${assignmentId}`, {
+        replace: true,
+      });
     } catch (err) {
       console.error("Error ending assessment:", err);
       toast({
@@ -582,68 +578,70 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
             </div>
 
             <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <Checkbox
-  id="accept"
-  checked={accepted}
-  onCheckedChange={async (val) => {
-    if (!val) {
-      setAccepted(false);
-      return;
-    }
+              <Checkbox
+                id="accept"
+                checked={accepted}
+                onCheckedChange={async (val) => {
+                  if (!val) {
+                    setAccepted(false);
+                    return;
+                  }
 
-    // 🔎 Perform secure checks before accepting
-    if (isDevToolsOpen() || !isFullscreenActive()) {
-      const reason = isDevToolsOpen()
-        ? "Developer Tools detected. Close them to start."
-        : "Fullscreen is required. Enter fullscreen to start.";
+                  // 🔎 Perform secure checks before accepting
+                  if (isDevToolsOpen() || !isFullscreenActive()) {
+                    const reason = isDevToolsOpen()
+                      ? "Developer Tools detected. Close them to start."
+                      : "Fullscreen is required. Enter fullscreen to start.";
 
-      toast({
-        title: "⚠️ Cannot Start Assessment",
-        description: reason,
-        variant: "destructive",
-      });
+                    toast({
+                      title: "⚠️ Cannot Start Assessment",
+                      description: reason,
+                      variant: "destructive",
+                    });
 
-      // Attempt to request fullscreen if needed
-      if (!isFullscreenActive()) {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-        else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-        else if (el.msRequestFullscreen) el.msRequestFullscreen();
-      }
+                    // Attempt to request fullscreen if needed
+                    if (!isFullscreenActive()) {
+                      const el = document.documentElement;
+                      if (el.requestFullscreen) el.requestFullscreen();
+                      else if (el.webkitRequestFullscreen)
+                        el.webkitRequestFullscreen();
+                      else if (el.mozRequestFullScreen)
+                        el.mozRequestFullScreen();
+                      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+                    }
 
-      setAccepted(false); // force user to retry
-      return;
-    }
+                    setAccepted(false); // force user to retry
+                    return;
+                  }
 
-    // ✅ All checks passed, accept instructions
-    setAccepted(true);
-  }}
-/>
+                  // ✅ All checks passed, accept instructions
+                  setAccepted(true);
+                }}
+              />
 
               <label
                 htmlFor="accept"
-                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none">
+                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none"
+              >
                 I have read and agree to the terms and conditions.
               </label>
             </div>
 
             <div className="flex justify-center pt-4">
-             
               <Button
-  onClick={handleAcceptInstructions}
-  disabled={
-    !accepted || isDevToolsOpen() || !isFullscreenActive()
-  }
-  size="lg"
-  className={`px-8 py-3 text-lg text-white ${
-    !accepted || isDevToolsOpen() || !isFullscreenActive()
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-blue-600 hover:bg-blue-700"
-  }`}>
-  I Accept - Start Assessment
-</Button>
-
+                onClick={handleAcceptInstructions}
+                disabled={
+                  !accepted || isDevToolsOpen() || !isFullscreenActive()
+                }
+                size="lg"
+                className={`px-8 py-3 text-lg text-white ${
+                  !accepted || isDevToolsOpen() || !isFullscreenActive()
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                I Accept - Start Assessment
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -672,7 +670,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
               </h1>
               <Badge
                 variant="outline"
-                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
+                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
+              >
                 <Monitor className="w-3 h-3" />
                 Secure Mode
               </Badge>
@@ -705,7 +704,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                   allQuestionsAnswered
                     ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300"
                     : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                }`}>
+                }`}
+              >
                 {answeredCount}/{questions.length} Completed
               </Badge>
             </div>
@@ -718,7 +718,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
           <Alert
             variant="destructive"
-            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
+          >
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-red-800 dark:text-red-200">
               Warning
@@ -764,7 +765,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                           getQuestionStatus(index) === "answered"
                             ? "Answered"
                             : "Not Answered"
-                        }`}>
+                        }`}
+                      >
                         {index + 1}
                         {getQuestionStatus(index) === "answered" && (
                           <CheckCircle className="absolute -top-1 -right-1 w-4 h-4 text-green-600 bg-white rounded-full" />
@@ -810,7 +812,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                     <Button
                       onClick={goToUnansweredQuestion}
                       variant="outline"
-                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20">
+                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20"
+                    >
                       Go
                     </Button>
                   </div>
@@ -841,7 +844,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                           onClick={handleClearAnswer}
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20">
+                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20"
+                        >
                           <RotateCcw className="md:w-4 md:h-4 h-3 w-3" />
                           <h4 className=" md:block hidden">Clear Answer</h4>
                         </Button>
@@ -852,7 +856,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                           currentAnswer
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                        }`}>
+                        }`}
+                      >
                         {currentAnswer ? "Answered" : "Not Answered"}
                       </Badge>
                     </div>
@@ -872,7 +877,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                     onValueChange={(val) =>
                       handleAnswerChange(currentQuestion.id, val)
                     }
-                    className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-1 gap-4 pb-6">
+                    className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-1 gap-4 pb-6"
+                  >
                     {currentOptions?.map((opt, i) => (
                       <div
                         key={i}
@@ -880,7 +886,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                           currentAnswer === opt
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 shadow-lg scale-[1.02]"
                             : "border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:scale-[1.01]"
-                        }`}>
+                        }`}
+                      >
                         <RadioGroupItem
                           value={opt}
                           id={`${currentQuestion.id}-${i}`}
@@ -888,13 +895,15 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                         />
                         <Label
                           htmlFor={`${currentQuestion.id}-${i}`}
-                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium">
+                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium"
+                        >
                           <span
                             className={`flex justify-center items-center w-8 h-8 min-w-8 min-h-8 md:w-10 md:h-10 md:min-w-10 md:min-h-10 rounded-full text-white text-base font-bold md:mr-4 mr-1 text-center leading-10 transition-all ${
                               currentAnswer === opt
                                 ? "bg-blue-600 shadow-md"
                                 : "bg-gray-400 group-hover:bg-gray-500"
-                            }`}>
+                            }`}
+                          >
                             {String.fromCharCode(65 + i)}
                           </span>
                           <span className="md:text-lg text-base">{opt}</span>
@@ -908,7 +917,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                       disabled={currentQuestionIndex === 0}
                       variant="outline"
                       size="lg"
-                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
                       <ArrowLeft className="w-4 h-4 md:mr-2" />
                       <h4 className=" md:block hidden">Previous</h4>
                     </Button>
@@ -923,7 +933,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                               ? "bg-green-600 hover:bg-green-700 shadow-lg"
                               : "bg-gray-400 cursor-not-allowed"
                           }`}
-                          disabled={!allQuestionsAnswered}>
+                          disabled={!allQuestionsAnswered}
+                        >
                           <CheckCircle className="w-5 h-5 mr-2" />
                           Submit Assessment
                         </Button>
@@ -931,7 +942,8 @@ localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
                         <Button
                           onClick={handleNext}
                           size="lg"
-                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white">
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white"
+                        >
                           <h4 className=" md:block hidden">Next</h4>
                           <ArrowRight className="w-4 h-4 md:ml-2" />
                         </Button>

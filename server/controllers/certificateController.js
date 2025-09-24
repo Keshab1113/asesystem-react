@@ -49,8 +49,8 @@ exports.generateCertificate = async (req, res) => {
         );
         const issued_date = new Date();
         const [result] = await db.execute(
-          `INSERT INTO certificates 
-            (user_id, quiz_id, attempt_id, certificate_number, score, issued_date, expiry_date, is_valid, certificate_url, generateFrom) 
+          `INSERT INTO certificates
+            (user_id, quiz_id, attempt_id, certificate_number, score, issued_date, expiry_date, is_valid, certificate_url, generateFrom)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             user_id,
@@ -89,6 +89,7 @@ exports.generateCertificate = async (req, res) => {
     });
 
     doc
+      .font("Helvetica-Bold")
       .fontSize(32)
       .fillColor("#0056A6")
       .text(userName, 0, 150, { align: "center", width: pageWidth });
@@ -113,25 +114,35 @@ exports.generateCertificate = async (req, res) => {
         { align: "left", width: boxWidth - 30 }
       );
 
-    const qrSize = 100;
+    const qrSize = 120;
     const qrX = pageWidth - qrSize - 40;
     const qrY = pageHeight - qrSize - 140;
 
     doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
 
     const infoX = 60;
-    const infoY = pageHeight - 150;
+    const infoY = pageHeight - 115;
 
     doc.fontSize(12).fillColor("#000");
 
-    // Fix: explicitly set position before each line
     doc.text(`Certificate No: ${certificateNumber}`, infoX, infoY, {
       align: "left",
-      width: 250,
+      width: 450,
+      indent: 120,
     });
-    doc.text(`Date: ${date}`, infoX, infoY + 20, {
+
+    // percentage on the next line
+    doc.fillColor("#3BB143").text(`Passed: ${score}%`, infoX, infoY + 13, {
       align: "left",
-      width: 200,
+      width: 450,
+      indent: 120,
+    });
+
+    // date on the line after that
+    doc.fillColor("#000").text(`Date: ${date}`, infoX, infoY + 26, {
+      align: "left",
+      width: 450,
+      indent: 120,
     });
 
     doc.end();
@@ -219,4 +230,3 @@ exports.getCertificateByNumber = async (req, res) => {
     });
   }
 };
-

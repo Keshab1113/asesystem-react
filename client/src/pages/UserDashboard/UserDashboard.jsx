@@ -34,12 +34,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import useToast from "../../hooks/ToastContext";
- 
-
-
+import { useExam } from "../../lib/ExamContext";
 
 export default function DashboardPage() {
- 
   const { t } = useLanguage();
   const { user } = useSelector((state) => state.auth);
   const [assignments, setAssignments] = useState([]);
@@ -47,6 +44,7 @@ export default function DashboardPage() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setExamState } = useExam();
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -150,6 +148,13 @@ export default function DashboardPage() {
           <Badge variant="outline">
             <FileText className="w-3 h-3 mr-1" />
             Under Review
+          </Badge>
+        );
+        case "terminated":
+        return (
+          <Badge variant="destructive">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            Terminated
           </Badge>
         );
 
@@ -427,7 +432,7 @@ export default function DashboardPage() {
                     });
                     return;
                   }
-
+                  setExamState({ started: true, completed: false, resultPage: true });
                   // Step 3: Navigate to QuestionsPage
                   navigate(
                     `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
@@ -522,7 +527,7 @@ export default function DashboardPage() {
               );
             })()}
 
-          {["passed", "failed", "under_review"].includes(assessment.status) && (
+          {["passed", "failed", "under_review", "terminated"].includes(assessment.status) && (
             <Button
               variant="outline"
               onClick={() =>
@@ -552,23 +557,28 @@ export default function DashboardPage() {
   const inProgress = assignments.filter((a) => a.status === "in_progress");
   const now = new Date();
 
-  const scheduled = assignments.filter((a) => {
-    if (a.status !== "scheduled") return false;
+  const scheduled = assignments
+    .filter((a) => {
+      if (a.status !== "scheduled") return false;
 
-    if (a.schedule_end_date && a.schedule_end_time) {
-      const endDateTime = new Date(
-        `${a.schedule_end_date.split("T")[0]}T${a.schedule_end_time}`
-      );
-      return now <= endDateTime; // keep only not expired scheduled
-    }
+      if (a.schedule_end_date && a.schedule_end_time) {
+        const endDateTime = new Date(
+          `${a.schedule_end_date.split("T")[0]}T${a.schedule_end_time}`
+        );
+        return now <= endDateTime; // keep only not expired scheduled
+      }
 
-    return true; // if no end date/time, keep it as scheduled
-  }).sort((a, b) => new Date(b.schedule_start_date) - new Date(a.schedule_start_date));
+      return true; // if no end date/time, keep it as scheduled
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.schedule_start_date) - new Date(a.schedule_start_date)
+    );
 
   const completed = assignments
     .filter((a) => {
       if (
-        ["passed", "in_progress", "failed", "under_review"].includes(a.status)
+        ["passed", "in_progress", "failed", "under_review", "terminated"].includes(a.status)
       )
         return true;
 
@@ -635,7 +645,10 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             {scheduled.map((assessment) => (
-              <AssessmentCard key={assessment.assignment_id} assessment={assessment} />
+              <AssessmentCard
+                key={assessment.assignment_id}
+                assessment={assessment}
+              />
             ))}
           </div>
         )}
@@ -667,7 +680,10 @@ export default function DashboardPage() {
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             {completed.map((assessment) => (
-              <AssessmentCard key={assessment.assignment_id} assessment={assessment} />
+              <AssessmentCard
+                key={assessment.assignment_id}
+                assessment={assessment}
+              />
             ))}
           </div>
         )}
