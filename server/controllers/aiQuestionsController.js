@@ -183,7 +183,8 @@ After the options, clearly specify the correct answer${
         const optMatch = line.match(/^([A-D])[\.\)]\s+(.*)/i);
         if (optMatch) {
           const idx = optMatch[1].toUpperCase().charCodeAt(0) - 65; // A=0, B=1, etc.
-          currentQuestion.options[idx] = optMatch[2].trim();
+          currentQuestion.options[idx] = optMatch[2].trim().replace(/`/g, "");
+
         }
       } else if (/^Correct Answer[:\-]/i.test(line) && currentQuestion) {
         const match = line.match(

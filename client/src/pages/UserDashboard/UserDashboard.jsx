@@ -384,54 +384,7 @@ export default function DashboardPage() {
 
               const isExpired = now > endDateTime;
 
-              // const handleStartAssessment = async () => {
-              //   const assignmentId = assessment.assignment_id;
-
-              //   if (!assignmentId) {
-              //     toast({
-              //       title: "Assignment not found",
-              //       description: "Cannot start assessment.",
-              //       variant: "error",
-              //     });
-              //     return;
-              //   }
-              //   try {
-              //     // Step 1: Mark assessment as started
-              //     await axios.post(
-              //       `${
-              //         import.meta.env.VITE_BACKEND_URL
-              //       }/api/quiz-assignments/start`,
-              //       {
-              //         quiz_id: assessment.quiz_id,
-              //         user_id: user.id,
-              //       }
-              //     );
-
-              //     // Step 2: Assign random questions
-              //     await axios.post(
-              //       `${
-              //         import.meta.env.VITE_BACKEND_URL
-              //       }/api/quiz-assignments/assign-random`,
-              //       {
-              //         quizId: assessment.quiz_id,
-              //         userId: user.id,
-              //         assignmentId: assignmentId,
-              //       }
-              //     );
-
-              //     // Step 3: Navigate to QuestionsPage
-              //     navigate(
-              //       `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
-              //     );
-              //   } catch (err) {
-              //     console.error("Error starting assessment:", err);
-              //     toast({
-              //       title: "Try again",
-              //       description: "Failed to start assessment.",
-              //       variant: "error",
-              //     });
-              //   }
-              // };
+              
 
               const handleStartAssessment = async () => {
                 console.log("Clicked Start Assessment");
@@ -652,25 +605,7 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
-      {/* Section 1: In Progress */}
-      {/* {inProgress.length > 0 && (
-        <section className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-              In Progress
-            </h2>
-            <Badge className=" text-amber-100  dark:text-amber-800">
-              {inProgress.length}
-            </Badge>
-          </div>
-          <div className="grid gap-6 lg:grid-cols-2">
-            {inProgress.map((assessment) => (
-              <AssessmentCard key={assessment.assignment_id} assessment={assessment} />
-            ))}
-          </div>
-        </section>
-      )} */}
+      
 
       <section className="space-y-4">
         <div className="flex items-center gap-2">
