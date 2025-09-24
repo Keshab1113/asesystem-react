@@ -448,7 +448,7 @@ export function SubjectMasterPage() {
         </Card>
       </div>
 
-      <QuizFormModal
+      {/* <QuizFormModal
         quiz={formModal.quiz}
         open={formModal.open}
         onOpenChange={(open) =>
@@ -458,7 +458,14 @@ export function SubjectMasterPage() {
           }))
         }
         onSave={handleSaveQuiz}
-      />
+      /> */}
+      <QuizFormModal
+  quiz={formModal.quiz}
+  open={formModal.open}
+  onOpenChange={(open) => setFormModal({ open, quiz: null })}
+  onSave={handleSaveQuiz}
+/>
+
       <AssignQuizModal
         quizId={assignModal.quizId}
         quizName={assignModal.quizName} // <- pass the quiz name here

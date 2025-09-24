@@ -143,7 +143,7 @@ export default function QuestionsPage() {
           clearInterval(timer);
           handleSubmit(
             true,
-            "Time's up! Your quiz has been automatically submitted."
+            "Time's up! Your Assessment has been automatically submitted."
           );
           return 0;
         }
@@ -449,7 +449,7 @@ export default function QuestionsPage() {
       dispatch(resetQuiz(quizId));
       toast({
         title: "Submitted",
-        description: message || "✅ Quiz submitted successfully!",
+        description: message || "✅ Assessment submitted successfully!",
         variant: "success",
       });
 

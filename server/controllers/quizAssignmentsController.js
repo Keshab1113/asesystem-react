@@ -163,9 +163,16 @@ exports.endAssessment = async (req, res) => {
       if (is_correct) score++;
     }
 
-    const totalAnswered = answers.length || 1; // avoid divide by zero
-    const percentage = (score / totalAnswered) * 100;
-    const status = percentage >= passing_score ? "passed" : "failed";
+
+  // ✅ Use total assigned questions instead of total answered
+  const [assignedCountRows] = await db.query(
+    "SELECT COUNT(*) as totalAssigned FROM assigned_questions WHERE assignment_id = ? AND user_id = ?",
+    [assignment_id, user_id]
+  );
+  const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
+
+  const percentage = (score / totalAssigned) * 100;
+  const status = percentage >= passing_score ? "passed" : "failed";
 
     // ✅ Update quiz_assignments
     await db.query(
