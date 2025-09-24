@@ -257,22 +257,15 @@ exports.updateQuiz = async (req, res) => {
       updates.push("max_questions = ?");
       values.push(maxQuestions);
     }
-    if (scheduleStartDate !== undefined) {
-      updates.push("schedule_start_date = ?");
-      values.push(scheduleStartDate);
-    }
-    if (scheduleStartTime !== undefined) {
-      updates.push("schedule_start_time = ?");
-      values.push(scheduleStartTime);
-    }
-    if (scheduleEndDate !== undefined) {
-      updates.push("schedule_end_date = ?");
-      values.push(scheduleEndDate);
-    }
-    if (scheduleEndTime !== undefined) {
-      updates.push("schedule_end_time = ?");
-      values.push(scheduleEndTime);
-    }
+    if (scheduleStartDate !== undefined && scheduleStartTime !== undefined) {
+  updates.push("schedule_start_at = ?");
+  values.push(`${scheduleStartDate} ${scheduleStartTime}`);
+}
+if (scheduleEndDate !== undefined && scheduleEndTime !== undefined) {
+  updates.push("schedule_end_at = ?");
+  values.push(`${scheduleEndDate} ${scheduleEndTime}`);
+}
+
 
     updates.push("updated_at = NOW()");
 

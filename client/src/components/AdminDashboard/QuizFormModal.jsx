@@ -82,14 +82,18 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
         allowReview: quiz.allowReview ?? true,
         isPublic: quiz.isPublic ?? false,
         tags: quiz.tags || [],
-        scheduleStartDate: quiz.scheduleStartDate
-          ? new Date(quiz.scheduleStartDate).toLocaleDateString("en-CA")
+        scheduleStartDate: quiz.schedule_start_at
+          ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
           : "",
-        scheduleStartTime: quiz.scheduleStartTime || "",
-        scheduleEndDate: quiz.scheduleEndDate
-          ? new Date(quiz.scheduleEndDate).toLocaleDateString("en-CA")
+        scheduleStartTime: quiz.schedule_start_at
+          ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
           : "",
-        scheduleEndTime: quiz.scheduleEndTime || "",
+        scheduleEndDate: quiz.schedule_end_at
+          ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
+          : "",
+        scheduleEndTime: quiz.schedule_end_at
+          ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
+          : "",
       });
     } else {
       // Reset to default values for new quiz
@@ -134,14 +138,18 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
           allowReview: quiz.allowReview ?? true,
           isPublic: quiz.isPublic ?? false,
           tags: quiz.tags || [],
-          scheduleStartDate: quiz.scheduleStartDate
-            ? new Date(quiz.scheduleStartDate).toLocaleDateString("en-CA")
+          scheduleStartDate: quiz.schedule_start_at
+            ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
             : "",
-          scheduleStartTime: quiz.scheduleStartTime || "",
-          scheduleEndDate: quiz.scheduleEndDate
-            ? new Date(quiz.scheduleEndDate).toLocaleDateString("en-CA")
+          scheduleStartTime: quiz.schedule_start_at
+            ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
             : "",
-          scheduleEndTime: quiz.scheduleEndTime || "",
+          scheduleEndDate: quiz.schedule_end_at
+            ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
+            : "",
+          scheduleEndTime: quiz.schedule_end_at
+            ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
+            : "",
         });
       } else {
         setFormData({
@@ -192,6 +200,19 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
       scheduleStartTime: formData.scheduleStartTime || null,
       scheduleEndDate: normalizeDate(formData.scheduleEndDate),
       scheduleEndTime: formData.scheduleEndTime || null,
+      // send combined datetime fields
+      schedule_start_at:
+        formData.scheduleStartDate && formData.scheduleStartTime
+          ? `${normalizeDate(formData.scheduleStartDate)} ${
+              formData.scheduleStartTime
+            }`
+          : null,
+      schedule_end_at:
+        formData.scheduleEndDate && formData.scheduleEndTime
+          ? `${normalizeDate(formData.scheduleEndDate)} ${
+              formData.scheduleEndTime
+            }`
+          : null,
     };
 
     try {
@@ -223,12 +244,12 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
       }
 
       // Call onSave callback to update frontend state if needed
-      onSave({
-        ...quizData,
-        id: quiz?.id,
-        isActive: quiz?.isActive ?? true, // preserve active state
-        questionCount: quiz?.questionCount || 0, // preserve question count
-      });
+      // onSave({
+      //   ...quizData,
+      //   id: quiz?.id,
+      //   isActive: quiz?.isActive ?? true, // preserve active state
+      //   questionCount: quiz?.questionCount || 0, // preserve question count
+      // });
 
       onOpenChange(false);
     } catch (error) {
@@ -313,8 +334,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                         variant="outline"
                         className={`w-full justify-start text-left font-normal ${
                           !formData.scheduleStartDate && "text-muted-foreground"
-                        }`}
-                      >
+                        }`}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.scheduleStartDate
                           ? format(new Date(formData.scheduleStartDate), "PPP")
@@ -370,8 +390,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                         variant="outline"
                         className={`w-full justify-start text-left font-normal ${
                           !formData.scheduleEndDate && "text-muted-foreground"
-                        }`}
-                      >
+                        }`}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.scheduleEndDate
                           ? format(new Date(formData.scheduleEndDate), "PPP")
@@ -478,8 +497,7 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                     value={formData.maxAttempts}
                     onValueChange={(value) =>
                       setFormData({ ...formData, maxAttempts: value })
-                    }
-                  >
+                    }>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -523,27 +541,26 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
+          <Button 
+          onClick={handleSave} 
+          disabled={loading}>
             {loading ? (
               <svg
                 className="animate-spin h-4 w-4 mr-2 text-white"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
-                viewBox="0 0 24 24"
-              >
+                viewBox="0 0 24 24">
                 <circle
                   className="opacity-25"
                   cx="12"
                   cy="12"
                   r="10"
                   stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
+                  strokeWidth="4"></circle>
                 <path
                   className="opacity-75"
                   fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                ></path>
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
               </svg>
             ) : (
               <Save className="h-4 w-4 mr-2" />

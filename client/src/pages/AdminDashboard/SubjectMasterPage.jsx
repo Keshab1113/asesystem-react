@@ -218,7 +218,7 @@ export function SubjectMasterPage() {
       );
       toast({
         title: "Quiz Updated",
-        description: `Quiz "${quizData.name}" has been updated successfully.`,
+        description: `Quiz "${quizData.name}" has been updated successfully from subject master.`,
         variant: "success",
       });
     } else {
@@ -465,7 +465,7 @@ export function SubjectMasterPage() {
   quiz={formModal.quiz}
   open={formModal.open}
   onOpenChange={(open) => setFormModal({ open, quiz: null })}
-  onSave={handleSaveQuiz}
+  // onSave={handleSaveQuiz}
 />
 
       <AssignQuizModal
