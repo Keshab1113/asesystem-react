@@ -561,8 +561,8 @@ export default function QuestionsPage() {
                   Right-click, developer tools, and certain keyboard shortcuts
                   are disabled.
                 </li>
-                <li>Switching tabs or windows will trigger a warning.</li>
-                <li>Multiple violations may result in automatic submission.</li>
+                <li>Switching Tabs or windows will trigger a warning. (Auto-Submit/ Session Termination).</li>
+                <li>Multiple violations may result in automatic submission/ termination.</li>
               </ul>
             </div>
 

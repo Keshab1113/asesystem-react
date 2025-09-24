@@ -71,6 +71,8 @@ exports.generateCertificate = async (req, res) => {
           certificate_url: certUrl,
           certificate_id: result.insertId,
         });
+        
+        
       } catch (dbErr) {
         console.error("❌ Error saving certificate:", dbErr);
         res.status(500).json({

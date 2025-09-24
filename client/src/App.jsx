@@ -54,6 +54,12 @@ function App() {
             </PublicRoute>
           }
         />
+        <Route
+            path="/certificate-view"
+            element={
+                <CertificateView />
+            }
+          />
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route
@@ -92,14 +98,6 @@ function App() {
             <Route path="user-logs" element={<UserLogsPage />} />
             <Route path="modify-profile" element={<ModifyProfilePage />} />
           </Route>
-          <Route
-            path="/certificate-view"
-            element={
-              <ProtectedRoute>
-                <CertificateView />
-              </ProtectedRoute>
-            }
-          />
           <Route
             path="/user-dashboard"
             element={
