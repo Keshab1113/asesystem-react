@@ -213,7 +213,8 @@ export default function DashboardPage() {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-red-600 dark:text-red-400"
                   : "text-slate-400 dark:text-slate-500"
-              }`}>
+              }`}
+            >
               {assessment?.score ? `${assessment.score}%` : "—"}
             </p>
           </div>
@@ -335,22 +336,26 @@ export default function DashboardPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
-          {(assessment.status === "scheduled" || 
-  (assessment.status === "failed" && assessment.attempt_no < assessment.max_attempts)) && (() => {
+          {(assessment.status === "scheduled" ||
+            (assessment.status === "failed" &&
+              assessment.attempt_no < assessment.max_attempts)) &&
+            (() => {
               // Combine date + time into a single Date object
-             const now = new Date();
+              const now = new Date();
 
-// Convert schedule_start_at and schedule_end_at to Date objects
-const startDateTime = assessment.schedule_start_at
-  ? new Date(assessment.schedule_start_at)
-  : null;
-const endDateTime = assessment.schedule_end_at
-  ? new Date(assessment.schedule_end_at)
-  : null;
+              // Convert schedule_start_at and schedule_end_at to Date objects
+              const startDateTime = assessment.schedule_start_at
+                ? new Date(assessment.schedule_start_at)
+                : null;
+              const endDateTime = assessment.schedule_end_at
+                ? new Date(assessment.schedule_end_at)
+                : null;
 
-// Disable if current time is before start or after end
-const isNotStartedYet = startDateTime ? now < startDateTime : false;
-const isExpired = endDateTime ? now > endDateTime : false;
+              // Disable if current time is before start or after end
+              const isNotStartedYet = startDateTime
+                ? now < startDateTime
+                : false;
+              const isExpired = endDateTime ? now > endDateTime : false;
 
               const handleStartAssessment = async () => {
                 console.log("Clicked Start Assessment");
@@ -413,20 +418,19 @@ const isExpired = endDateTime ? now > endDateTime : false;
               };
 
               return (
-              <Button
-  onClick={handleStartAssessment}
-  disabled={isNotStartedYet || isExpired} // disable outside start-end range
-  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
->
-  <Play className="w-4 h-4 mr-2" />
-  {isNotStartedYet
-    ? "Scheduled - Not Started"
-    : isExpired
-    ? "Expired"
-    : "Start Assessment"}
-  <ChevronRight className="w-4 h-4 ml-auto" />
-</Button>
-
+                <Button
+                  onClick={handleStartAssessment}
+                  disabled={isNotStartedYet || isExpired} // disable outside start-end range
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  {isNotStartedYet
+                    ? "Scheduled - Not Started"
+                    : isExpired
+                    ? "Expired"
+                    : "Start Assessment"}
+                  <ChevronRight className="w-4 h-4 ml-auto" />
+                </Button>
               );
             })()}
 
@@ -488,7 +492,8 @@ const isExpired = endDateTime ? now > endDateTime : false;
               return (
                 <Button
                   onClick={handleStartAssessment}
-                  className="flex-1 text-white dark:text-slate-900 shadow-sm">
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm"
+                >
                   <Play className="w-4 h-4 mr-2" />
                   Continue Assessment
                   <ChevronRight className="w-4 h-4 ml-auto" />
@@ -504,7 +509,8 @@ const isExpired = endDateTime ? now > endDateTime : false;
               onClick={() =>
                 navigate(`results?assignmentId=${assessment.assignment_id}`)
               }
-              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800">
+              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
               <Eye className="w-4 h-4 mr-2" />
               View Results
               <ChevronRight className="w-4 h-4 ml-auto" />
@@ -600,7 +606,8 @@ const isExpired = endDateTime ? now > endDateTime : false;
           </h2>
           <Badge
             variant="outline"
-            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+          >
             {scheduled.length}
           </Badge>
         </div>

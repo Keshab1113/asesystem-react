@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { formatInTimeZone } from "date-fns-tz";
 import {
   Dialog,
   DialogContent,
@@ -84,10 +85,18 @@ export function QuizFormModal({ quiz, open, onOpenChange }) {
         allowReview: quiz.allowReview ?? true,
         isPublic: quiz.isPublic ?? false,
         tags: quiz.tags || [],
-        scheduleStartDate: quiz.scheduleStartDate,
-        scheduleStartTime: quiz.scheduleStartTime,
-        scheduleEndDate: quiz.scheduleEndDate,
-        scheduleEndTime: quiz.scheduleEndTime,
+        scheduleStartDate: quiz.schedule_start_at
+          ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
+          : "",
+        scheduleStartTime: quiz.schedule_start_at
+          ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
+          : "",
+        scheduleEndDate: quiz.schedule_end_at
+          ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
+          : "",
+        scheduleEndTime: quiz.schedule_end_at
+          ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
+          : "",
       });
     } else {
       // Reset to default values for new quiz
@@ -250,7 +259,8 @@ export function QuizFormModal({ quiz, open, onOpenChange }) {
       console.error("Error saving quiz:", error);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to save Assessment",
+        description:
+          error.response?.data?.message || "Failed to save Assessment",
         variant: "error",
       });
     } finally {
@@ -518,17 +528,30 @@ export function QuizFormModal({ quiz, open, onOpenChange }) {
                     id="max-questions"
                     type="number"
                     min="1"
-                    max={quiz?.questionCount || 1} // <-- cannot exceed number of questions
+                    max={quiz?.questionCount ?? 1}
                     value={formData.maxQuestions}
                     onChange={(e) => {
-                      const value = Math.min(
-                        Number(e.target.value),
-                        quiz?.questionCount || 1
-                      );
+                      const rawValue = e.target.value;
+
+                      // Allow empty input while typing
+                      setFormData({ ...formData, maxQuestions: rawValue });
+                    }}
+                    onBlur={(e) => {
+                      let value = Number(e.target.value);
+
+                      // Fallback if empty or invalid
+                      if (!value || value < 1) value = 1;
+
+                      // Clamp to max
+                      if (quiz?.questionCount && value > quiz.questionCount) {
+                        value = quiz.questionCount;
+                      }
+
                       setFormData({ ...formData, maxQuestions: value });
                     }}
-                    placeholder={`Up to ${quiz?.questionCount || 1}`}
+                    placeholder={`Up to ${quiz?.questionCount ?? 1}`}
                   />
+
                   {quiz?.questionCount && (
                     <p className="text-xs text-gray-500">
                       Max {quiz.questionCount} questions allowed.

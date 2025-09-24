@@ -92,14 +92,20 @@ export function SubjectMasterPage() {
           scheduleStartDate: q.schedule_start_at
             ? new Date(q.schedule_start_at).toLocaleDateString()
             : null,
-          scheduleStartTime: q.schedule_start_time
-            ? q.schedule_start_time.slice(0, 5)
+          scheduleStartTime: q.schedule_start_at
+            ? new Date(q.schedule_start_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             : null,
           scheduleEndDate: q.schedule_end_at
             ? new Date(q.schedule_end_at).toLocaleDateString()
             : null,
-          scheduleEndTime: q.schedule_end_time
-            ? q.schedule_end_time.slice(0, 5)
+          scheduleEndTime: q.schedule_end_at
+            ? new Date(q.schedule_end_at).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
             : null,
 
           createdBy: q.created_by,
@@ -200,7 +206,6 @@ export function SubjectMasterPage() {
   const handleEditQuestion = (question) => {
     setEditQuestionModal({ open: true, question });
   };
-
 
   return (
     <div className="space-y-6">

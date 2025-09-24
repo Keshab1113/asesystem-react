@@ -93,6 +93,7 @@ export function DashboardContent() {
               completedCount: summary.passed_count ?? 0,
               inProgressCount: summary.in_progress_count ?? 0,
               failedCount: summary.failed_count ?? 0,
+              maxQuestions: q.max_questions ?? 0,
               averageScore: q.average_score ?? 0, // optional: calculate if needed
               date: q.created_at
                 ? new Date(q.created_at).toLocaleDateString()
@@ -184,6 +185,7 @@ export function DashboardContent() {
   );
   console.log("totalParticipants: ", totalParticipants);
   console.log("quizzes: ", quizzes);
+  console.log("filteredAndSortedQuizzes: ", filteredAndSortedQuizzes);
 
   const setLoading = (id, loading) => {
     setLoadingStates((prev) => ({ ...prev, [id]: loading }));
@@ -313,7 +315,7 @@ export function DashboardContent() {
   };
 
   const handleEditQuiz = (quiz) => {
-    setFormModal({ open: true, quiz:quiz });
+    setFormModal({ open: true, quiz: quiz });
   };
 
   const handleDuplicateQuiz = (quiz) => {
@@ -503,7 +505,7 @@ export function DashboardContent() {
                     <Eye className="h-3 w-3 mr-1" />
                     <span className=" md:block hidden">View</span>
                   </Button> */}
-                  {/* <Button
+                  <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleEditQuiz(quiz)}
@@ -511,7 +513,7 @@ export function DashboardContent() {
                   >
                     <Edit className="h-3 w-3 mr-1" />
                     <span className=" block">Edit</span>
-                  </Button> */}
+                  </Button>
                   {/* <Button
                     size="sm"
                     variant="outline"
