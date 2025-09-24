@@ -112,7 +112,6 @@ ORDER BY q.created_at DESC
   }
 };
 
- 
 //   const { id } = req.params;
 //   const {
 //     name,
@@ -257,26 +256,32 @@ exports.updateQuiz = async (req, res) => {
       updates.push("max_questions = ?");
       values.push(maxQuestions);
     }
-   // Helper to convert local date+time to UTC MySQL DATETIME format
-const toUTC = (date, time) => {
-  const local = new Date(`${date}T${time}:00`);
-  return new Date(local.getTime() - local.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 19)
-    .replace("T", " ");
-};
+    // Helper to convert local date+time to UTC MySQL DATETIME format
+    // Helper to convert local date+time to UTC MySQL DATETIME format
+    // Helper to convert local date+time to UTC MySQL DATETIME format
+    const toUTC = (date, time) => {
+      if (!date || !time) return null; // safeguard for missing values
 
-if (scheduleStartDate !== undefined && scheduleStartTime !== undefined) {
-  updates.push("schedule_start_at = ?");
-  values.push(toUTC(scheduleStartDate, scheduleStartTime));
-}
+      const local = new Date(`${date}T${time}:00`);
+      if (isNaN(local.getTime())) return null; // invalid date/time
 
-if (scheduleEndDate !== undefined && scheduleEndTime !== undefined) {
-  updates.push("schedule_end_at = ?");
-  values.push(toUTC(scheduleEndDate, scheduleEndTime));
-}
+      return new Date(local.getTime() - local.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 19)
+        .replace("T", " ");
+    };
 
+    const startUTC = toUTC(scheduleStartDate, scheduleStartTime);
+    if (startUTC) {
+      updates.push("schedule_start_at = ?");
+      values.push(startUTC);
+    }
 
+    const endUTC = toUTC(scheduleEndDate, scheduleEndTime);
+    if (endUTC) {
+      updates.push("schedule_end_at = ?");
+      values.push(endUTC);
+    }
 
     updates.push("updated_at = NOW()");
 
@@ -350,6 +355,160 @@ exports.deleteQuiz = async (req, res) => {
 
 // Assign quiz to users
 // Assign quiz to users
+// exports.assignQuiz = async (req, res) => {
+//   const { quiz_id, user_ids } = req.body;
+
+//   if (!quiz_id || !user_ids || user_ids.length === 0) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Quiz ID and users are required",
+//     });
+//   }
+
+//   function formatDateTime(date, time) {
+//     if (!date || !time) return null;
+//     const d = new Date(date);
+//     const yyyy = d.getFullYear();
+//     const mm = String(d.getMonth() + 1).padStart(2, "0");
+//     const dd = String(d.getDate()).padStart(2, "0");
+//     return `${yyyy}-${mm}-${dd} ${time}`;
+//   }
+
+//   try {
+//     // 1. Fetch quiz details
+//     const [quizRows] = await db.query(
+//       `SELECT id, time_limit, max_attempts,
+//               schedule_start_at, schedule_start_time,
+//               schedule_end_at, schedule_end_time
+//        FROM quizzes
+//        WHERE id = ? LIMIT 1`,
+//       [quiz_id]
+//     );
+
+//     if (quizRows.length === 0) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Quiz not found" });
+//     }
+
+//     const { time_limit, max_attempts, schedule_start_at, schedule_end_at } =
+//       quizRows[0];
+
+//     if (!schedule_start_at || !schedule_end_at) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "This Assessment has not been scheduled. Please schedule it before assigning.",
+//       });
+//     }
+
+//     const started_at = formatDateTime(schedule_start_at);
+//     const ended_at = formatDateTime(schedule_end_at);
+
+//     // 2. Fetch users’ team_id & group_id
+//     const [userRows] = await db.query(
+//       `SELECT id AS user_id, team_id, group_id
+//        FROM users
+//        WHERE id IN (?)`,
+//       [user_ids]
+//     );
+
+//     if (userRows.length === 0) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Users not found" });
+//     }
+
+//     // 3. Filter out users who already have an active assignment
+//     const [existingAssignments] = await db.query(
+//       `SELECT qa.user_id, COUNT(qa.id) AS assignment_count,
+//               COUNT(qat.id) AS attempt_count
+//        FROM quiz_assignments qa
+//        LEFT JOIN quiz_attempts qat
+//          ON qa.quiz_id = qat.quiz_id
+//         AND qa.user_id = qat.user_id
+//        WHERE qa.quiz_id = ? AND qa.user_id IN (?)
+//        GROUP BY qa.user_id`,
+//       [quiz_id, user_ids]
+//     );
+
+//     const existingMap = {};
+//     existingAssignments.forEach((row) => {
+//       existingMap[row.user_id] = {
+//         assignments: row.assignment_count,
+//         attempts: row.attempt_count,
+//       };
+//     });
+
+//     const now = new Date();
+//     const values = [];
+
+//     for (const u of userRows) {
+//       const existing = existingMap[u.user_id];
+
+//       if (!existing) {
+//         // 🚀 Never assigned before → assign directly
+//         values.push([
+//           quiz_id,
+//           u.user_id,
+//           u.team_id || null,
+//           u.group_id || null,
+//           time_limit || 0,
+//           started_at,
+//           ended_at,
+//           null, // score
+//           "scheduled", // status
+//           now,
+//           now,
+//         ]);
+//       } else {
+//         // ✅ Already assigned → check attempts
+//         // ✅ Already assigned → check attempts
+//         // if (existing.attempts < max_attempts) {
+//         //   // User still has remaining attempts → allow re-assign
+//         //   values.push([
+//         //     quiz_id,
+//         //     u.user_id,
+//         //     u.team_id || null,
+//         //     u.group_id || null,
+//         //     time_limit || 0,
+//         //     started_at,
+//         //     ended_at,
+//         //     null,
+//         //     "scheduled",
+//         //     now,
+//         //     now,
+//         //   ]);
+//         // }
+//         // ❌ else: skip assigning again
+//       }
+//     }
+
+//     if (values.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "No eligible users to assign (already assigned or no attempts yet).",
+//       });
+//     }
+
+//     // 4. Insert assignments
+//     await db.query(
+//       `INSERT INTO quiz_assignments
+//         (quiz_id, user_id, team_id, group_id, time_limit, started_at, ended_at, score, status, created_at, updated_at)
+//        VALUES ?`,
+//       [values]
+//     );
+
+//     res.status(201).json({
+//       success: true,
+//       message: `Quiz assigned to ${values.length} user(s) successfully`,
+//     });
+//   } catch (error) {
+//     console.error("Error assigning quiz:", error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
 exports.assignQuiz = async (req, res) => {
   const { quiz_id, user_ids } = req.body;
 
@@ -360,56 +519,82 @@ exports.assignQuiz = async (req, res) => {
     });
   }
 
-  function formatDateTime(date, time) {
-    if (!date || !time) return null;
-    const d = new Date(date);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd} ${time}`;
-  }
+  //   function formatDateTime(date, time) {
+  //     if (!date || !time) return null;
+  //     const d = new Date(date);
+  //     const yyyy = d.getFullYear();
+  //     const mm = String(d.getMonth() + 1).padStart(2, "0");
+  //     const dd = String(d.getDate()).padStart(2, "0");
+  //     return ${yyyy}-${mm}-${dd} ${time};
+  //   }
 
   try {
-    // 1. Fetch quiz details
+    //     // 1. Fetch quiz details
+    //     const [quizRows] = await db.query(
+    //   `SELECT id, time_limit, max_attempts,
+    //           schedule_start_at, schedule_end_at
+    //   FROM quizzes
+    //   WHERE id = ? LIMIT 1`,
+    //   [quiz_id]
+    // );
+
+    //     if (quizRows.length === 0) {
+    //       return res
+    //         .status(404)
+    //         .json({ success: false, message: "Quiz not found" });
+    //     }
+
+    //     const {
+    //       time_limit,
+    //       max_attempts,
+    //       schedule_start_at,
+    //       schedule_end_at,
+    //     } = quizRows[0];
+
+    //     if (
+    //       !schedule_start_at ||
+
+    //       !schedule_end_at
+
+    //     ) {
+    //       return res.status(400).json({
+    //         success: false,
+    //         message:
+    //           "This Assessment has not been scheduled. Please schedule it before assigning.",
+    //       });
+    //     }
+
+    //     const started_at = formatDateTime(schedule_start_at);
+    //     const ended_at = formatDateTime(schedule_end_at);
+    // 1. Fetch quiz details (already stored as UTC by updateQuiz)
     const [quizRows] = await db.query(
       `SELECT id, time_limit, max_attempts,
-              schedule_start_at, schedule_start_time, 
-              schedule_end_at, schedule_end_time
-       FROM quizzes 
-       WHERE id = ? LIMIT 1`,
+          schedule_start_at, schedule_end_at
+   FROM quizzes 
+   WHERE id = ? LIMIT 1`,
       [quiz_id]
     );
 
-    if (quizRows.length === 0) {
+    if (!quizRows.length) {
       return res
         .status(404)
         .json({ success: false, message: "Quiz not found" });
     }
 
-    const {
-      time_limit,
-      max_attempts,
-      schedule_start_at,
-      schedule_start_time,
-      schedule_end_at,
-      schedule_end_time,
-    } = quizRows[0];
+    // ✅ Use directly (no formatDateTime needed)
+    const { time_limit, max_attempts, schedule_start_at, schedule_end_at } =
+      quizRows[0];
 
-    if (
-      !schedule_start_at ||
-      !schedule_start_time ||
-      !schedule_end_at ||
-      !schedule_end_time
-    ) {
+    if (!schedule_start_at || !schedule_end_at) {
       return res.status(400).json({
         success: false,
         message:
-          "This quiz has not been scheduled. Please schedule it before assigning.",
+          "This Assessment has not been scheduled. Please schedule it before assigning.",
       });
     }
 
-    const started_at = formatDateTime(schedule_start_at, schedule_start_time);
-    const ended_at = formatDateTime(schedule_end_at, schedule_end_time);
+    const started_at = schedule_start_at; // already UTC from DB
+    const ended_at = schedule_end_at;
 
     // 2. Fetch users’ team_id & group_id
     const [userRows] = await db.query(
@@ -470,23 +655,22 @@ exports.assignQuiz = async (req, res) => {
       } else {
         // ✅ Already assigned → check attempts
         // ✅ Already assigned → check attempts
-// if (existing.attempts < max_attempts) {
-//   // User still has remaining attempts → allow re-assign
-//   values.push([
-//     quiz_id,
-//     u.user_id,
-//     u.team_id || null,
-//     u.group_id || null,
-//     time_limit || 0,
-//     started_at,
-//     ended_at,
-//     null,
-//     "scheduled",
-//     now,
-//     now,
-//   ]);
-// }
-
+        // if (existing.attempts < max_attempts) {
+        //   // User still has remaining attempts → allow re-assign
+        //   values.push([
+        //     quiz_id,
+        //     u.user_id,
+        //     u.team_id || null,
+        //     u.group_id || null,
+        //     time_limit || 0,
+        //     started_at,
+        //     ended_at,
+        //     null,
+        //     "scheduled",
+        //     now,
+        //     now,
+        //   ]);
+        // }
         // ❌ else: skip assigning again
       }
     }
@@ -519,6 +703,47 @@ exports.assignQuiz = async (req, res) => {
 
 // Fetch assigned users for a quiz
 // Fetch assigned users and summary for a quiz
+// exports.getQuizAssignments = async (req, res) => {
+//   const { quiz_id } = req.params;
+//   try {
+//     // Fetch all assignments with user info
+//     const [assignments] = await db.query(
+//       `SELECT
+//          qa.*,
+//          u.name AS user_name,
+//          u.email AS user_email
+//        FROM quiz_assignments qa
+//        JOIN users u ON qa.user_id = u.id
+//        WHERE qa.quiz_id = ?`,
+//       [quiz_id]
+//     );
+
+//     // Optional: summary counts by status
+//     const [summary] = await db.query(
+//       `SELECT
+//          q.max_questions,
+//          COUNT(*) AS total_assigned,
+//          SUM(CASE WHEN status='scheduled' THEN 1 ELSE 0 END) AS scheduled_count,
+//          SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
+//          SUM(CASE WHEN status='passed' THEN 1 ELSE 0 END) AS passed_count,
+//          SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed_count,
+//          SUM(CASE WHEN status='under_review' THEN 1 ELSE 0 END) AS under_review_count
+//        FROM quiz_assignments qa
+//        JOIN quizzes q ON qa.quiz_id = q.id
+//        WHERE qa.quiz_id = ?`,
+//       [quiz_id]
+//     );
+
+//     res.json({
+//       success: true,
+//       data: { assignments, summary: summary[0] },
+//     });
+//   } catch (error) {
+//     console.error("Error fetching assignments:", error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
 exports.getQuizAssignments = async (req, res) => {
   const { quiz_id } = req.params;
   try {
@@ -537,20 +762,30 @@ exports.getQuizAssignments = async (req, res) => {
     // Optional: summary counts by status
     const [summary] = await db.query(
       `SELECT 
-         COUNT(*) AS total_assigned,
-         SUM(CASE WHEN status='scheduled' THEN 1 ELSE 0 END) AS scheduled_count,
-         SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
-         SUM(CASE WHEN status='passed' THEN 1 ELSE 0 END) AS passed_count,
-         SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed_count,
-         SUM(CASE WHEN status='under_review' THEN 1 ELSE 0 END) AS under_review_count
-       FROM quiz_assignments
-       WHERE quiz_id = ?`,
+     q.max_questions,
+     COUNT(DISTINCT ques.id) AS question_count,  -- total questions in quiz
+     COUNT(*) AS total_assigned,
+     SUM(CASE WHEN status='scheduled' THEN 1 ELSE 0 END) AS scheduled_count,
+     SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
+     SUM(CASE WHEN status='passed' THEN 1 ELSE 0 END) AS passed_count,
+     SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed_count,
+     SUM(CASE WHEN status='under_review' THEN 1 ELSE 0 END) AS under_review_count
+   FROM quiz_assignments qa
+   JOIN quizzes q ON qa.quiz_id = q.id
+   LEFT JOIN questions ques ON ques.quiz_id = q.id
+   WHERE qa.quiz_id = ?`,
       [quiz_id]
     );
 
     res.json({
       success: true,
-      data: { assignments, summary: summary[0] },
+      data: {
+        assignments,
+        summary: {
+          ...summary[0],
+          questionCount: summary[0].question_count, // total questions available
+        },
+      },
     });
   } catch (error) {
     console.error("Error fetching assignments:", error);
