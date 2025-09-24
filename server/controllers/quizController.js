@@ -159,9 +159,9 @@ ORDER BY q.created_at DESC
 //   passing_score = ?,
 //    ${maxAttempts !== undefined ? "max_attempts = ?," : ""}
 //     ${maxQuestions !== undefined ? "max_questions = ?," : ""}
-//   schedule_start_date = ?,
+//   schedule_start_at = ?,
 //   schedule_start_time = ?,
-//   schedule_end_date = ?,
+//   schedule_end_at = ?,
 //   schedule_end_time = ?,
 //   updated_at = NOW()
 // WHERE id = ?`,
@@ -257,15 +257,22 @@ exports.updateQuiz = async (req, res) => {
       updates.push("max_questions = ?");
       values.push(maxQuestions);
     }
-    if (scheduleStartDate !== undefined && scheduleStartTime !== undefined) {
-  updates.push("schedule_start_at = ?");
-  values.push(`${scheduleStartDate} ${scheduleStartTime}`);
-}
-if (scheduleEndDate !== undefined && scheduleEndTime !== undefined) {
-  updates.push("schedule_end_at = ?");
-  values.push(`${scheduleEndDate} ${scheduleEndTime}`);
-}
-
+    if (scheduleStartDate !== undefined) {
+      updates.push("schedule_start_at = ?");
+      values.push(scheduleStartDate);
+    }
+    if (scheduleStartTime !== undefined) {
+      updates.push("schedule_start_time = ?");
+      values.push(scheduleStartTime);
+    }
+    if (scheduleEndDate !== undefined) {
+      updates.push("schedule_end_at = ?");
+      values.push(scheduleEndDate);
+    }
+    if (scheduleEndTime !== undefined) {
+      updates.push("schedule_end_time = ?");
+      values.push(scheduleEndTime);
+    }
 
     updates.push("updated_at = NOW()");
 
@@ -362,8 +369,8 @@ exports.assignQuiz = async (req, res) => {
     // 1. Fetch quiz details
     const [quizRows] = await db.query(
       `SELECT id, time_limit, max_attempts,
-              schedule_start_date, schedule_start_time, 
-              schedule_end_date, schedule_end_time
+              schedule_start_at, schedule_start_time, 
+              schedule_end_at, schedule_end_time
        FROM quizzes 
        WHERE id = ? LIMIT 1`,
       [quiz_id]
@@ -378,16 +385,16 @@ exports.assignQuiz = async (req, res) => {
     const {
       time_limit,
       max_attempts,
-      schedule_start_date,
+      schedule_start_at,
       schedule_start_time,
-      schedule_end_date,
+      schedule_end_at,
       schedule_end_time,
     } = quizRows[0];
 
     if (
-      !schedule_start_date ||
+      !schedule_start_at ||
       !schedule_start_time ||
-      !schedule_end_date ||
+      !schedule_end_at ||
       !schedule_end_time
     ) {
       return res.status(400).json({
@@ -397,8 +404,8 @@ exports.assignQuiz = async (req, res) => {
       });
     }
 
-    const started_at = formatDateTime(schedule_start_date, schedule_start_time);
-    const ended_at = formatDateTime(schedule_end_date, schedule_end_time);
+    const started_at = formatDateTime(schedule_start_at, schedule_start_time);
+    const ended_at = formatDateTime(schedule_end_at, schedule_end_time);
 
     // 2. Fetch users’ team_id & group_id
     const [userRows] = await db.query(

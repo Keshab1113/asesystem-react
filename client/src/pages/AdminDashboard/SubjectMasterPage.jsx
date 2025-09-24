@@ -69,6 +69,8 @@ export function SubjectMasterPage() {
         const response = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list/2`
         );
+        console.log("response.data.data2: ", response.data.data);
+
         // Map backend fields to frontend display fields
         const quizzes = response.data.data.map((q) => ({
           id: q.id,
@@ -87,14 +89,14 @@ export function SubjectMasterPage() {
           maxQuestions: q.max_questions ?? 0,
           timeLimit: q.time_limit,
 
-          scheduleStartDate: q.schedule_start_date
-            ? new Date(q.schedule_start_date).toLocaleDateString()
+          scheduleStartDate: q.schedule_start_at
+            ? new Date(q.schedule_start_at).toLocaleDateString()
             : null,
           scheduleStartTime: q.schedule_start_time
             ? q.schedule_start_time.slice(0, 5)
             : null,
-          scheduleEndDate: q.schedule_end_date
-            ? new Date(q.schedule_end_date).toLocaleDateString()
+          scheduleEndDate: q.schedule_end_at
+            ? new Date(q.schedule_end_at).toLocaleDateString()
             : null,
           scheduleEndTime: q.schedule_end_time
             ? q.schedule_end_time.slice(0, 5)
@@ -178,13 +180,11 @@ export function SubjectMasterPage() {
   };
 
   const handleViewQuestions = (quizId) => {
-    
-    
-    setViewQuestionsModal({ open: true, quizId:quizId });
+    setViewQuestionsModal({ open: true, quizId: quizId });
   };
 
   const handleEditQuestions = (quizId) => {
-    setEditQuestionsModal({ open: true, quizId:quizId });
+    setEditQuestionsModal({ open: true, quizId: quizId });
   };
 
   const handleAssignQuiz = (quiz) => {
@@ -201,39 +201,6 @@ export function SubjectMasterPage() {
     setEditQuestionModal({ open: true, question });
   };
 
-  const handleSaveQuiz = (quizData) => {
-    if (quizData.id && subjects.find((q) => q.id === quizData.id)) {
-      // Update existing quiz while preserving isActive & questionCount
-      setSubjects((prev) =>
-        prev.map((quiz) =>
-          quiz.id === quizData.id
-            ? {
-                ...quiz,
-                ...quizData,
-                isActive: quiz.isActive ?? true,
-                questionCount: quiz.questionCount,
-              }
-            : quiz
-        )
-      );
-      toast({
-        title: "Quiz Updated",
-        description: `Quiz "${quizData.name}" has been updated successfully from subject master.`,
-        variant: "success",
-      });
-    } else {
-      // Add new quiz with default isActive and questionCount
-      setSubjects((prev) => [
-        ...prev,
-        { ...quizData, isActive: true, questionCount: 0 },
-      ]);
-      toast({
-        title: "Quiz Created",
-        description: `Quiz "${quizData.name}" has been created successfully.`,
-        variant: "success",
-      });
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -422,7 +389,12 @@ export function SubjectMasterPage() {
                               <Users className="h-4 w-4 mr-2" /> Assign
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              onClick={() => handleToggleStatus(subject.id, subject.isActive ? 0 : 1)}
+                              onClick={() =>
+                                handleToggleStatus(
+                                  subject.id,
+                                  subject.isActive ? 0 : 1
+                                )
+                              }
                             >
                               <Power className="h-4 w-4 mr-2" />{" "}
                               {subject.isActive ? "Deactivate" : "Activate"}
@@ -449,24 +421,11 @@ export function SubjectMasterPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* <QuizFormModal
+      <QuizFormModal
         quiz={formModal.quiz}
         open={formModal.open}
-        onOpenChange={(open) =>
-          setFormModal((prev) => ({
-            open,
-            quiz: open ? prev.quiz : null, // clear quiz only when closing
-          }))
-        }
-        onSave={handleSaveQuiz}
-      /> */}
-      <QuizFormModal
-  quiz={formModal.quiz}
-  open={formModal.open}
-  onOpenChange={(open) => setFormModal({ open, quiz: null })}
-  // onSave={handleSaveQuiz}
-/>
+        onOpenChange={(open) => setFormModal({ open, quiz: null })}
+      />
 
       <AssignQuizModal
         quizId={assignModal.quizId}

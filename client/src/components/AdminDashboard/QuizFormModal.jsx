@@ -44,7 +44,7 @@ import { Calendar } from "../../components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
-export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
+export function QuizFormModal({ quiz, open, onOpenChange }) {
   const { toast } = useToast();
   const isEditing = !!quiz;
   const [loading, setLoading] = useState(false);
@@ -65,6 +65,8 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
     tags: [],
   });
 
+  console.log("Hi keshab, I am on QuizFormModal: ", quiz);
+
   // Reset form data when quiz prop changes
   useEffect(() => {
     if (quiz) {
@@ -75,25 +77,17 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
         difficulty: quiz.difficulty || "medium",
         timeLimit: quiz.timeLimit || "30",
         passingScore: quiz.passingScore || "70",
-        maxAttempts: quiz.maxAttempts || "3",
-        maxQuestions: quiz.questionCount || 0,
+        maxAttempts: quiz.maxAttempts || 3,
+        maxQuestions: quiz.maxQuestions || 0,
         randomizeQuestions: quiz.randomizeQuestions ?? true,
         showResults: quiz.showResults ?? true,
         allowReview: quiz.allowReview ?? true,
         isPublic: quiz.isPublic ?? false,
         tags: quiz.tags || [],
-        scheduleStartDate: quiz.schedule_start_at
-          ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
-          : "",
-        scheduleStartTime: quiz.schedule_start_at
-          ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
-          : "",
-        scheduleEndDate: quiz.schedule_end_at
-          ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
-          : "",
-        scheduleEndTime: quiz.schedule_end_at
-          ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
-          : "",
+        scheduleStartDate: quiz.scheduleStartDate,
+        scheduleStartTime: quiz.scheduleStartTime,
+        scheduleEndDate: quiz.scheduleEndDate,
+        scheduleEndTime: quiz.scheduleEndTime,
       });
     } else {
       // Reset to default values for new quiz
@@ -226,8 +220,8 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
           quizData
         );
         toast({
-          title: "Quiz Updated",
-          description: `Quiz "${quizData.name}" has been updated successfully.`,
+          title: "Assessment Updated",
+          description: `Assessment "${quizData.name}" has been updated successfully.`,
           variant: "success",
         });
       } else {
@@ -237,8 +231,8 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
           quizData
         );
         toast({
-          title: "Quiz Created",
-          description: `Quiz "${formData.name}" has been created successfully.`,
+          title: "Assessment Created",
+          description: `Assessment "${formData.name}" has been created successfully.`,
           variant: "success",
         });
       }
@@ -256,13 +250,15 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
       console.error("Error saving quiz:", error);
       toast({
         title: "Error",
-        description: error.response?.data?.message || "Failed to save quiz",
+        description: error.response?.data?.message || "Failed to save Assessment",
         variant: "error",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  console.log("formData: ", formData);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -334,7 +330,8 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                         variant="outline"
                         className={`w-full justify-start text-left font-normal ${
                           !formData.scheduleStartDate && "text-muted-foreground"
-                        }`}>
+                        }`}
+                      >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.scheduleStartDate
                           ? format(new Date(formData.scheduleStartDate), "PPP")
@@ -390,7 +387,8 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                         variant="outline"
                         className={`w-full justify-start text-left font-normal ${
                           !formData.scheduleEndDate && "text-muted-foreground"
-                        }`}>
+                        }`}
+                      >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {formData.scheduleEndDate
                           ? format(new Date(formData.scheduleEndDate), "PPP")
@@ -494,12 +492,17 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
                 <div className="space-y-2">
                   <Label htmlFor="max-attempts">Maximum Attempts</Label>
                   <Select
-                    value={formData.maxAttempts}
+                    value={String(formData.maxAttempts)}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, maxAttempts: value })
-                    }>
+                      setFormData({
+                        ...formData,
+                        maxAttempts:
+                          value === "unlimited" ? value : Number(value),
+                      })
+                    }
+                  >
                     <SelectTrigger>
-                      <SelectValue />
+                      <SelectValue placeholder="Select attempts" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">1 attempt</SelectItem>
@@ -541,26 +544,27 @@ export function QuizFormModal({ quiz, open, onOpenChange, onSave }) {
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-          onClick={handleSave} 
-          disabled={loading}>
+          <Button onClick={handleSave} disabled={loading}>
             {loading ? (
               <svg
                 className="animate-spin h-4 w-4 mr-2 text-white"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
-                viewBox="0 0 24 24">
+                viewBox="0 0 24 24"
+              >
                 <circle
                   className="opacity-25"
                   cx="12"
                   cy="12"
                   r="10"
                   stroke="currentColor"
-                  strokeWidth="4"></circle>
+                  strokeWidth="4"
+                ></circle>
                 <path
                   className="opacity-75"
                   fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
               </svg>
             ) : (
               <Save className="h-4 w-4 mr-2" />

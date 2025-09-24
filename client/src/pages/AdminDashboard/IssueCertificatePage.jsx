@@ -340,10 +340,7 @@ export function IssueCertificatePage() {
                     {user.email}
                   </div>
                   <div className="flex items-center gap-2 mt-1">
-                    <Badge variant="outline">
-                      {user.quiz_title || "Undefined"}
-                    </Badge>
-                    <span className="text-xs">Score: {user.score || 0}%</span>
+                    <span className="text-xs">Location: {user.location}</span>
                   </div>
                 </div>
               ))}

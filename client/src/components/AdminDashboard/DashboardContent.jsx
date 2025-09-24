@@ -313,7 +313,7 @@ export function DashboardContent() {
   };
 
   const handleEditQuiz = (quiz) => {
-    setFormModal({ open: true, quiz });
+    setFormModal({ open: true, quiz:quiz });
   };
 
   const handleDuplicateQuiz = (quiz) => {
@@ -333,17 +333,17 @@ export function DashboardContent() {
     });
   };
 
-  const handleSaveQuiz = (quizData) => {
-    if (quizData.id && quizzes.find((q) => q.id === quizData.id)) {
-      // Update existing quiz
-      setQuizzes((prev) =>
-        prev.map((quiz) => (quiz.id === quizData.id ? quizData : quiz))
-      );
-    } else {
-      // Add new quiz
-      setQuizzes((prev) => [...prev, quizData]);
-    }
-  };
+  // const handleSaveQuiz = (quizData) => {
+  //   if (quizData.id && quizzes.find((q) => q.id === quizData.id)) {
+  //     // Update existing quiz
+  //     setQuizzes((prev) =>
+  //       prev.map((quiz) => (quiz.id === quizData.id ? quizData : quiz))
+  //     );
+  //   } else {
+  //     // Add new quiz
+  //     setQuizzes((prev) => [...prev, quizData]);
+  //   }
+  // };
 
   const openDeleteDialog = (id) => {
     setDeleteDialog({ open: true, quizId: id });
@@ -490,11 +490,11 @@ export function DashboardContent() {
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Subject: {quiz.subject} • Difficulty: {quiz.difficulty} •
+                  {/* Subject: {quiz.subject} • Difficulty: {quiz.difficulty} • */}
                   Created: {quiz.date}
                 </div>
                 <div className="flex gap-2 pt-2 flex-wrap">
-                  <Button
+                  {/* <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleViewQuiz(quiz)}
@@ -502,17 +502,17 @@ export function DashboardContent() {
                   >
                     <Eye className="h-3 w-3 mr-1" />
                     <span className=" md:block hidden">View</span>
-                  </Button>
-                  <Button
+                  </Button> */}
+                  {/* <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleEditQuiz(quiz)}
                     disabled={loadingStates[quiz.id]}
                   >
                     <Edit className="h-3 w-3 mr-1" />
-                    <span className=" md:block hidden">Edit</span>
-                  </Button>
-                  <Button
+                    <span className=" block">Edit</span>
+                  </Button> */}
+                  {/* <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleDuplicateQuiz(quiz)}
@@ -520,7 +520,7 @@ export function DashboardContent() {
                   >
                     <Copy className="h-3 w-3 mr-1" />
                     <span className=" md:block hidden">Copy</span>
-                  </Button>
+                  </Button> */}
                   <Button
                     size="sm"
                     variant={
@@ -539,19 +539,19 @@ export function DashboardContent() {
                   </Button>
                   <Button
                     size="sm"
-                    variant="destructive"
+                    // variant="destructive"
                     onClick={() => openDeleteDialog(quiz.id)}
                     disabled={loadingStates[quiz.id]}
                   >
                     {loadingStates[quiz.id] ? (
                       <>
                         <Loader2 className="h-3 w-3 animate-spin" />
-                        <span className=" md:block hidden">Deleting...</span>
+                        <span className=" block">Deleting...</span>
                       </>
                     ) : (
                       <>
                         <Trash2 className="h-3 w-3" />
-                        <span className=" md:block hidden">Delete</span>
+                        <span className=" block ">Delete</span>
                       </>
                     )}
                   </Button>
@@ -590,7 +590,7 @@ export function DashboardContent() {
         quiz={formModal.quiz}
         open={formModal.open}
         onOpenChange={(open) => setFormModal({ open, quiz: null })}
-        onSave={handleSaveQuiz}
+        // onSave={handleSaveQuiz}
       />
     </section>
   );
