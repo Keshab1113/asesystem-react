@@ -8,6 +8,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import { BrowserRouter } from "react-router-dom";
 import { LanguageProvider } from "./lib/language-context.js";
 import { ToastProvider } from "./hooks/ToastContext.js";
+import { ExamProvider } from "./lib/ExamContext.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
@@ -16,7 +17,9 @@ createRoot(document.getElementById("root")).render(
         <PersistGate loading={null} persistor={persistor}>
           <LanguageProvider>
             <ToastProvider>
+              <ExamProvider>
             <App />
+            </ExamProvider>
             </ToastProvider>
           </LanguageProvider>
         </PersistGate>

@@ -76,13 +76,13 @@ export default function LoginPage() {
           variant: "success",
         });
         console.log("data.user: ",data.user);
-        
+        console.log("Navigating... role:", data.user.role);
         dispatch(loginSuccess({ user: data.user, token: data.token }));
 
         if (data.user.role === "super_admin") {
-          navigate("/admin-dashboard");
+          navigate("/admin-dashboard", { replace: true });
         } else {
-          navigate("/user-dashboard");
+          navigate("/user-dashboard", { replace: true });
         }
       } else {
         dispatch(loginFailure());
