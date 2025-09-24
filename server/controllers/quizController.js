@@ -112,7 +112,7 @@ ORDER BY q.created_at DESC
   }
 };
 
-// exports.updateQuiz = async (req, res) => {
+ 
 //   const { id } = req.params;
 //   const {
 //     name,
@@ -257,14 +257,25 @@ exports.updateQuiz = async (req, res) => {
       updates.push("max_questions = ?");
       values.push(maxQuestions);
     }
-    if (scheduleStartDate !== undefined && scheduleStartTime !== undefined) {
+   // Helper to convert local date+time to UTC MySQL DATETIME format
+const toUTC = (date, time) => {
+  const local = new Date(`${date}T${time}:00`);
+  return new Date(local.getTime() - local.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 19)
+    .replace("T", " ");
+};
+
+if (scheduleStartDate !== undefined && scheduleStartTime !== undefined) {
   updates.push("schedule_start_at = ?");
-  values.push(`${scheduleStartDate} ${scheduleStartTime}`);
+  values.push(toUTC(scheduleStartDate, scheduleStartTime));
 }
+
 if (scheduleEndDate !== undefined && scheduleEndTime !== undefined) {
   updates.push("schedule_end_at = ?");
-  values.push(`${scheduleEndDate} ${scheduleEndTime}`);
+  values.push(toUTC(scheduleEndDate, scheduleEndTime));
 }
+
 
 
     updates.push("updated_at = NOW()");
@@ -458,22 +469,24 @@ exports.assignQuiz = async (req, res) => {
         ]);
       } else {
         // ✅ Already assigned → check attempts
-        if (max_attempts > 1 && existing.attempts > 0) {
-          // User has attempts → allow re-assign
-          values.push([
-            quiz_id,
-            u.user_id,
-            u.team_id || null,
-            u.group_id || null,
-            time_limit || 0,
-            started_at,
-            ended_at,
-            null,
-            "scheduled",
-            now,
-            now,
-          ]);
-        }
+        // ✅ Already assigned → check attempts
+// if (existing.attempts < max_attempts) {
+//   // User still has remaining attempts → allow re-assign
+//   values.push([
+//     quiz_id,
+//     u.user_id,
+//     u.team_id || null,
+//     u.group_id || null,
+//     time_limit || 0,
+//     started_at,
+//     ended_at,
+//     null,
+//     "scheduled",
+//     now,
+//     now,
+//   ]);
+// }
+
         // ❌ else: skip assigning again
       }
     }
