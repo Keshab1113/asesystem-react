@@ -74,14 +74,13 @@ export default function DashboardPage() {
 
   const getStatusBadge = (assessment) => {
     switch (assessment.status) {
-      case "scheduled": 
+      case "scheduled":
         return (
           <Badge variant="success">
             <Clock className="w-3 h-3 mr-1" />
             Scheduled
           </Badge>
         );
-      
 
       case "in_progress":
         return (
@@ -114,7 +113,7 @@ export default function DashboardPage() {
             Under Review
           </Badge>
         );
-        case "terminated":
+      case "terminated":
         return (
           <Badge variant="destructive">
             <CheckCircle className="w-3 h-3 mr-1" />
@@ -214,8 +213,7 @@ export default function DashboardPage() {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-red-600 dark:text-red-400"
                   : "text-slate-400 dark:text-slate-500"
-              }`}
-            >
+              }`}>
               {assessment?.score ? `${assessment.score}%` : "—"}
             </p>
           </div>
@@ -260,16 +258,18 @@ export default function DashboardPage() {
                 Assessment Start Date:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-               {assessment.schedule_start_at
-  ? new Date(assessment.schedule_start_at).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  : "Null"}
-
+                {assessment.schedule_start_at
+                  ? new Date(assessment.schedule_start_at).toLocaleString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )
+                  : "Null"}
               </span>
             </div>
           )}
@@ -300,15 +300,17 @@ export default function DashboardPage() {
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
                 {assessment.schedule_end_at
-  ? new Date(assessment.schedule_end_at).toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  : "Null"}
-
+                  ? new Date(assessment.schedule_end_at).toLocaleString(
+                      "en-US",
+                      {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )
+                  : "Null"}
               </span>
             </div>
           )}
@@ -333,20 +335,22 @@ export default function DashboardPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
-          {assessment.status === "scheduled" &&
-            (() => {
+          {(assessment.status === "scheduled" || 
+  (assessment.status === "failed" && assessment.attempt_no < assessment.max_attempts)) && (() => {
               // Combine date + time into a single Date object
-              const endDateTime = assessment.schedule_end_at
+             const now = new Date();
+
+// Convert schedule_start_at and schedule_end_at to Date objects
+const startDateTime = assessment.schedule_start_at
+  ? new Date(assessment.schedule_start_at)
+  : null;
+const endDateTime = assessment.schedule_end_at
   ? new Date(assessment.schedule_end_at)
   : null;
 
-
-              const now = new Date();
-
-             const isExpired = endDateTime ? now > endDateTime : false;
-
-
-              
+// Disable if current time is before start or after end
+const isNotStartedYet = startDateTime ? now < startDateTime : false;
+const isExpired = endDateTime ? now > endDateTime : false;
 
               const handleStartAssessment = async () => {
                 console.log("Clicked Start Assessment");
@@ -389,7 +393,11 @@ export default function DashboardPage() {
                     });
                     return;
                   }
-                  setExamState({ started: true, completed: false, resultPage: true });
+                  setExamState({
+                    started: true,
+                    completed: false,
+                    resultPage: true,
+                  });
                   // Step 3: Navigate to QuestionsPage
                   navigate(
                     `/user-dashboard/assessment/${assessment.quiz_id}?time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
@@ -405,15 +413,20 @@ export default function DashboardPage() {
               };
 
               return (
-                <Button
-                  onClick={handleStartAssessment}
-                  disabled={isExpired} // disable if expired
-                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  <Play className="w-4 h-4 mr-2" />
-                  Start Assessment
-                  <ChevronRight className="w-4 h-4 ml-auto" />
-                </Button>
+              <Button
+  onClick={handleStartAssessment}
+  disabled={isNotStartedYet || isExpired} // disable outside start-end range
+  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+>
+  <Play className="w-4 h-4 mr-2" />
+  {isNotStartedYet
+    ? "Scheduled - Not Started"
+    : isExpired
+    ? "Expired"
+    : "Start Assessment"}
+  <ChevronRight className="w-4 h-4 ml-auto" />
+</Button>
+
               );
             })()}
 
@@ -475,8 +488,7 @@ export default function DashboardPage() {
               return (
                 <Button
                   onClick={handleStartAssessment}
-                  className="flex-1 text-white dark:text-slate-900 shadow-sm"
-                >
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm">
                   <Play className="w-4 h-4 mr-2" />
                   Continue Assessment
                   <ChevronRight className="w-4 h-4 ml-auto" />
@@ -484,14 +496,15 @@ export default function DashboardPage() {
               );
             })()}
 
-          {["passed", "failed", "under_review", "terminated"].includes(assessment.status) && (
+          {["passed", "failed", "under_review", "terminated"].includes(
+            assessment.status
+          ) && (
             <Button
               variant="outline"
               onClick={() =>
                 navigate(`results?assignmentId=${assessment.assignment_id}`)
               }
-              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
+              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800">
               <Eye className="w-4 h-4 mr-2" />
               View Results
               <ChevronRight className="w-4 h-4 ml-auto" />
@@ -535,7 +548,13 @@ export default function DashboardPage() {
   const completed = assignments
     .filter((a) => {
       if (
-        ["passed", "in_progress", "failed", "under_review", "terminated"].includes(a.status)
+        [
+          "passed",
+          "in_progress",
+          "failed",
+          "under_review",
+          "terminated",
+        ].includes(a.status)
       )
         return true;
 
@@ -572,7 +591,6 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
-      
 
       <section className="space-y-4">
         <div className="flex items-center gap-2">
@@ -582,8 +600,7 @@ export default function DashboardPage() {
           </h2>
           <Badge
             variant="outline"
-            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-          >
+            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
             {scheduled.length}
           </Badge>
         </div>
