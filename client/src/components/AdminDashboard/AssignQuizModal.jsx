@@ -19,12 +19,17 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
   const [teams, setTeams] = useState([]);
   const [selectedGroup, setSelectedGroup] = useState("all");
   const [selectedTeam, setSelectedTeam] = useState("all");
+  const [selectedLocation, setSelectedLocation] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     if (open) fetchUsers();
   }, [open]);
 
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/role/user`
@@ -39,6 +44,13 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
       setGroups(uniqueGroups);
     } catch (err) {
       console.error("Error fetching users", err);
+      toast({
+        title: "Error",
+        description: "Failed to fetch users. Please try again.",
+        variant: "error",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -49,6 +61,7 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
   };
 
   const handleAssign = async () => {
+    setAssigning(true);
     try {
       await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/assign`,
@@ -56,9 +69,10 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
       );
       toast({
         title: "Success",
-        description: "Quiz assigned successfully!",
+        description: "Assessment assigned successfully!",
         variant: "success",
       });
+      setSelectedUsers([]);
       onClose();
     } catch (err) {
       if (err.response && err.response.data?.message) {
@@ -70,11 +84,13 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
       } else {
         toast({
           title: "Error",
-          description: "Error assigning quiz",
+          description: "Failed to assign assessment. Please try again.",
           variant: "error",
         });
       }
       console.error("Error assigning quiz", err);
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -100,30 +116,49 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
     const matchesGroup = selectedGroup === "all" || u.group === selectedGroup;
     const matchesTeam =
       selectedTeam === "all" || u.controlling_team === selectedTeam;
-    return matchesSearch && matchesGroup && matchesTeam;
+    const matchesLocation =
+      selectedLocation === "all" || u.location === selectedLocation;
+    return matchesSearch && matchesGroup && matchesTeam && matchesLocation;
   });
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-md shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col transform transition-all duration-300 animate-slideIn">
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 animate-fadeIn">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] flex flex-col transform transition-all duration-300 animate-slideUp border border-gray-200 dark:border-gray-700 h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-8 pb-6 border-b border-gray-100">
-          <div>
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
-              Assign Assessment
-            </h2>
-            <p className="text-gray-500 dark:text-gray-200 mt-1">
-              Assign "{quizName || "Quiz"}" to selected users
+        <div className="flex items-start sm:items-center justify-between p-4 sm:p-6 lg:p-8 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-800 rounded-t-2xl">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-blue-600 dark:bg-blue-500 rounded-xl flex items-center justify-center">
+                <svg
+                  className="w-5 h-5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+                Assign Assessment
+              </h2>
+            </div>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 truncate font-medium">
+              {quizName || "Assessment"}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 cursor-pointer flex items-center justify-center rounded-full hover:bg-red-400 text-gray-400 hover:text-gray-900 dark:text-white transition-colors"
+            className="ml-4 w-10 h-10 cursor-pointer flex items-center justify-center rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 transition-all duration-200 group"
           >
             <svg
-              className="w-5 h-5"
+              className="w-5 h-5 group-hover:scale-110 transition-transform"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -137,36 +172,37 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
             </svg>
           </button>
         </div>
-
         {/* Content */}
-        <div className="flex-1 p-8 space-y-6 overflow-hidden">
-          {/* Stats and Actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm font-medium">
-                {selectedUsers.length} selected
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Compact Filter Toggle */}
+          <div className="px-4 sm:px-6 lg:px-8 py-3 bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-600 dark:bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {selectedUsers.length} selected of {filteredUsers.length}
+                  </span>
+                </div>
+                {filteredUsers.length > 0 && (
+                  <button
+                    onClick={handleSelectAll}
+                    className="px-3 py-1 cursor-pointer text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-all duration-200"
+                  >
+                    {filteredUsers.every((u) => selectedUsers.includes(u.id))
+                      ? "Deselect All"
+                      : "Select All"}
+                  </button>
+                )}
               </div>
-              <div className="text-sm text-gray-500 dark:text-gray-200">
-                of {filteredUsers.length} users
-              </div>
-            </div>
-            <button
-              onClick={handleSelectAll}
-              className="px-4 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
-            >
-              {filteredUsers.length > 0 &&
-              filteredUsers.every((u) => selectedUsers.includes(u.id))
-                ? "Deselect All"
-                : "Select All"}
-            </button>
-          </div>
-
-          {/* Search and Filters */}
-          <div className="space-y-4">
-            <div className="grid lg:grid-cols-3 md:grid-cols-2 grid-cols-1 gap-2">
-              <div className="relative">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex cursor-pointer items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-900 rounded-lg transition-all duration-200 border border-gray-200 dark:border-gray-600"
+              >
                 <svg
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                  className={`w-4 h-4 transition-transform ${
+                    showFilters ? "rotate-180" : ""
+                  }`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -175,192 +211,274 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    d="M19 9l-7 7-7-7"
                   />
                 </svg>
-                <Input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search users by name or email..."
-                  className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 dark:text-white"
-                />
-              </div>
-
-              <Select
-                value={selectedGroup}
-                onValueChange={(val) => {
-                  setSelectedGroup(val);
-                  setSelectedTeam("all");
-
-                  if (val === "all") {
-                    setTeams([]);
-                  } else {
-                    const filteredTeams = [
-                      ...new Set(
-                        users
-                          .filter((u) => u.group === val)
-                          .map((u) => u.controlling_team)
-                          .filter(Boolean)
-                      ),
-                    ];
-                    setTeams(filteredTeams);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 dark:text-white bg-white">
-                  <SelectValue placeholder="All Groups" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Groups</SelectItem>
-                  {groups.map((g, idx) => (
-                    <SelectItem key={idx} value={g}>
-                      {g}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {/* Team Select */}
-              <Select
-                value={selectedTeam}
-                onValueChange={(val) => setSelectedTeam(val)}
-              >
-                <SelectTrigger className="w-full px-4 py-3 border border-gray-200 rounded-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none text-gray-900 dark:text-white bg-white">
-                  <SelectValue placeholder="All Teams" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Teams</SelectItem>
-                  {teams.map((t, idx) => (
-                    <SelectItem key={idx} value={t}>
-                      {t}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                Filters
+              </button>
             </div>
           </div>
 
+          {/* Collapsible Filters */}
+          {showFilters && (
+            <div className="px-4 sm:px-6 lg:px-8 py-4 space-y-3 bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-gray-700 animate-slideDown">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {/* Search Input */}
+                <div className="sm:col-span-2 lg:col-span-1 relative">
+                  <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                  <Input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search users..."
+                    className="w-full pl-10 pr-3 py-2 h-9 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none text-gray-900 dark:text-white bg-white dark:bg-slate-900 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-sm"
+                  />
+                </div>
+
+                {/* Group Select */}
+                <Select
+                  value={selectedGroup}
+                  onValueChange={(val) => {
+                    setSelectedGroup(val);
+                    setSelectedTeam("all");
+                    if (val === "all") {
+                      setTeams([]);
+                    } else {
+                      const filteredTeams = [
+                        ...new Set(
+                          users
+                            .filter((u) => u.group === val)
+                            .map((u) => u.controlling_team)
+                            .filter(Boolean)
+                        ),
+                      ];
+                      setTeams(filteredTeams);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none text-gray-900 dark:text-white bg-white dark:bg-slate-900 text-sm">
+                    <SelectValue placeholder="All Groups" />
+                  </SelectTrigger>
+                  <SelectContent className="">
+                    <SelectItem
+                      value="all"
+                      className=""
+                    >
+                      All Groups
+                    </SelectItem>
+                    {groups.map((g, idx) => (
+                      <SelectItem
+                        key={idx}
+                        value={g}
+                        className=""
+                      >
+                        {g}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Team Select */}
+                <Select
+                  value={selectedTeam}
+                  onValueChange={(val) => setSelectedTeam(val)}
+                >
+                  <SelectTrigger className="h-9 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none text-gray-900 dark:text-white bg-white dark:bg-slate-900 text-sm">
+                    <SelectValue placeholder="All Teams" />
+                  </SelectTrigger>
+                  <SelectContent className="dark:bg-slate-900 dark:border-gray-600">
+                    <SelectItem
+                      value="all"
+                      className=""
+                    >
+                      All Teams
+                    </SelectItem>
+                    {teams.map((t, idx) => (
+                      <SelectItem
+                        key={idx}
+                        value={t}
+                        className=""
+                      >
+                        {t}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                {/* Location Select */}
+                <Select
+                  value={selectedLocation}
+                  onValueChange={(val) => setSelectedLocation(val)}
+                >
+                  <SelectTrigger className="h-9 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none text-gray-900 dark:text-white bg-white dark:bg-slate-900 text-sm">
+                    <SelectValue placeholder="Work Location" />
+                  </SelectTrigger>
+                  <SelectContent className="dark:bg-slate-900 dark:border-gray-600">
+                    <SelectItem
+                      value="all"
+                      className=""
+                    >
+                      All Locations
+                    </SelectItem>
+                    <SelectItem
+                      value="Rig Based Employee (ROE)"
+                      className=""
+                    >
+                      Rig Based Employee (ROE)
+                    </SelectItem>
+                    <SelectItem
+                      value="Office Based Employee"
+                      className=""
+                    >
+                      Office Based Employee
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           {/* User List */}
-          <div className="flex-1 min-h-0">
-            <div className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-              {filteredUsers.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-200">
-                  <svg
-                    className="w-12 h-12 mb-4 text-gray-300"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
-                    />
-                  </svg>
-                  <p className="text-lg font-medium">No users found</p>
-                  <p className="text-sm">
-                    Try adjusting your search or filters
+          <div className="flex-1 min-h-0 p-4 sm:p-6 lg:p-8 overflow-hidden">
+            <div className="h-full bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+              {loading ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                  <div className="w-8 h-8 border-4 border-blue-200 border-top-blue-600 rounded-full animate-spin mb-4"></div>
+                  <p className="text-lg font-medium">Loading users...</p>
+                </div>
+              ) : filteredUsers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-8">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center mb-4">
+                    <svg
+                      className="w-8 h-8 text-gray-400"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+                      />
+                    </svg>
+                  </div>
+                  <p className="text-lg font-semibold mb-2">No users found</p>
+                  <p className="text-sm text-center max-w-sm">
+                    Try adjusting your search terms or filters to find the users
+                    you're looking for.
                   </p>
                 </div>
               ) : (
-                <div className="space-y-2 pr-2">
-                  {filteredUsers.map((u) => (
-                    <label
-                      key={u.id}
-                      className="group flex items-start gap-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer transition-all duration-200 border border-transparent hover:border-gray-200"
-                    >
-                      <div className="relative mt-1">
-                        <input
-                          type="checkbox"
-                          checked={selectedUsers.includes(u.id)}
-                          onChange={() => toggleUser(u.id)}
-                          className="w-5 h-5 rounded border-2 border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                        />
-                      </div>
+                <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+                  <div className="p-3 space-y-1">
+                    {filteredUsers.map((u) => (
+                      <label
+                        key={u.id}
+                        className="group flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 cursor-pointer transition-all duration-200 border border-transparent hover:border-blue-200 dark:hover:border-blue-700"
+                      >
+                        <div className="flex-shrink-0">
+                          <input
+                            type="checkbox"
+                            checked={selectedUsers.includes(u.id)}
+                            onChange={() => toggleUser(u.id)}
+                            className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+                          />
+                        </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium text-gray-900 dark:text-white truncate">
-                            {u.name}
-                          </h4>
-                          <div className="flex items-center gap-2 ml-4">
-                            {u.group && (
-                              <span className="px-2 py-1 text-xs font-medium bg-purple-100 text-purple-700 rounded-md">
-                                {u.group}
-                              </span>
-                            )}
-                            {u.controlling_team && (
-                              <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-md">
-                                {u.controlling_team}
-                              </span>
-                            )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3">
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-semibold text-gray-900 dark:text-white truncate text-sm">
+                                {u.name}
+                              </h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {u.email}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-1">
+                              {u.group && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded whitespace-nowrap">
+                                  {u.group}
+                                </span>
+                              )}
+                              {u.controlling_team && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded whitespace-nowrap">
+                                  {u.controlling_team}
+                                </span>
+                              )}
+                              {u.location && (
+                                <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded whitespace-nowrap">
+                                  {u.location}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-200 mt-1 truncate">
-                          {u.email}
-                        </p>
-                      </div>
-                    </label>
-                  ))}
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
-
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-8 pt-6 border-t border-gray-100">
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleAssign}
-            disabled={selectedUsers.length === 0}
-            className="px-6 py-2.5 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm"
-          >
-            Assign Assessment{" "}
-            {selectedUsers.length > 0 && `(${selectedUsers.length})`}
-          </button>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 sm:px-6 lg:px-8 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-slate-800/50">
+          <div className="text-sm text-gray-600 dark:text-gray-400 order-2 sm:order-1">
+            {selectedUsers.length > 0 && (
+              <span className="font-medium text-blue-600 dark:text-blue-400">
+                Ready to assign to {selectedUsers.length} user
+                {selectedUsers.length !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-3 order-1 sm:order-2 w-full sm:w-auto">
+            <button
+              onClick={onClose}
+              disabled={assigning}
+              className="flex-1 cursor-pointer sm:flex-none px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAssign}
+              disabled={selectedUsers.length === 0 || assigning}
+              className="flex-1 sm:flex-none  cursor-pointer px-4 py-2 rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium transition-all duration-200 disabled:from-gray-300 disabled:to-gray-300 dark:disabled:from-gray-700 dark:disabled:to-gray-700 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:scale-[1.02] disabled:hover:scale-100 disabled:hover:shadow-md flex items-center justify-center gap-2 min-w-[120px] text-sm"
+            >
+              {assigning ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-top-white rounded-full animate-spin"></div>
+                  <span>Assigning...</span>
+                </>
+              ) : (
+                <>
+                  <span>Assign</span>
+                  {selectedUsers.length > 0 && (
+                    <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-xs">
+                      {selectedUsers.length}
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
-
-      {/* Enhanced Animation */}
-      <style>{`
-        @keyframes slideIn {
-          from { 
-            opacity: 0; 
-            transform: scale(0.95) translateY(20px); 
-          }
-          to { 
-            opacity: 1; 
-            transform: scale(1) translateY(0); 
-          }
-        }
-        .animate-slideIn {
-          animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-        .scrollbar-thin {
-          scrollbar-width: thin;
-        }
-        .scrollbar-thumb-gray-300::-webkit-scrollbar {
-          width: 6px;
-        }
-        .scrollbar-thumb-gray-300::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
-          background-color: #d1d5db;
-          border-radius: 3px;
-        }
-        .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb:hover {
-          background-color: #9ca3af;
-        }
-      `}</style>
     </div>
   );
 };

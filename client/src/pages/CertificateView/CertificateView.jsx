@@ -3,6 +3,7 @@ import { Button } from "../../components/ui/button";
 import { Download } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
+import { Document, Page } from "react-pdf";
 
 export default function CertificateView() {
   const [searchParams] = useSearchParams();
@@ -52,13 +53,18 @@ export default function CertificateView() {
   };
 
   if (loading) return <p className="text-center mt-10">Loading...</p>;
-  if (error) return <p className="text-center mt-10 text-red-500">Certificate Not Found</p>;
+  if (error)
+    return (
+      <p className="text-center mt-10 text-red-500">Certificate Not Found</p>
+    );
 
   return (
     <div className="p-6 space-y-4">
       <div className="w-full h-[88vh] border rounded-lg overflow-hidden">
         <iframe
-          src={certificateURL}
+          src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
+            certificateURL
+          )}`}
           title="Certificate Preview"
           className="w-full h-full"
         />

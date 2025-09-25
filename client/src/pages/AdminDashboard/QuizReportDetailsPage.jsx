@@ -108,12 +108,11 @@ export function QuizReportDetailsPage() {
       passed: {
         variant: "default",
         className:
-          "bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-100 text-xs px-2 py-1",
+          "bg-green-500 text-white border-emerald-200 text-xs px-2 py-1",
       },
       failed: {
         variant: "destructive",
-        className:
-          "bg-red-100 text-red-800 border-red-200 hover:bg-red-100 text-xs px-2 py-1",
+        className: "bg-red-100 text-red-100 border-red-200 text-xs px-2 py-1",
       },
       in_progress: {
         variant: "secondary",
@@ -123,12 +122,16 @@ export function QuizReportDetailsPage() {
       scheduled: {
         variant: "outline",
         className:
-          "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-50 text-xs px-2 py-1",
+          "bg-amber-800 text-amber-100 border-amber-200 text-xs px-2 py-1",
       },
       under_review: {
         variant: "secondary",
         className:
           "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 text-xs px-2 py-1",
+      },
+      terminated: {
+        // variant: "destructive",
+        className: " text-white border-blue-500 bg-blue-600 text-xs px-2 py-1",
       },
     };
 
@@ -175,41 +178,48 @@ export function QuizReportDetailsPage() {
     return "text-red-500 font-semibold";
   };
 
+  const clearFilters = () => {
+    setGroupFilter("all");
+    setTeamFilter("all");
+    setStatusFilter("all");
+    setLocationFilter("all");
+    setScoreFilter("");
+  };
+
+  // console.log("filtered: ",filtered);
+
   return (
-    <div className="  min-h-screen">
-      <div className="w-full p-4 space-y-4">
+    <div className="min-h-screen mx-auto overflow-hidden lg:max-w-[75vw]">
+      <div className="w-full space-y-6 max-w-full">
         {/* Header */}
-        {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800 dark:text-white">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white">
               Assessment Report Details
             </h1>
-
-            <p className="text-slate-600 dark:text-slate-200 text-sm">
+            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
               Showing {filtered.length} of {assignments.length} results
             </p>
           </div>
-
           <Button
             variant="outline"
             onClick={() => navigate(-1)}
-            className="h-8 text-sm border-slate-200 text-gray-700 dark:text-gray-100 hover:bg-slate-50"
+            className="h-9 text-sm border-slate-200 text-gray-700 dark:text-gray-100 hover:bg-slate-50 dark:hover:bg-gray-800 self-start sm:self-auto"
           >
             ← Back
           </Button>
         </div>
 
         {/* Filters */}
-        <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900">
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-3 items-end">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
+        <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800">
+          <CardContent className="">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Group
                 </label>
                 <Select value={groupFilter} onValueChange={setGroupFilter}>
-                  <SelectTrigger className="w-40 h-8 text-sm border-slate-200">
+                  <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-600">
                     <SelectValue placeholder="All Groups" />
                   </SelectTrigger>
                   <SelectContent>
@@ -223,12 +233,12 @@ export function QuizReportDetailsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Team
                 </label>
                 <Select value={teamFilter} onValueChange={setTeamFilter}>
-                  <SelectTrigger className="w-40 h-8 text-sm border-slate-200">
+                  <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-600">
                     <SelectValue placeholder="All Teams" />
                   </SelectTrigger>
                   <SelectContent>
@@ -241,15 +251,16 @@ export function QuizReportDetailsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
+
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Location
                 </label>
                 <Select
                   value={locationFilter}
                   onValueChange={setLocationFilter}
                 >
-                  <SelectTrigger className="w-60 h-8 text-sm border-slate-200">
+                  <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-600">
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
@@ -263,12 +274,12 @@ export function QuizReportDetailsPage() {
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Status
                 </label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-36 h-8 text-sm border-slate-200">
+                  <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-600">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -278,12 +289,13 @@ export function QuizReportDetailsPage() {
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="under_review">Under Review</SelectItem>
+                    <SelectItem value="terminated">Terminated</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-gray-700 dark:text-gray-100">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Min Score
                 </label>
                 <Input
@@ -291,145 +303,164 @@ export function QuizReportDetailsPage() {
                   placeholder="0"
                   value={scoreFilter}
                   onChange={(e) => setScoreFilter(e.target.value)}
-                  className="w-20 h-8 text-sm border-slate-200"
+                  className="h-9 text-sm border-slate-200 dark:border-slate-600"
                 />
               </div>
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setGroupFilter("all");
-                  setTeamFilter("all");
-                  setStatusFilter("all");
-                  setLocationFilter("all");
-                  setScoreFilter("");
-                }}
-                className="h-8 text-sm border-slate-200 text-gray-700 dark:text-gray-100 hover:bg-slate-50"
-              >
-                Reset
-              </Button>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-transparent">
+                  Reset
+                </label>
+                <Button
+                  variant="outline"
+                  onClick={clearFilters}
+                  className="w-full h-9 text-sm border-slate-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700"
+                >
+                  Reset Filters
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Results Table */}
-        <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-900">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table className="w-full">
-                <TableHeader>
-                  <TableRow className="bg-slate-50 dark:border-slate-700  dark:bg-gray-900 border-b border-slate-200">
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      User
-                    </TableHead>
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      Email
-                    </TableHead>
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      Team
-                    </TableHead>
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      Group
-                    </TableHead>
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      Position
-                    </TableHead>
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      Location
-                    </TableHead>
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      Score
-                    </TableHead>
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      Status
-                    </TableHead>
-                    <TableHead className="font-medium text-gray-700 dark:text-gray-100 py-3 px-4 text-sm whitespace-nowrap">
-                      Result
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((a, index) => (
-                    <TableRow
-                      key={a.assignment_id}
-                      className="border-b border-slate-100 hover:bg-slate-50/50 hover:dark:bg-slate-800 transition-colors"
-                    >
-                      <TableCell className="py-2 px-4">
-                        <div className="font-medium text-gray-900 dark:text-gray-100 text-sm whitespace-nowrap">
-                          {a.user_name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 px-4">
-                        <div className="text-slate-600 text-sm whitespace-nowrap">
-                          {a.email}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 px-4">
-                        <div className="text-gray-700 dark:text-gray-100 text-sm whitespace-nowrap">
-                          {a.team_name || (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 px-4">
-                        <div className="text-gray-700 dark:text-gray-100 text-sm whitespace-nowrap">
-                          {a.group_name || (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 px-4">
-                        <div className="text-slate-600 text-sm whitespace-nowrap">
-                          {a.position || (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 px-4">
-                        <div className="text-slate-600 text-sm whitespace-nowrap">
-                          {a.location || (
-                            <span className="text-gray-400">—</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 px-4">
-                        <div
-                          className={`text-sm whitespace-nowrap ${getScoreColor(
-                            a.score
-                          )}`}
-                        >
-                          {a.score ?? <span className="text-gray-400">—</span>}
-                          {a.score && (
-                            <span className="text-slate-400 ml-1">%</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 px-4">
-                        <div className="whitespace-nowrap">
-                          {getStatusBadge(a.status)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-2 px-4">
-                        <div className="whitespace-nowrap">
-                          {getPassFailBadge(a.status)}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+        <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 overflow-hidden py-0">
+          <div className="overflow-x-auto max-h-[25rem] overflow-hidden overflow-y-auto">
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow className="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-slate-600">
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm text-center">
+                    S. No
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
+                    User
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
+                    Email
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
+                    Team
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
+                    Group
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
+                    Position
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
+                    Location
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm text-center">
+                    Score
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm text-center">
+                    Status
+                  </TableHead>
+                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm text-center">
+                    Result
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((a, index) => (
+                  <TableRow
+                    key={a.assignment_id}
+                    className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors"
+                  >
+                    {/* S. No */}
+                    <TableCell className="py-4 px-4 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                      {index + 1}
+                    </TableCell>
 
-            {filtered.length === 0 && (
-              <div className="text-center py-8">
-                <div className="text-slate-400">No results found</div>
-                <div className="text-slate-500 text-sm mt-1">
-                  Try adjusting your filters
-                </div>
+                    {/* User */}
+                    <TableCell className="py-4 px-4">
+                      <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                        {a.user_name}
+                      </div>
+                    </TableCell>
+
+                    {/* Email */}
+                    <TableCell className="py-4 px-4">
+                      <div className="text-slate-600 dark:text-slate-400 text-sm">
+                        {a.email}
+                      </div>
+                    </TableCell>
+
+                    {/* Team */}
+                    <TableCell className="py-4 px-4">
+                      <div className="text-gray-700 dark:text-gray-300 text-sm">
+                        {a.team_name || (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Group */}
+                    <TableCell className="py-4 px-4">
+                      <div className="text-gray-700 dark:text-gray-300 text-sm">
+                        {a.group_name || (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Position */}
+                    <TableCell className="py-4 px-4">
+                      <div className="text-slate-600 dark:text-slate-400 text-sm">
+                        {a.position || <span className="text-gray-400">—</span>}
+                      </div>
+                    </TableCell>
+
+                    {/* Location */}
+                    <TableCell className="py-4 px-4">
+                      <div className="text-slate-600 dark:text-slate-400 text-sm">
+                        {a.location || <span className="text-gray-400">—</span>}
+                      </div>
+                    </TableCell>
+
+                    {/* Score */}
+                    <TableCell className="py-4 px-4 text-center">
+                      <div
+                        className={`text-sm font-medium ${
+                          a.status === "passed"
+                            ? "text-green-500"
+                            : a.status === "terminated"
+                            ? "text-blue-500"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {a.score ? (
+                          `${a.score}%`
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell className="py-4 px-4 text-center">
+                      {getStatusBadge(a.status)}
+                    </TableCell>
+
+                    {/* Result */}
+                    <TableCell className="py-4 px-4 text-center">
+                      {getPassFailBadge(a.status)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="text-center py-12">
+              <div className="text-slate-400 dark:text-slate-500 text-lg">
+                No results found
               </div>
-            )}
-          </CardContent>
+              <div className="text-slate-500 dark:text-slate-400 text-sm mt-2">
+                Try adjusting your filters
+              </div>
+            </div>
+          )}
         </Card>
       </div>
     </div>
