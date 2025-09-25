@@ -3,7 +3,7 @@ import { Button } from "../../components/ui/button";
 import { Download } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import axios from "axios";
-import { Document, Page } from "react-pdf";
+// import { Document, Page } from "react-pdf";
 
 export default function CertificateView() {
   const [searchParams] = useSearchParams();
@@ -61,6 +61,11 @@ export default function CertificateView() {
   return (
     <div className="p-6 space-y-4">
       <div className="w-full h-[88vh] border rounded-lg overflow-hidden">
+        {/* <iframe
+          src={certificateURL}
+          title="Certificate Preview"
+          className="w-full h-full"
+        /> */}
         <iframe
           src={`https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(
             certificateURL
@@ -68,6 +73,9 @@ export default function CertificateView() {
           title="Certificate Preview"
           className="w-full h-full"
         />
+        {/* <Document file={certificateURL}>
+          <Page pageNumber={1} />
+        </Document> */}
       </div>
 
       {/* Download Button */}
