@@ -2,6 +2,7 @@ const db = require("../config/database");
 const { Document, Packer, Paragraph, TextRun } = require("docx");
 const fs = require("fs");
 const path = require("path");
+const ExcelJS = require("exceljs");
 
 exports.getAllQuizAttempts = async (req, res) => {
   try {
@@ -927,12 +928,70 @@ exports.updateQuizQuestionsBulk = async (req, res) => {
 };
 
 // Get detailed assignments for a quiz
+// exports.getQuizReportDetails = async (req, res) => {
+//   const { id: quizId } = req.params;
+
+//   try {
+//     const [rows] = await db.query(
+//       `
+//       SELECT 
+//         qa.id as assignment_id,
+//         qa.quiz_id,
+//         qa.user_id,
+//         qa.team_id,
+//         qa.group_id,
+//         qa.time_limit,
+//         qa.started_at,
+//         qa.ended_at,
+//         qa.user_started_at,
+//         qa.user_ended_at,
+//         qa.score,
+//         qa.status,
+//         qa.created_at,
+//         qa.updated_at,
+//         u.name as user_name,
+//         u.email,
+//         u.phone,
+//         u.position,
+//         u.employee_id,
+//         u.profile_pic_url,
+//         u.group as user_group,
+//         u.controlling_team,
+//         u.location,
+//         t.name as team_name,
+//         g.name as group_name
+//       FROM quiz_assignments qa
+//       JOIN users u ON qa.user_id = u.id
+//       LEFT JOIN teams t ON qa.team_id = t.id
+//       LEFT JOIN groups g ON qa.group_id = g.id
+//       WHERE qa.quiz_id = ?
+//       ORDER BY qa.created_at DESC
+//       `,
+//       [quizId]
+//     );
+
+//     res.json({
+//       success: true,
+//       data: rows,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching quiz report details:", error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
 exports.getQuizReportDetails = async (req, res) => {
   const { id: quizId } = req.params;
+  const {
+    group = "all",
+    team = "all",
+    status = "all",
+    location = "all",
+    minScore, // optional
+  } = req.query;
 
   try {
-    const [rows] = await db.query(
-      `
+    let query = `
       SELECT 
         qa.id as assignment_id,
         qa.quiz_id,
@@ -964,10 +1023,38 @@ exports.getQuizReportDetails = async (req, res) => {
       LEFT JOIN teams t ON qa.team_id = t.id
       LEFT JOIN groups g ON qa.group_id = g.id
       WHERE qa.quiz_id = ?
-      ORDER BY qa.created_at DESC
-      `,
-      [quizId]
-    );
+    `;
+    
+    const params = [quizId];
+
+    if (group !== "all") {
+      query += " AND g.name = ?";
+      params.push(group);
+    }
+
+    if (team !== "all") {
+      query += " AND t.name = ?";
+      params.push(team);
+    }
+
+    if (status !== "all") {
+      query += " AND qa.status = ?";
+      params.push(status);
+    }
+
+    if (location !== "all") {
+      query += " AND u.location = ?";
+      params.push(location);
+    }
+
+    if (minScore) {
+      query += " AND qa.score >= ?";
+      params.push(parseFloat(minScore));
+    }
+
+    query += " ORDER BY qa.created_at DESC";
+
+    const [rows] = await db.query(query, params);
 
     res.json({
       success: true,
@@ -978,6 +1065,189 @@ exports.getQuizReportDetails = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
+// Delete assigned quiz
+exports.deleteAssignedQuiz = async (req, res) => {
+  try {
+    const { id, quiz_id, user_id } = req.body;
+
+    // Validate input
+    if (!id || !quiz_id || !user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "id, quiz_id, and user_id are required",
+      });
+    }
+
+    const [result] = await db.query(
+      `
+      DELETE FROM quiz_assignments
+      WHERE id = ? AND quiz_id = ? AND user_id = ?
+      `,
+      [id, quiz_id, user_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Assigned quiz not found or already deleted",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Assigned quiz deleted successfully (id: ${id}, quiz_id: ${quiz_id}, user_id: ${user_id})`,
+    });
+  } catch (error) {
+    console.error("Error deleting assigned quiz:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+exports.rescheduleAssignedQuiz = async (req, res) => {
+  try {
+    const { id, quiz_id, user_id } = req.body;
+
+    // Validate input
+    if (!id || !quiz_id || !user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "id, quiz_id, and user_id are required",
+      });
+    }
+
+    // Update query
+    const [result] = await db.query(
+      `
+      UPDATE quiz_assignments
+      SET 
+        status = 'scheduled',
+        user_started_at = NULL,
+        user_ended_at = NULL,
+        score = NULL
+      WHERE id = ? AND quiz_id = ? AND user_id = ?
+      `,
+      [id, quiz_id, user_id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Assigned assessment not found or update failed",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Assigned assessment rescheduled successfully (id: ${id}, quiz_id: ${quiz_id}, user_id: ${user_id})`,
+    });
+  } catch (error) {
+    console.error("Error rescheduling assigned quiz:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+exports.exportQuizReport = async (req, res) => {
+  try {
+    const { quiz_id, group = "all", team = "all", status = "all", location = "all", minScore } = req.body;
+
+    if (!quiz_id) {
+      return res.status(400).json({ success: false, message: "quiz_id is required" });
+    }
+
+    let query = `
+      SELECT 
+        qa.id AS assignment_id,
+        u.name AS user_name,
+        u.id AS user_id,
+        t.name AS team_name,
+        g.name AS group_name,
+        qa.time_limit,
+        qa.score,
+        qa.status,
+        u.location,
+        qa.user_started_at,
+        qa.user_ended_at,
+        qa.attempt_no
+      FROM quiz_assignments qa
+      JOIN users u ON qa.user_id = u.id
+      LEFT JOIN teams t ON qa.team_id = t.id
+      LEFT JOIN groups g ON qa.group_id = g.id
+      WHERE qa.quiz_id = ?
+    `;
+
+    const params = [quiz_id];
+
+    if (group !== "all") {
+      query += " AND g.name = ?";
+      params.push(group);
+    }
+
+    if (team !== "all") {
+      query += " AND t.name = ?";
+      params.push(team);
+    }
+
+    if (status !== "all") {
+      query += " AND qa.status = ?";
+      params.push(status);
+    }
+
+    if (location !== "all") {
+      query += " AND u.location = ?";
+      params.push(location);
+    }
+
+    if (minScore) {
+      query += " AND qa.score >= ?";
+      params.push(parseFloat(minScore));
+    }
+
+    query += " ORDER BY u.name ASC";
+
+    const [rows] = await db.query(query, params);
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "No records found for this quiz" });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Quiz Report");
+
+    worksheet.columns = [
+      { header: "User Name", key: "user_name", width: 25 },
+      { header: "User ID", key: "user_id", width: 15 },
+      { header: "Team Name", key: "team_name", width: 20 },
+      { header: "Group Name", key: "group_name", width: 20 },
+      { header: "Time Limit", key: "time_limit", width: 15 },
+      { header: "Score", key: "score", width: 10 },
+      { header: "Status", key: "status", width: 15 },
+      { header: "Location", key: "location", width: 20 },
+      { header: "User Started At", key: "user_started_at", width: 20 },
+      { header: "User Ended At", key: "user_ended_at", width: 20 },
+      { header: "Attempt No", key: "attempt_no", width: 15 },
+    ];
+
+    rows.forEach((row) => worksheet.addRow(row));
+
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=Quiz_Report_${quiz_id}_${Date.now()}.xlsx`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("Error exporting quiz report:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 
 // Update quiz is_active status
 exports.updateQuizStatus = async (req, res) => {

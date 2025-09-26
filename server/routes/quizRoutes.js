@@ -1,5 +1,5 @@
 const express = require("express");
-const { getAllQuizAttempts, getAllQuizTitles,getAllQuizzes,updateQuiz ,assignQuiz,getQuizAssignments,getQuizQuestions,updateQuizQuestionsBulk,getQuizReportDetails, deleteQuiz, updateQuizStatus, getAllQuizzesWithNoActive, downloadQuizQuestions} = require("../controllers/quizController");
+const { getAllQuizAttempts, getAllQuizTitles,getAllQuizzes,updateQuiz ,assignQuiz,getQuizAssignments,getQuizQuestions,updateQuizQuestionsBulk,getQuizReportDetails, deleteQuiz, updateQuizStatus, getAllQuizzesWithNoActive, downloadQuizQuestions, deleteAssignedQuiz, rescheduleAssignedQuiz, exportQuizReport} = require("../controllers/quizController");
 const router = express.Router();
 
 router.get("/", getAllQuizAttempts);
@@ -16,6 +16,9 @@ router.put("/:id/status", updateQuizStatus);
 router.get("/:id/details", getQuizReportDetails);
 router.get("/:id/questions", getQuizQuestions);
 router.get("/:id/download", downloadQuizQuestions);
+router.delete("/assignment/delete", deleteAssignedQuiz);
+router.put("/assignment/reschedule", rescheduleAssignedQuiz);
+router.post("/assignment/export", exportQuizReport);
 
 // router.put("/edit-questions/:quizId", updateQuizQuestionsBulk);
 router.put('/edit-question/:id', updateQuizQuestionsBulk);

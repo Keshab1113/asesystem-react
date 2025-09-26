@@ -251,7 +251,7 @@ export function MyAccountPage() {
         <Card>
           <CardContent className="p-4">
             <div className="text-2xl font-bold">156</div>
-            <div className="text-sm text-muted-foreground">Quizzes Created</div>
+            <div className="text-sm text-muted-foreground">Assessment Created</div>
           </CardContent>
         </Card>
         <Card>

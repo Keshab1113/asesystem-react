@@ -556,7 +556,7 @@ export default function QuestionsPage() {
                 <li>This assessment has a time limit of {time} minutes.</li>
                 <li>Once started, the timer cannot be paused.</li>
                 <li>You must answer all questions before submitting.</li>
-                <li>You cannot exit fullscreen mode during the assessment.</li>
+                <li>Now you are on fullScreen mode, cannot exit fullscreen mode during the assessment.</li>
                 <li>
                   Right-click, developer tools, and certain keyboard shortcuts
                   are disabled.

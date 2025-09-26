@@ -75,10 +75,6 @@ const handleViewDetails = (id) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-foreground">Assesment Reports</h1>
-        <Button>
-          <Download className="h-4 w-4 mr-2" />
-          Export All Reports
-        </Button>
       </div>
 
       {/* Search and Filter */}

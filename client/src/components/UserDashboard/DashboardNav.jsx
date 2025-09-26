@@ -146,7 +146,7 @@ export function DashboardNav() {
           </Button>
 
           {/* Language Selector */}
-          <DropdownMenu>
+          {/* <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -195,7 +195,7 @@ export function DashboardNav() {
                 )}
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> */}
 
          <ToggleTheme/>
 

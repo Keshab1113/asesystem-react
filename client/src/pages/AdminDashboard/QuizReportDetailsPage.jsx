@@ -2,14 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Card, CardContent } from "../../components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../components/ui/table";
+import { Download } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -19,13 +12,15 @@ import {
 } from "../../components/ui/select";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { Badge } from "../../components/ui/badge";
+import PerfectTable from "../../components/AdminDashboard/PerfectTable";
+import useToast from "../../hooks/ToastContext";
 
 export function QuizReportDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState([]);
-  const [filtered, setFiltered] = useState([]);
+  const [loadingDownload, setLoadingDownload] = useState(false);
+  const { toast } = useToast();
 
   // filters
   const [groupFilter, setGroupFilter] = useState("all");
@@ -34,67 +29,39 @@ export function QuizReportDetailsPage() {
   const [locationFilter, setLocationFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState("");
 
+  // fetch data from backend with filters
+  const fetchDetails = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}/details`,
+        {
+          params: {
+            group: groupFilter,
+            team: teamFilter,
+            status: statusFilter,
+            location: locationFilter,
+            minScore: scoreFilter || undefined,
+          },
+        }
+      );
+      setAssignments(res.data.data || []);
+    } catch (err) {
+      console.error("Error fetching report details:", err);
+    }
+  };
+
+  // fetch on page load and whenever filters change
   useEffect(() => {
-    const fetchDetails = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}/details`
-        );
-        setAssignments(res.data.data || []);
-        console.log("Fetched details:", res.data.data);
-        setFiltered(res.data.data || []);
-      } catch (err) {
-        console.error("Error fetching report details:", err);
-      }
-    };
     fetchDetails();
-  }, [id]);
+  }, [id, groupFilter, teamFilter, statusFilter, locationFilter, scoreFilter]);
 
-  // apply filters
-  useEffect(() => {
-    let data = [...assignments];
-
-    if (groupFilter !== "all") {
-      data = data.filter((a) => a.group_name === groupFilter);
-    }
-    if (teamFilter !== "all") {
-      data = data.filter((a) => a.team_name === teamFilter);
-    }
-    if (statusFilter !== "all") {
-      data = data.filter((a) => a.status === statusFilter);
-    }
-    if (locationFilter !== "all") {
-      data = data.filter((a) => a.location === locationFilter);
-    }
-
-    if (scoreFilter) {
-      const minScore = parseFloat(scoreFilter);
-      if (!isNaN(minScore)) {
-        data = data.filter((a) => parseFloat(a.score) >= minScore);
-      }
-    }
-
-    setFiltered(data);
-  }, [
-    groupFilter,
-    teamFilter,
-    statusFilter,
-    locationFilter,
-    scoreFilter,
-    assignments,
-  ]);
-
-  // unique groups & teams for dropdown
+  // unique groups, teams & locations for dropdowns
   const groups = [
+    "all",
     ...new Set(assignments.map((a) => a.group_name).filter(Boolean)),
   ];
-
-  const locations = [
-    ...new Set(assignments.map((a) => a.location).filter(Boolean)),
-  ];
-
-  // teams should depend on selected group
   const teams = [
+    "all",
     ...new Set(
       assignments
         .filter((a) => groupFilter === "all" || a.group_name === groupFilter)
@@ -102,81 +69,10 @@ export function QuizReportDetailsPage() {
         .filter(Boolean)
     ),
   ];
-
-  const getStatusBadge = (status) => {
-    const statusConfig = {
-      passed: {
-        variant: "default",
-        className:
-          "bg-green-500 text-white border-emerald-200 text-xs px-2 py-1",
-      },
-      failed: {
-        variant: "destructive",
-        className: "bg-red-100 text-red-100 border-red-200 text-xs px-2 py-1",
-      },
-      in_progress: {
-        variant: "secondary",
-        className:
-          "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 text-xs px-2 py-1",
-      },
-      scheduled: {
-        variant: "outline",
-        className:
-          "bg-amber-800 text-amber-100 border-amber-200 text-xs px-2 py-1",
-      },
-      under_review: {
-        variant: "secondary",
-        className:
-          "bg-purple-100 text-purple-800 border-purple-200 hover:bg-purple-100 text-xs px-2 py-1",
-      },
-      terminated: {
-        // variant: "destructive",
-        className: " text-white border-blue-500 bg-blue-600 text-xs px-2 py-1",
-      },
-    };
-
-    const config = statusConfig[status] || {
-      variant: "outline",
-      className: "text-xs px-2 py-1",
-    };
-    const displayText = status
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (l) => l.toUpperCase());
-
-    return (
-      <Badge variant={config.variant} className={config.className}>
-        {displayText}
-      </Badge>
-    );
-  };
-
-  const getPassFailBadge = (status) => {
-    if (status === "passed") {
-      return (
-        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs px-2 py-1">
-          Pass
-        </Badge>
-      );
-    } else if (status === "failed") {
-      return (
-        <Badge
-          variant="destructive"
-          className="bg-red-500 hover:bg-red-600 text-xs px-2 py-1"
-        >
-          Fail
-        </Badge>
-      );
-    }
-    return <span className="text-gray-400 text-xs">—</span>;
-  };
-
-  const getScoreColor = (score) => {
-    const numScore = parseFloat(score);
-    if (isNaN(numScore)) return "text-gray-400";
-    if (numScore >= 80) return "text-emerald-600 font-semibold";
-    if (numScore >= 60) return "text-amber-600 font-semibold";
-    return "text-red-500 font-semibold";
-  };
+  const locations = [
+    "all",
+    ...new Set(assignments.map((a) => a.location).filter(Boolean)),
+  ];
 
   const clearFilters = () => {
     setGroupFilter("all");
@@ -186,7 +82,48 @@ export function QuizReportDetailsPage() {
     setScoreFilter("");
   };
 
-  // console.log("filtered: ",filtered);
+  const handleDownload = async () => {
+    setLoadingDownload(true);
+    try {
+      const response = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/quiz-attempts/assignment/export`,
+        {
+          quiz_id: id,
+          group: groupFilter,
+          team: teamFilter,
+          status: statusFilter,
+          location: locationFilter,
+          minScore: scoreFilter || undefined,
+        },
+        { responseType: "blob" }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Quiz_Report_${id}_${Date.now()}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast({
+        title: "Downloaded!",
+        description: "Download Assessment Report",
+        variant: "success",
+      });
+    } catch (err) {
+      console.error("Error exporting Excel:", err);
+      toast({
+        title: "Error",
+        description: "No records found for this Assessment",
+        variant: "error",
+      });
+    } finally {
+      setLoadingDownload(false);
+    }
+  };
 
   return (
     <div className="min-h-screen mx-auto overflow-hidden lg:max-w-[75vw]">
@@ -198,32 +135,34 @@ export function QuizReportDetailsPage() {
               Assessment Report Details
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
-              Showing {filtered.length} of {assignments.length} results
+              Showing {assignments.length} results
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => navigate(-1)}
-            className="h-9 text-sm border-slate-200 text-gray-700 dark:text-gray-100 hover:bg-slate-50 dark:hover:bg-gray-800 self-start sm:self-auto"
-          >
-            ← Back
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => navigate(-1)}>
+              ← Back
+            </Button>
+            <Button onClick={handleDownload} disabled={loadingDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              {loadingDownload ? "Downloading..." : "Export All Reports"}
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}
         <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800">
-          <CardContent className="">
+          <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-              <div className="space-y-2">
+              {/* Group */}
+              <div className="space-y-2 capitalize">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Group
                 </label>
                 <Select value={groupFilter} onValueChange={setGroupFilter}>
-                  <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-600">
+                  <SelectTrigger className="capitalize">
                     <SelectValue placeholder="All Groups" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Groups</SelectItem>
                     {groups.map((g) => (
                       <SelectItem key={g} value={g}>
                         {g}
@@ -233,16 +172,16 @@ export function QuizReportDetailsPage() {
                 </Select>
               </div>
 
+              {/* Team */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Team
                 </label>
                 <Select value={teamFilter} onValueChange={setTeamFilter}>
-                  <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-600">
+                  <SelectTrigger className="capitalize">
                     <SelectValue placeholder="All Teams" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Teams</SelectItem>
                     {teams.map((t) => (
                       <SelectItem key={t} value={t}>
                         {t}
@@ -252,6 +191,7 @@ export function QuizReportDetailsPage() {
                 </Select>
               </div>
 
+              {/* Location */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Location
@@ -260,11 +200,10 @@ export function QuizReportDetailsPage() {
                   value={locationFilter}
                   onValueChange={setLocationFilter}
                 >
-                  <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-600">
+                  <SelectTrigger className="capitalize">
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
                     {locations.map((loc) => (
                       <SelectItem key={loc} value={loc}>
                         {loc}
@@ -274,12 +213,13 @@ export function QuizReportDetailsPage() {
                 </Select>
               </div>
 
+              {/* Status */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Status
                 </label>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-9 text-sm border-slate-200 dark:border-slate-600">
+                  <SelectTrigger className="capitalize">
                     <SelectValue placeholder="All Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -294,6 +234,7 @@ export function QuizReportDetailsPage() {
                 </Select>
               </div>
 
+              {/* Min Score */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
                   Min Score
@@ -303,19 +244,15 @@ export function QuizReportDetailsPage() {
                   placeholder="0"
                   value={scoreFilter}
                   onChange={(e) => setScoreFilter(e.target.value)}
-                  className="h-9 text-sm border-slate-200 dark:border-slate-600"
                 />
               </div>
 
-              <div className="space-y-2">
+              {/* Reset */}
+              <div className="space-y-2 flex flex-col">
                 <label className="text-xs font-medium text-transparent">
                   Reset
                 </label>
-                <Button
-                  variant="outline"
-                  onClick={clearFilters}
-                  className="w-full h-9 text-sm border-slate-200 dark:border-slate-600 text-gray-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700"
-                >
+                <Button variant="outline" onClick={clearFilters}>
                   Reset Filters
                 </Button>
               </div>
@@ -323,135 +260,27 @@ export function QuizReportDetailsPage() {
           </CardContent>
         </Card>
 
+        {/* Table */}
         <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 overflow-hidden py-0">
-          <div className="overflow-x-auto max-h-[25rem] overflow-hidden overflow-y-auto">
-            <Table className="w-full">
-              <TableHeader>
-                <TableRow className="bg-slate-50 dark:bg-gray-900 border-b border-slate-200 dark:border-slate-600">
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm text-center">
-                    S. No
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
-                    User
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
-                    Email
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
-                    Team
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
-                    Group
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
-                    Position
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm">
-                    Location
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm text-center">
-                    Score
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm text-center">
-                    Status
-                  </TableHead>
-                  <TableHead className="font-semibold text-gray-700 dark:text-gray-200 py-4 px-4 text-sm text-center">
-                    Result
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map((a, index) => (
-                  <TableRow
-                    key={a.assignment_id}
-                    className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors"
-                  >
-                    {/* S. No */}
-                    <TableCell className="py-4 px-4 text-center text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {index + 1}
-                    </TableCell>
+          <PerfectTable
+            filtered={assignments}
+            onDelete={(deletedId) =>
+              setAssignments((prev) =>
+                prev.filter((a) => a.assignment_id !== deletedId)
+              )
+            }
+            onUpdate={(updatedAssignment) =>
+              setAssignments((prev) =>
+                prev.map((a) =>
+                  a.assignment_id === updatedAssignment.assignment_id
+                    ? { ...a, ...updatedAssignment }
+                    : a
+                )
+              )
+            }
+          />
 
-                    {/* User */}
-                    <TableCell className="py-4 px-4">
-                      <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                        {a.user_name}
-                      </div>
-                    </TableCell>
-
-                    {/* Email */}
-                    <TableCell className="py-4 px-4">
-                      <div className="text-slate-600 dark:text-slate-400 text-sm">
-                        {a.email}
-                      </div>
-                    </TableCell>
-
-                    {/* Team */}
-                    <TableCell className="py-4 px-4">
-                      <div className="text-gray-700 dark:text-gray-300 text-sm">
-                        {a.team_name || (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    {/* Group */}
-                    <TableCell className="py-4 px-4">
-                      <div className="text-gray-700 dark:text-gray-300 text-sm">
-                        {a.group_name || (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    {/* Position */}
-                    <TableCell className="py-4 px-4">
-                      <div className="text-slate-600 dark:text-slate-400 text-sm">
-                        {a.position || <span className="text-gray-400">—</span>}
-                      </div>
-                    </TableCell>
-
-                    {/* Location */}
-                    <TableCell className="py-4 px-4">
-                      <div className="text-slate-600 dark:text-slate-400 text-sm">
-                        {a.location || <span className="text-gray-400">—</span>}
-                      </div>
-                    </TableCell>
-
-                    {/* Score */}
-                    <TableCell className="py-4 px-4 text-center">
-                      <div
-                        className={`text-sm font-medium ${
-                          a.status === "passed"
-                            ? "text-green-500"
-                            : a.status === "terminated"
-                            ? "text-blue-500"
-                            : "text-red-500"
-                        }`}
-                      >
-                        {a.score ? (
-                          `${a.score}%`
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </div>
-                    </TableCell>
-
-                    {/* Status */}
-                    <TableCell className="py-4 px-4 text-center">
-                      {getStatusBadge(a.status)}
-                    </TableCell>
-
-                    {/* Result */}
-                    <TableCell className="py-4 px-4 text-center">
-                      {getPassFailBadge(a.status)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filtered.length === 0 && (
+          {assignments.length === 0 && (
             <div className="text-center py-12">
               <div className="text-slate-400 dark:text-slate-500 text-lg">
                 No results found
