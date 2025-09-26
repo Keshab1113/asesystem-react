@@ -89,14 +89,23 @@ exports.getAllQuizzes = async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT 
-   q.*,
-   COUNT(ques.id) AS question_count
-FROM quizzes q
-LEFT JOIN questions ques ON ques.quiz_id = q.id
-WHERE q.is_active = 1
-GROUP BY q.id
-ORDER BY q.created_at DESC
-`
+         qs.id AS session_id,
+         qs.session_name,
+         qs.quiz_id,
+         q.title AS quiz_title,   -- changed from q.name
+         qs.time_limit,
+         qs.passing_score,
+         qs.max_attempts,
+         qs.max_questions,
+         qs.schedule_start_at,
+         qs.schedule_end_at,
+         qs.created_at,
+         COUNT(ques.id) AS question_count
+       FROM quiz_sessions qs
+       JOIN quizzes q ON qs.quiz_id = q.id
+       LEFT JOIN questions ques ON ques.quiz_id = q.id
+       GROUP BY qs.id
+       ORDER BY qs.created_at DESC`
     );
 
     res.status(200).json({
@@ -112,86 +121,8 @@ ORDER BY q.created_at DESC
   }
 };
 
-//   const { id } = req.params;
-//   const {
-//     name,
-//     timeLimit,
-//     passingScore,
-//     maxAttempts,
-//     maxQuestions, // <-- new
-//     scheduleStartDate,
-//     scheduleStartTime,
-//     scheduleEndDate,
-//     scheduleEndTime,
-//   } = req.body;
 
-//   // Fetch current quiz first
-//   const [existing] = await db.query(
-//     "SELECT time_limit, max_attempts FROM quizzes WHERE id = ?",
-//     [id]
-//   );
-//   if (!existing.length) {
-//     return res.status(404).json({ success: false, message: "Quiz not found" });
-//   }
-//   const currentQuiz = existing[0];
-
-//   // If not already set in DB, then require them
-//   if (
-//     (currentQuiz.time_limit == null &&
-//       (timeLimit === undefined || timeLimit === null)) ||
-//     (currentQuiz.max_attempts == null &&
-//       (maxAttempts === undefined || maxAttempts === null))
-//   ) {
-//     return res
-//       .status(400)
-//       .json({
-//         success: false,
-//         message: "Time limit and max attempts are required",
-//       });
-//   }
-
-//   try {
-//     const [result] = await db.query(
-//       `UPDATE quizzes SET
-//   ${name ? "title = ?," : ""}
-//   ${timeLimit !== undefined ? "time_limit = ?," : ""}
-//   passing_score = ?,
-//    ${maxAttempts !== undefined ? "max_attempts = ?," : ""}
-//     ${maxQuestions !== undefined ? "max_questions = ?," : ""}
-//   schedule_start_at = ?,
-//   schedule_start_time = ?,
-//   schedule_end_at = ?,
-//   schedule_end_time = ?,
-//   updated_at = NOW()
-// WHERE id = ?`,
-//       [
-//         ...(name ? [name] : []),
-//         ...(timeLimit !== undefined ? [timeLimit] : []),
-//         passingScore,
-//         ...(maxAttempts !== undefined ? [maxAttempts] : []),
-//         ...(maxQuestions !== undefined ? [maxQuestions] : []), // <-- include
-//         scheduleStartDate,
-//         scheduleStartTime,
-//         scheduleEndDate,
-//         scheduleEndTime,
-//         id,
-//       ]
-//     );
-
-//     if (result.affectedRows === 0) {
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Quiz not found" });
-//     }
-
-//     res
-//       .status(200)
-//       .json({ success: true, message: "Quiz updated successfully" });
-//   } catch (error) {
-//     console.error("Error updating quiz:", error);
-//     res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
+ 
 
 exports.updateQuiz = async (req, res) => {
   const { id } = req.params;
@@ -311,6 +242,101 @@ exports.updateQuiz = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// exports.updateQuiz = async (req, res) => {
+//   const { id } = req.params; // quizId when editing quiz template
+//   const { sessionId, title } = req.body; // optional sessionId & quiz title
+
+//   const {
+//     sessionName,
+//     timeLimit,
+//     passingScore,
+//     maxAttempts,
+//     maxQuestions,
+//     scheduleStartDate,
+//     scheduleStartTime,
+//     scheduleEndDate,
+//     scheduleEndTime,
+//   } = req.body;
+
+//   // Helper: convert local date+time → UTC
+//   const toUTC = (date, time) => {
+//     if (!date || !time) return null;
+//     const local = new Date(`${date}T${time}:00`);
+//     if (isNaN(local.getTime())) return null;
+//     return new Date(local.getTime() - local.getTimezoneOffset() * 60000)
+//       .toISOString()
+//       .slice(0, 19)
+//       .replace("T", " ");
+//   };
+
+//   try {
+//     if (sessionId) {
+//       // ✅ Update existing session
+//       const [existing] = await db.query("SELECT * FROM quiz_sessions WHERE id = ?", [sessionId]);
+//       if (!existing.length) return res.status(404).json({ success: false, message: "Quiz session not found" });
+
+//       const updates = [];
+//       const values = [];
+//       if (sessionName !== undefined) { updates.push("session_name=?"); values.push(sessionName); }
+//       if (timeLimit !== undefined) { updates.push("time_limit=?"); values.push(timeLimit); }
+//       if (passingScore !== undefined) { updates.push("passing_score=?"); values.push(passingScore); }
+//       if (maxAttempts !== undefined) { updates.push("max_attempts=?"); values.push(maxAttempts); }
+//       if (maxQuestions !== undefined) { updates.push("max_questions=?"); values.push(maxQuestions); }
+
+//       const startUTC = toUTC(scheduleStartDate, scheduleStartTime);
+//       if (startUTC) { updates.push("schedule_start_at=?"); values.push(startUTC); }
+
+//       const endUTC = toUTC(scheduleEndDate, scheduleEndTime);
+//       if (endUTC) { updates.push("schedule_end_at=?"); values.push(endUTC); }
+
+//       updates.push("updated_at=NOW()");
+//       values.push(sessionId);
+
+//       await db.query(`UPDATE quiz_sessions SET ${updates.join(", ")} WHERE id=?`, values);
+//       return res.json({ success: true, message: "Quiz session updated successfully" });
+
+//     } else if (scheduleStartDate || scheduleEndDate) {
+//       // ✅ Create a new session for this quiz
+//       const [countRes] = await db.query("SELECT COUNT(*) as count FROM quiz_sessions WHERE quiz_id = ?", [id]);
+//       const sessionNumber = countRes[0].count + 1;
+//       const newSessionName = `${title || 'Quiz'} ${sessionNumber}`;
+
+//       const startUTC = scheduleStartDate && scheduleStartTime ? toUTC(scheduleStartDate, scheduleStartTime) : null;
+//       const endUTC = scheduleEndDate && scheduleEndTime ? toUTC(scheduleEndDate, scheduleEndTime) : null;
+
+//       const [newSession] = await db.query(
+//         `INSERT INTO quiz_sessions 
+//          (quiz_id, session_name, time_limit, passing_score, max_attempts, max_questions, schedule_start_at, schedule_end_at, created_at, updated_at)
+//          VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+//         [id, newSessionName, timeLimit, passingScore, maxAttempts, maxQuestions, startUTC, endUTC]
+//       );
+
+//       return res.json({ success: true, message: "New session created", sessionId: newSession.insertId });
+
+//     } else {
+//       // ✅ Update quiz template fields only
+//       const updates = [];
+//       const values = [];
+//       if (title) { updates.push("title=?"); values.push(title); }
+//       if (req.body.description) { updates.push("description=?"); values.push(req.body.description); }
+//       if (req.body.difficulty) { updates.push("difficulty_level=?"); values.push(req.body.difficulty); }
+
+//       updates.push("updated_at=NOW()");
+//       values.push(id);
+
+//       await db.query(`UPDATE quizzes SET ${updates.join(", ")} WHERE id=?`, values);
+//       return res.json({ success: true, message: "Quiz updated successfully" });
+//     }
+
+//   } catch (error) {
+//     console.error("Error updating quiz/session:", error);
+//     return res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
+
+
 
 exports.deleteQuiz = async (req, res) => {
   const { id } = req.params;
@@ -519,54 +545,10 @@ exports.assignQuiz = async (req, res) => {
     });
   }
 
-  //   function formatDateTime(date, time) {
-  //     if (!date || !time) return null;
-  //     const d = new Date(date);
-  //     const yyyy = d.getFullYear();
-  //     const mm = String(d.getMonth() + 1).padStart(2, "0");
-  //     const dd = String(d.getDate()).padStart(2, "0");
-  //     return ${yyyy}-${mm}-${dd} ${time};
-  //   }
+   
 
   try {
-    //     // 1. Fetch quiz details
-    //     const [quizRows] = await db.query(
-    //   `SELECT id, time_limit, max_attempts,
-    //           schedule_start_at, schedule_end_at
-    //   FROM quizzes
-    //   WHERE id = ? LIMIT 1`,
-    //   [quiz_id]
-    // );
-
-    //     if (quizRows.length === 0) {
-    //       return res
-    //         .status(404)
-    //         .json({ success: false, message: "Quiz not found" });
-    //     }
-
-    //     const {
-    //       time_limit,
-    //       max_attempts,
-    //       schedule_start_at,
-    //       schedule_end_at,
-    //     } = quizRows[0];
-
-    //     if (
-    //       !schedule_start_at ||
-
-    //       !schedule_end_at
-
-    //     ) {
-    //       return res.status(400).json({
-    //         success: false,
-    //         message:
-    //           "This Assessment has not been scheduled. Please schedule it before assigning.",
-    //       });
-    //     }
-
-    //     const started_at = formatDateTime(schedule_start_at);
-    //     const ended_at = formatDateTime(schedule_end_at);
-    // 1. Fetch quiz details (already stored as UTC by updateQuiz)
+     
     const [quizRows] = await db.query(
       `SELECT id, time_limit, max_attempts,
           schedule_start_at, schedule_end_at
@@ -744,10 +726,125 @@ exports.assignQuiz = async (req, res) => {
 //   }
 // };
 
+// exports.getQuizAssignments = async (req, res) => {
+//   const { quiz_id } = req.params;
+//   try {
+//     // Fetch all assignments with user info
+//     const [assignments] = await db.query(
+//       `SELECT 
+//          qa.*, 
+//          u.name AS user_name,
+//          u.email AS user_email
+//        FROM quiz_assignments qa
+//        JOIN users u ON qa.user_id = u.id
+//        WHERE qa.quiz_id = ?`,
+//       [quiz_id]
+//     );
+
+//     // Optional: summary counts by status
+//     const [summary] = await db.query(
+//       `SELECT 
+//      q.max_questions,
+//      COUNT(DISTINCT ques.id) AS question_count,  -- total questions in quiz
+//      COUNT(*) AS total_assigned,
+//      SUM(CASE WHEN status='scheduled' THEN 1 ELSE 0 END) AS scheduled_count,
+//      SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
+//      SUM(CASE WHEN status='passed' THEN 1 ELSE 0 END) AS passed_count,
+//      SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed_count,
+//      SUM(CASE WHEN status='under_review' THEN 1 ELSE 0 END) AS under_review_count
+//    FROM quiz_assignments qa
+//    JOIN quizzes q ON qa.quiz_id = q.id
+//    LEFT JOIN questions ques ON ques.quiz_id = q.id
+//    WHERE qa.quiz_id = ?`,
+//       [quiz_id]
+//     );
+
+//     res.json({
+//       success: true,
+//       data: {
+//         assignments,
+//         summary: {
+//           ...summary[0],
+//           questionCount: summary[0].question_count, // total questions available
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error fetching assignments:", error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
+// exports.getQuizAssignments = async (req, res) => {
+//   const { quiz_id } = req.params;
+//   try {
+//     // 1) Fetch all assignments with user info (no join to questions)
+//     const [assignments] = await db.query(
+//       `SELECT 
+//          qa.*, 
+//          u.name AS user_name,
+//          u.email AS user_email
+//        FROM quiz_assignments qa
+//        JOIN users u ON qa.user_id = u.id
+//        WHERE qa.quiz_id = ?`,
+//       [quiz_id]
+//     );
+
+//     // 2) Summary stats (do NOT join to questions here — that inflates counts)
+//     const [summary] = await db.query(
+//   `SELECT
+//      q.max_questions,
+     
+//      -- total questions in quiz
+//      (SELECT COUNT(*) FROM questions WHERE quiz_id = ?) AS question_count,
+
+//      COUNT(*) AS total_assigned,
+
+//      SUM(CASE WHEN qa.status = 'scheduled' THEN 1 ELSE 0 END) AS scheduled_count,
+//      SUM(CASE WHEN qa.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
+//      SUM(CASE WHEN qa.status = 'passed' THEN 1 ELSE 0 END) AS passed_count,
+//      SUM(CASE WHEN qa.status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+//      SUM(CASE WHEN qa.status = 'under_review' THEN 1 ELSE 0 END) AS under_review_count,
+//      SUM(CASE WHEN qa.status = 'terminated' THEN 1 ELSE 0 END) AS terminated_count,
+
+//      -- took exam = passed + failed + terminated
+//      SUM(CASE WHEN qa.status IN ('passed','failed','terminated') THEN 1 ELSE 0 END) AS took_exam_count,
+
+//      -- average score of users who took exam
+//      ROUND(AVG(CASE WHEN qa.status IN ('passed','failed','terminated') AND qa.score IS NOT NULL THEN qa.score END), 2) AS avg_score,
+
+//      -- quiz schedule
+//      q.schedule_start_at AS started_at,
+//      q.schedule_end_at AS ended_at
+
+//    FROM quiz_assignments qa
+//    JOIN quizzes q ON q.id = qa.quiz_id
+//    WHERE qa.quiz_id = ?`,
+//   [quiz_id, quiz_id]
+// );
+
+
+
+//     res.json({
+//       success: true,
+//       data: {
+//         assignments,
+//         summary: {
+//           ...summary[0],
+//           questionCount: summary[0].question_count,
+//         },
+//       },
+//     });
+//   } catch (error) {
+//     console.error("Error fetching assignments:", error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
 exports.getQuizAssignments = async (req, res) => {
-  const { quiz_id } = req.params;
+  const { quiz_session_id } = req.params; // now from quiz_sessions
   try {
-    // Fetch all assignments with user info
+    // 1) Fetch all assignments with user info for this session
     const [assignments] = await db.query(
       `SELECT 
          qa.*, 
@@ -755,43 +852,68 @@ exports.getQuizAssignments = async (req, res) => {
          u.email AS user_email
        FROM quiz_assignments qa
        JOIN users u ON qa.user_id = u.id
-       WHERE qa.quiz_id = ?`,
-      [quiz_id]
+       WHERE qa.quiz_session_id = ?`,
+      [quiz_session_id]
     );
 
-    // Optional: summary counts by status
+    // 2) Summary for this quiz_session
     const [summary] = await db.query(
-      `SELECT 
-     q.max_questions,
-     COUNT(DISTINCT ques.id) AS question_count,  -- total questions in quiz
-     COUNT(*) AS total_assigned,
-     SUM(CASE WHEN status='scheduled' THEN 1 ELSE 0 END) AS scheduled_count,
-     SUM(CASE WHEN status='in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
-     SUM(CASE WHEN status='passed' THEN 1 ELSE 0 END) AS passed_count,
-     SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed_count,
-     SUM(CASE WHEN status='under_review' THEN 1 ELSE 0 END) AS under_review_count
-   FROM quiz_assignments qa
-   JOIN quizzes q ON qa.quiz_id = q.id
-   LEFT JOIN questions ques ON ques.quiz_id = q.id
-   WHERE qa.quiz_id = ?`,
-      [quiz_id]
-    );
+      `SELECT
+         qs.max_questions,
 
+         -- total questions linked to the quiz for this session
+         (SELECT COUNT(*) 
+            FROM questions 
+            WHERE quiz_id = qs.quiz_id) AS question_count,
+
+         COUNT(*) AS total_assigned,
+
+         SUM(CASE WHEN qa.status = 'scheduled' THEN 1 ELSE 0 END) AS scheduled_count,
+         SUM(CASE WHEN qa.status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_count,
+         SUM(CASE WHEN qa.status = 'passed' THEN 1 ELSE 0 END) AS passed_count,
+         SUM(CASE WHEN qa.status = 'failed' THEN 1 ELSE 0 END) AS failed_count,
+         SUM(CASE WHEN qa.status = 'under_review' THEN 1 ELSE 0 END) AS under_review_count,
+         SUM(CASE WHEN qa.status = 'terminated' THEN 1 ELSE 0 END) AS terminated_count,
+
+         -- took exam = passed + failed + terminated
+         SUM(CASE WHEN qa.status IN ('passed','failed','terminated') THEN 1 ELSE 0 END) AS took_exam_count,
+
+         -- average score of users who took exam
+         ROUND(AVG(CASE WHEN qa.status IN ('passed','failed','terminated') 
+                        AND qa.score IS NOT NULL THEN qa.score END), 2) AS avg_score,
+
+         -- schedule from session (not quiz now)
+         qs.schedule_start_at AS started_at,
+         qs.schedule_end_at AS ended_at,
+
+         -- join for quiz name
+         q.title AS quiz_name
+
+       FROM quiz_assignments qa
+       JOIN quiz_sessions qs ON qs.id = qa.quiz_session_id
+       JOIN quizzes q ON q.id = qs.quiz_id
+       WHERE qa.quiz_session_id = ?`,
+      [quiz_session_id]
+    );
+  console.log("Assignments:", assignments);
+    console.log("Summary:", summary[0]);
     res.json({
       success: true,
       data: {
         assignments,
         summary: {
           ...summary[0],
-          questionCount: summary[0].question_count, // total questions available
+          questionCount: summary[0].question_count,
         },
       },
     });
+    // console.log("data",res.data.summary);
   } catch (error) {
     console.error("Error fetching assignments:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 exports.getQuizQuestions = async (req, res) => {
   const { id } = req.params; // quizId
@@ -927,8 +1049,60 @@ exports.updateQuizQuestionsBulk = async (req, res) => {
 };
 
 // Get detailed assignments for a quiz
+// exports.getQuizReportDetails = async (req, res) => {
+//   const { id: quizId } = req.params;
+
+//   try {
+//     const [rows] = await db.query(
+//       `
+//       SELECT 
+//         qa.id as assignment_id,
+//         qa.quiz_id,
+//         qa.user_id,
+//         qa.team_id,
+//         qa.group_id,
+//         qa.time_limit,
+//         qa.started_at,
+//         qa.ended_at,
+//         qa.user_started_at,
+//         qa.user_ended_at,
+//         qa.score,
+//         qa.status,
+//         qa.created_at,
+//         qa.updated_at,
+//         u.name as user_name,
+//         u.email,
+//         u.phone,
+//         u.position,
+//         u.employee_id,
+//         u.profile_pic_url,
+//         u.group as user_group,
+//         u.controlling_team,
+//         u.location,
+//         t.name as team_name,
+//         g.name as group_name
+//       FROM quiz_assignments qa
+//       JOIN users u ON qa.user_id = u.id
+//       LEFT JOIN teams t ON qa.team_id = t.id
+//       LEFT JOIN groups g ON qa.group_id = g.id
+//       WHERE qa.quiz_id = ?
+//       ORDER BY qa.created_at DESC
+//       `,
+//       [quizId]
+//     );
+
+//     res.json({
+//       success: true,
+//       data: rows,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching quiz report details:", error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+// Get detailed assignments for a quiz session
 exports.getQuizReportDetails = async (req, res) => {
-  const { id: quizId } = req.params;
+  const { session_id } = req.params; // changed from quizId to session_id
 
   try {
     const [rows] = await db.query(
@@ -936,6 +1110,7 @@ exports.getQuizReportDetails = async (req, res) => {
       SELECT 
         qa.id as assignment_id,
         qa.quiz_id,
+        qa.quiz_session_id,
         qa.user_id,
         qa.team_id,
         qa.group_id,
@@ -963,16 +1138,17 @@ exports.getQuizReportDetails = async (req, res) => {
       JOIN users u ON qa.user_id = u.id
       LEFT JOIN teams t ON qa.team_id = t.id
       LEFT JOIN groups g ON qa.group_id = g.id
-      WHERE qa.quiz_id = ?
+      WHERE qa.quiz_session_id = ?  -- fetch by session
       ORDER BY qa.created_at DESC
       `,
-      [quizId]
+      [session_id]
     );
 
     res.json({
       success: true,
       data: rows,
     });
+    console.log("Assignments for session:", session_id, rows); // 🔹 debug
   } catch (error) {
     console.error("Error fetching quiz report details:", error);
     res.status(500).json({ success: false, message: "Server error" });

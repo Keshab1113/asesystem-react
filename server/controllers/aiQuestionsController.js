@@ -276,6 +276,24 @@ const [quizResult] = await connection.execute(
 
       const quizId = quizResult.insertId;
 
+      // ✅ 1. Auto-create first session for this quiz
+const sessionName = `${title} 1`; // first session named same as quiz with "-1"
+const [sessionResult] = await connection.execute(
+  `INSERT INTO quiz_sessions 
+   (quiz_id, session_name, time_limit, passing_score, max_attempts, max_questions, created_at, updated_at)
+   VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+  [
+    quizId,
+    sessionName,
+    timeLimit || 60,
+    passingScore || 70,
+    maxAttempts || 3,
+    questions.length, // max_questions
+  ]
+);
+
+const sessionId = sessionResult.insertId;
+
       // ✅ 2. Insert each question into questions table
       const savedQuestions = [];
       for (const q of questions) {

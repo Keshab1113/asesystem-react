@@ -19,7 +19,7 @@ const certificateRoutes = require('./routes/certificateRoutes');
 const quizAssignmentsRoutes = require("./routes/quizAssignmentsRoutes");
 const resultRoutes = require("./routes/resultRoutes");
 const userDownloadRoutes = require("./routes/userDownloadRoutes");
-
+const quizSessionsRoutes = require("./routes/quizSessionsRoutes");
  
 // Middleware
 app.use(cors());
@@ -50,6 +50,8 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/quiz-attempts", quizRoutes);
 app.use("/api/quiz-assignments", quizAssignmentsRoutes);
 app.use("/api/results", resultRoutes);
+
+app.use("/api/quiz-sessions", quizSessionsRoutes);
 
 
 // Basic health check endpoint

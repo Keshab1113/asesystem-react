@@ -11,9 +11,10 @@ router.put('/edit/:id', updateQuiz);
 router.post("/assign", assignQuiz);
 router.delete("/:id", deleteQuiz);
 // router.get("/:id", getQuizAssignments);
-router.get("/:quiz_id", getQuizAssignments);
+router.get("/:quiz_session_id", getQuizAssignments);
 router.put("/:id/status", updateQuizStatus);
-router.get("/:id/details", getQuizReportDetails);
+router.get("/:session_id/details", getQuizReportDetails);
+
 router.get("/:id/questions", getQuizQuestions);
 router.get("/:id/download", downloadQuizQuestions);
 

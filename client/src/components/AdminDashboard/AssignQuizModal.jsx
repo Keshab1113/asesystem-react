@@ -10,7 +10,7 @@ import {
 } from "../ui/select";
 import { Input } from "../ui/input";
 
-const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
+const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
   const { toast } = useToast();
   const [users, setUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -50,10 +50,11 @@ const AssignQuizModal = ({ quizId, quizName, open, onClose }) => {
 
   const handleAssign = async () => {
     try {
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/assign`,
-        { quiz_id: quizId, user_ids: selectedUsers }
-      );
+     await axios.post(
+  `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/assign-session`,
+  { session_id: sessionId, user_ids: selectedUsers }
+);
+
       toast({
         title: "Success",
         description: "Quiz assigned successfully!",

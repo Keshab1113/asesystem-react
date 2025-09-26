@@ -33,6 +33,8 @@ import ResultsPage from "./pages/UserDashboard/ResultsPage";
 import ProtectedAssessmentRoute from "./lib/ProtectedAssessmentRoute";
 import ProtectedResultsRoute from "./lib/ProtectedResultsRoute";
 import PublicRoute from "./lib/PublicRoute";
+import QuizSessionsPage from "./pages/AdminDashboard/QuizSessionsPage";
+
 
 function App() {
   return (
@@ -86,6 +88,7 @@ function App() {
             />
             {/* <Route path="add-questions" element={<AddQuestionsPage/>} /> */}
             <Route path="subject-master" element={<SubjectMasterPage />} />
+            <Route path="quiz-sessions" element={<QuizSessionsPage />} />
             <Route
               path="subject-master/add-subject"
               element={<AddSubjectPage />}

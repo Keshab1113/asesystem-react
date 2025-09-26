@@ -36,10 +36,15 @@ import { useExam } from "../../lib/ExamContext";
 
 export default function QuestionsPage() {
   const { quizId } = useParams();
+  
   const [searchParams] = useSearchParams();
+  const quizSessionId = searchParams.get("session_id");
+console.log("Quiz Session ID:", quizSessionId);
+console.log("Quiz ID from params:", quizId);
   const time = searchParams.get("time");
   const passing_score = searchParams.get("passing_score");
-  const assignmentId = searchParams.get("assesment_id");
+  const assignmentId = searchParams.get("assignment_id");
+  console.log("Assignment ID from params:", assignmentId);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -75,44 +80,41 @@ export default function QuestionsPage() {
 
   // Check if all questions are answered
   const allQuestionsAnswered = questions.every((q) => answers[q.id]);
+useEffect(() => {
+  
+  const hasAccepted = localStorage.getItem(
+    `quiz_${quizId}_instructions_accepted`
+  );
+  if (hasAccepted === "true" && isFullscreenActive() && !isDevToolsOpen()) {
+    setAcceptedInstructions(true);
+    setShowInstructions(false);
+    setTimerStarted(true);
+  } else {
+    localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
+  }
 
-  useEffect(() => {
-    // Check if user has already accepted instructions for this quiz
-    const hasAccepted = localStorage.getItem(
-      `quiz_${quizId}_instructions_accepted`
-    );
-    if (hasAccepted === "true" && isFullscreenActive() && !isDevToolsOpen()) {
-      setAcceptedInstructions(true);
-      setShowInstructions(false);
-      setTimerStarted(true);
-    } else {
-      localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
-    }
+  const fetchQuestions = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${quizId}/fetch-assigned-questions?userId=${user.id}&quizSessionId=${quizSessionId}&assignmentId=${assignmentId}`
+      );
 
-    const fetchQuestions = async () => {
-      try {
-        const res = await fetch(
-          `${
-            import.meta.env.VITE_BACKEND_URL
-          }/api/quiz-assignments/${quizId}/fetch-assigned-questions?userId=${
-            user.id
-          }&assignmentId=${assignmentId}`
-        );
-
-        const data = await res.json();
-        // console.log("Fetched questions data:", data); // Debug log
-        if (data.success) {
-          dispatch(setQuizQuestions({ quizId, questions: data.data }));
-        }
-      } catch (error) {
-        console.error("Error fetching assigned questions:", error);
-      } finally {
-        setLoading(false);
+      const data = await res.json();
+      if (data.success) {
+        dispatch(setQuizQuestions({ quizId, questions: data.data }));
       }
-    };
+      console.log("Fetched Questions:", data.data);
+    } catch (error) {
+      console.error("Error fetching assigned questions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchQuestions();
-  }, [quizId, questions, dispatch]);
+  if (quizSessionId) fetchQuestions();
+}, [quizId, quizSessionId, dispatch]);
+
+
 
   useEffect(() => {
     if (!timerStarted || !acceptedInstructions) return;
@@ -315,66 +317,84 @@ export default function QuestionsPage() {
   };
 
   // ✅ Check if DevTools is open
-  const isDevToolsOpen = () => {
-    const threshold = 160;
-    const widthThreshold = window.outerWidth - window.innerWidth > threshold;
-    const heightThreshold = window.outerHeight - window.innerHeight > threshold;
-    return widthThreshold || heightThreshold;
-  };
+ const isDevToolsOpen = () => {
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  if (isMobile) return false;
+
+  const threshold = 160;
+  return (
+    window.outerWidth - window.innerWidth > threshold ||
+    window.outerHeight - window.innerHeight > threshold
+  );
+};
+
 
   // ✅ Check if fullscreen is active
   const isFullscreenActive = () => {
-    return (
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement
-    );
-  };
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  if (isIOS) {
+    // iOS has no fullscreen API → fallback check
+    return window.innerHeight === screen.height && window.innerWidth === screen.width;
+  }
+
+  return (
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
+};
+
 
   const handleAcceptInstructions = async () => {
-    // 🔎 Check secure state first
-    if (isDevToolsOpen() || !isFullscreenActive()) {
-      const reason = isDevToolsOpen()
-        ? "Developer Tools detected. Close them to start."
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  // 🔎 Check secure state first
+  if (isDevToolsOpen() || (!isIOS && !isFullscreenActive())) {
+    const reason = isDevToolsOpen()
+      ? "Developer Tools detected. Close them to start."
+      : isIOS
+        ? "Rotate your device to portrait and keep this tab active."
         : "Fullscreen is required. Enter fullscreen to start.";
 
-      toast({
-        title: "⚠️ Cannot Start Assessment",
-        description: reason,
-        variant: "destructive",
-      });
+    toast({
+      title: "⚠️ Cannot Start Assessment",
+      description: reason,
+      variant: "destructive",
+    });
 
-      // Request fullscreen if needed
-      if (!isFullscreenActive()) {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-        else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-        else if (el.msRequestFullscreen) el.msRequestFullscreen();
-      }
-
-      return; // block start
+    // Request fullscreen if needed (desktop + Android, NOT iOS)
+    if (!isIOS && !isFullscreenActive()) {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
     }
 
-    // ✅ If checks pass, allow start
-    setAcceptedInstructions(true);
-    setShowInstructions(false);
-    setTimerStarted(true);
+    return; // block start until conditions met
+  }
 
-    // Lock screen orientation on mobile
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock("portrait").catch(() => {});
-    }
+  // ✅ Passed checks → allow start
+  setAcceptedInstructions(true);
+  setShowInstructions(false);
+  setTimerStarted(true);
 
-    // Store accepted in localStorage
-    // localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
+  // Lock screen orientation (mobile only)
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock("portrait").catch(() => {});
+  }
 
+  // 🔗 Call backend to mark quiz start
+  try {
     const startRes = await axios.post(
       `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
       {
         quiz_id: quizId,
         user_id: user.id,
+          assignment_id: assignmentId,
+          quiz_session_id: quizSessionId,
       }
     );
 
@@ -386,9 +406,19 @@ export default function QuestionsPage() {
       });
       return;
     }
+
     // ✅ Save accepted only after backend success
     localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
-  };
+  } catch (err) {
+    console.error("Start assessment failed:", err);
+    toast({
+      title: "Error",
+      description: "Network error starting assessment",
+      variant: "error",
+    });
+  }
+};
+
 
   const handleSubmit = async (forced = false, message = null) => {
     // 1. Manual submit (user action)
@@ -430,6 +460,7 @@ export default function QuestionsPage() {
           quiz_id: quizId,
           user_id: user.id,
           assignment_id: assignmentId,
+          quiz_session_id: quizSessionId,
           passing_score: passing_score,
           answers: forced
             ? Object.entries(latestAnswers).map(([question_id, answer]) => ({
@@ -640,7 +671,7 @@ export default function QuestionsPage() {
                     : "bg-blue-600 hover:bg-blue-700"
                 }`}
               >
-                I Accept - Start Assessment
+                I Accept - Launch Assessment
               </Button>
             </div>
           </CardContent>
