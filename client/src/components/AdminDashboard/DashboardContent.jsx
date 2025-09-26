@@ -77,29 +77,29 @@ export function DashboardContent() {
           `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`
         );
         const quizzes = quizzesRes.data.data;
-
+console.log("Fetched quizzes:", quizzes); // Debugging
         // Now fetch assignments summary for each quiz
         const reportsWithSummary = await Promise.all(
           quizzes.map(async (q) => {
             const assignRes = await axios.get(
-              `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.id}`
+              `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.session_id}`
             );
             const { summary } = assignRes.data.data;
             console.log("Fetched summary for quiz ID", q.id, ":", summary); // Debug log
             return {
-              id: q.id,
-              name: q.title,
-              participants: summary.total_assigned ?? 0,
-              completedCount: summary.passed_count ?? 0,
-              inProgressCount: summary.in_progress_count ?? 0,
-              failedCount: summary.failed_count ?? 0,
-              maxQuestions: q.max_questions ?? 0,
-              averageScore: q.average_score ?? 0, // optional: calculate if needed
-              date: q.created_at
-                ? new Date(q.created_at).toLocaleDateString()
-                : "-",
-              status: q.is_active === 1 ? "Active" : "Completed",
-            };
+      id: q.session_id,
+      name: q.session_name,              // for UI
+      quiz_title: q.quiz_title,          // for filtering
+      session_name: q.session_name,      // for filtering
+      participants: summary.total_assigned ?? 0,
+      completedCount: summary.passed_count ?? 0,
+      inProgressCount: summary.in_progress_count ?? 0,
+      failedCount: summary.failed_count ?? 0,
+      maxQuestions: summary.max_questions ?? 0,
+      averageScore: summary.avg_score ?? 0,
+      date: q.created_at ?? q.schedule_start_at, // for date filter
+      status: q.is_active === 1 ? "Active" : "Completed",
+    };
           })
         );
 
@@ -114,67 +114,67 @@ export function DashboardContent() {
 
   const debouncedSearch = useDebouncedValue(filters.search, 300);
 
-  const filteredAndSortedQuizzes = useMemo(() => {
-    const filtered = quizzes.filter((quiz) => {
-      const matchesSearch =
-        quiz.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        quiz.subject.toLowerCase().includes(debouncedSearch.toLowerCase());
-      const matchesStatus =
-        filters.status === "all" || quiz.status === filters.status;
-      const matchesSubject =
-        filters.subject === "all" || quiz.subject === filters.subject;
-      const matchesDifficulty =
-        filters.difficulty === "all" || quiz.difficulty === filters.difficulty;
+const filteredAndSortedQuizzes = useMemo(() => {
+  const filtered = quizzes.filter((quiz) => {
+    const matchesSearch =
+      (quiz.quiz_title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+       quiz.session_name?.toLowerCase().includes(debouncedSearch.toLowerCase()));
 
-      let matchesDateRange = true;
-      if (filters.dateFrom || filters.dateTo) {
-        const quizDate = new Date(quiz.createdDate);
-        if (filters.dateFrom && quizDate < filters.dateFrom)
-          matchesDateRange = false;
-        if (filters.dateTo && quizDate > filters.dateTo)
-          matchesDateRange = false;
-      }
+    const matchesStatus =
+      filters.status === "all" || quiz.status === filters.status;
+    const matchesSubject =
+      filters.subject === "all" || quiz.subject === filters.subject;
+    const matchesDifficulty =
+      filters.difficulty === "all" || quiz.difficulty === filters.difficulty;
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesSubject &&
-        matchesDifficulty &&
-        matchesDateRange
-      );
-    });
+    let matchesDateRange = true;
+    if (filters.dateFrom || filters.dateTo) {
+      const quizDate = new Date(quiz.created_at);
+      if (filters.dateFrom && quizDate < filters.dateFrom) matchesDateRange = false;
+      if (filters.dateTo && quizDate > filters.dateTo) matchesDateRange = false;
+    }
 
-    filtered.sort((a, b) => {
-      let aValue, bValue;
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesSubject &&
+      matchesDifficulty &&
+      matchesDateRange
+    );
+  });
 
-      switch (filters.sortBy) {
-        case "name":
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case "date":
-          aValue = new Date(a.createdDate);
-          bValue = new Date(b.createdDate);
-          break;
-        case "participants":
-          aValue = a.participants;
-          bValue = b.participants;
-          break;
-        case "status":
-          aValue = a.status;
-          bValue = b.status;
-          break;
-        default:
-          return 0;
-      }
+  filtered.sort((a, b) => {
+    let aValue, bValue;
 
-      if (aValue < bValue) return filters.sortOrder === "asc" ? -1 : 1;
-      if (aValue > bValue) return filters.sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
+    switch (filters.sortBy) {
+      case "name":
+        aValue = (a.quiz_title || "").toLowerCase();
+        bValue = (b.quiz_title || "").toLowerCase();
+        break;
+      case "date":
+        aValue = new Date(a.created_at);
+        bValue = new Date(b.created_at);
+        break;
+      case "participants":
+        aValue = a.participants;
+        bValue = b.participants;
+        break;
+      case "status":
+        aValue = a.status;
+        bValue = b.status;
+        break;
+      default:
+        return 0;
+    }
 
-    return filtered;
-  }, [quizzes, debouncedSearch, filters]);
+    if (aValue < bValue) return filters.sortOrder === "asc" ? -1 : 1;
+    if (aValue > bValue) return filters.sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  return filtered;
+}, [quizzes, debouncedSearch, filters]);
+
 
   const activeQuizzes = quizzes.filter(
     (quiz) => quiz.status === "Active"

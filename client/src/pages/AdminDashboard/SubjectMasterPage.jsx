@@ -73,6 +73,7 @@ export function SubjectMasterPage() {
 
         // Map backend fields to frontend display fields
         const quizzes = response.data.data.map((q) => ({
+         
           id: q.id,
           name: q.title,
           description: q.description || "",
@@ -110,8 +111,9 @@ export function SubjectMasterPage() {
 
           createdBy: q.created_by,
           updatedAt: new Date(q.updated_at).toLocaleString(),
+          
         }));
-
+  
         setSubjects(quizzes);
         console.log("Fetched quizzes:", quizzes);
       } catch (error) {
@@ -126,6 +128,28 @@ export function SubjectMasterPage() {
       subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       subject.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
+const handleCreateSession = async (quizId) => {
+  try {
+    const response = await axios.post(
+      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/create-session`,
+      { quiz_id: quizId }
+    );
+
+    toast({
+      title: "✅ Session Created",
+      description: response.data.message,
+      variant: "success",
+    });
+  } catch (error) {
+    console.error("Error creating session:", error);
+    toast({
+      title: "❌ Error",
+      description: error.response?.data?.message || "Failed to create session",
+      variant: "destructive",
+    });
+  }
+};
+
 
   const handleDeleteSubject = (id) => {
     setDeleteDialog({ open: true, assessmentId: id });
@@ -203,9 +227,7 @@ export function SubjectMasterPage() {
     console.log("Editing quiz:", quiz);
   };
 
-  const handleEditQuestion = (question) => {
-    setEditQuestionModal({ open: true, question });
-  };
+ 
 
   return (
     <div className="space-y-6">
@@ -268,24 +290,13 @@ export function SubjectMasterPage() {
                             {" "}
                             {subject.difficultyLevel}
                           </Badge>
-                          <Badge variant="outline">
-                            {" "}
-                            Max Attempts: {subject.maxAttempts}
-                          </Badge>
-                          <Badge variant="outline">
-                            {" "}
-                            Time Limit: {subject.timeLimit} mins
-                          </Badge>
-                          <Badge variant="outline">
-                            {" "}
-                            Max Questions: {subject.maxQuestions}
-                          </Badge>
+                       
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
                         {subject.description}
                       </p>
-                      <p className="text-xs mb-1">
+                      {/* <p className="text-xs mb-1">
                         Starting:{" "}
                         {subject.scheduleStartDate && subject.scheduleStartTime
                           ? `${subject.scheduleStartDate} ${subject.scheduleStartTime}`
@@ -297,7 +308,7 @@ export function SubjectMasterPage() {
                         {subject.scheduleEndDate && subject.scheduleEndTime
                           ? `${subject.scheduleEndDate} ${subject.scheduleEndTime}`
                           : "Not Scheduled"}
-                      </p>
+                      </p> */}
 
                       <p className="text-xs text-muted-foreground">
                         Created: {subject.createdDate}
@@ -323,24 +334,15 @@ export function SubjectMasterPage() {
                         >
                           <Eye className="h-4 w-4" /> View
                         </Button>
+<Button
+  size="sm"
+  variant="default"
+  onClick={() => handleCreateSession(subject.id)}
+>
+  ➕ Create Session
+</Button>
 
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditQuiz(subject)}
-                          className="flex items-center gap-2"
-                        >
-                          <Edit className="h-3 w-3" /> Schedule
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleAssignQuiz(subject)}
-                          className="flex items-center gap-2"
-                        >
-                          <Users className="h-4 w-4" /> Assign
-                        </Button>
+                        
 
                         <Button
                           size="sm"
@@ -426,20 +428,7 @@ export function SubjectMasterPage() {
           </CardContent>
         </Card>
       </div>
-      <QuizFormModal
-        quiz={formModal.quiz}
-        open={formModal.open}
-        onOpenChange={(open) => setFormModal({ open, quiz: null })}
-      />
-
-      <AssignQuizModal
-        quizId={assignModal.quizId}
-        quizName={assignModal.quizName} // <- pass the quiz name here
-        open={assignModal.open}
-        onClose={() =>
-          setAssignModal({ open: false, quizId: null, quizName: null })
-        }
-      />
+      
       <EditQuestionsModal
         quizId={editQuestionsModal.quizId}
         open={editQuestionsModal.open}

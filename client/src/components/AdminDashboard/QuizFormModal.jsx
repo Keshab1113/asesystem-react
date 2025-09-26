@@ -45,138 +45,179 @@ import { Calendar } from "../../components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
-export function QuizFormModal({ quiz, open, onOpenChange }) {
+export function QuizFormModal({ session,  open, onOpenChange }) {
   const { toast } = useToast();
-  const isEditing = !!quiz;
+  // const isEditing = !!quiz;
+   const isEditing = !!session;
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    name: quiz?.name || "",
-    description: "",
-    subject: quiz?.subject || "",
-    difficulty: quiz?.difficulty || "medium",
-    timeLimit: "30",
-    passingScore: "70",
-    maxAttempts: "3",
-    maxQuestions: quiz?.questionCount || 0, // <-- new field
-    randomizeQuestions: true,
-    showResults: true,
-    allowReview: true,
-    isPublic: false,
-    tags: [],
-  });
+  sessionName: session?.session_name || "",
+  timeLimit: session?.time_limit || 60,
+  passingScore: session?.passing_score || 70,
+  maxAttempts: session?.max_attempts || 3,
+  maxQuestions: session?.max_questions || 0,
+  scheduleStartDate: session?.schedule_start_at
+    ? new Date(session.schedule_start_at).toLocaleDateString("en-CA")
+    : "",
+  scheduleStartTime: session?.schedule_start_at
+    ? new Date(session.schedule_start_at).toTimeString().slice(0, 5)
+    : "",
+  scheduleEndDate: session?.schedule_end_at
+    ? new Date(session.schedule_end_at).toLocaleDateString("en-CA")
+    : "",
+  scheduleEndTime: session?.schedule_end_at
+    ? new Date(session.schedule_end_at).toTimeString().slice(0, 5)
+    : "",
+});
 
-  console.log("Hi keshab, I am on QuizFormModal: ", quiz);
+
+  // console.log("Hi keshab, I am on QuizFormModal: ", quiz);
 
   // Reset form data when quiz prop changes
-  useEffect(() => {
-    if (quiz) {
-      setFormData({
-        name: quiz.name || "",
-        description: quiz.description || "",
-        subject: quiz.subject || "",
-        difficulty: quiz.difficulty || "medium",
-        timeLimit: quiz.timeLimit || "30",
-        passingScore: quiz.passingScore || "70",
-        maxAttempts: quiz.maxAttempts || 3,
-        maxQuestions: quiz.maxQuestions || 0,
-        randomizeQuestions: quiz.randomizeQuestions ?? true,
-        showResults: quiz.showResults ?? true,
-        allowReview: quiz.allowReview ?? true,
-        isPublic: quiz.isPublic ?? false,
-        tags: quiz.tags || [],
-        scheduleStartDate: quiz.schedule_start_at
-          ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
-          : "",
-        scheduleStartTime: quiz.schedule_start_at
-          ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
-          : "",
-        scheduleEndDate: quiz.schedule_end_at
-          ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
-          : "",
-        scheduleEndTime: quiz.schedule_end_at
-          ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
-          : "",
-      });
-    } else {
-      // Reset to default values for new quiz
-      setFormData({
-        name: "",
-        description: "",
-        subject: "",
-        difficulty: "medium",
-        timeLimit: "30",
-        passingScore: "70",
-        maxAttempts: "3",
-        maxQuestions: 0,
-        randomizeQuestions: true,
-        showResults: true,
-        allowReview: true,
-        isPublic: false,
-        tags: [],
-        scheduleStartDate: "",
-        scheduleStartTime: "",
-        scheduleEndDate: "",
-        scheduleEndTime: "",
-      });
-    }
-  }, [quiz]);
+  // useEffect(() => {
+  //   if (quiz) {
+  //     setFormData({
+  //       name: quiz.name || "",
+  //       description: quiz.description || "",
+  //       subject: quiz.subject || "",
+  //       difficulty: quiz.difficulty || "medium",
+  //       timeLimit: quiz.timeLimit || "30",
+  //       passingScore: quiz.passingScore || "70",
+  //       maxAttempts: quiz.maxAttempts || 3,
+  //       maxQuestions: quiz.maxQuestions || 0,
+  //       randomizeQuestions: quiz.randomizeQuestions ?? true,
+  //       showResults: quiz.showResults ?? true,
+  //       allowReview: quiz.allowReview ?? true,
+  //       isPublic: quiz.isPublic ?? false,
+  //       tags: quiz.tags || [],
+  //       scheduleStartDate: quiz.schedule_start_at
+  //         ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
+  //         : "",
+  //       scheduleStartTime: quiz.schedule_start_at
+  //         ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
+  //         : "",
+  //       scheduleEndDate: quiz.schedule_end_at
+  //         ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
+  //         : "",
+  //       scheduleEndTime: quiz.schedule_end_at
+  //         ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
+  //         : "",
+  //     });
+  //   } else {
+  //     // Reset to default values for new quiz
+  //     setFormData({
+  //       name: "",
+  //       description: "",
+  //       subject: "",
+  //       difficulty: "medium",
+  //       timeLimit: "30",
+  //       passingScore: "70",
+  //       maxAttempts: "3",
+  //       maxQuestions: 0,
+  //       randomizeQuestions: true,
+  //       showResults: true,
+  //       allowReview: true,
+  //       isPublic: false,
+  //       tags: [],
+  //       scheduleStartDate: "",
+  //       scheduleStartTime: "",
+  //       scheduleEndDate: "",
+  //       scheduleEndTime: "",
+  //     });
+  //   }
+  // }, [quiz]);
+useEffect(() => {
+  if (session) {
+    setFormData({
+      sessionName: session.session_name || "",
+      timeLimit: session.time_limit || 60,
+      passingScore: session.passing_score || 70,
+      maxAttempts: session.max_attempts || 3,
+      maxQuestions: session.max_questions || 0,
+      scheduleStartDate: session.schedule_start_at
+        ? new Date(session.schedule_start_at).toLocaleDateString("en-CA")
+        : "",
+      scheduleStartTime: session.schedule_start_at
+        ? new Date(session.schedule_start_at).toTimeString().slice(0, 5)
+        : "",
+      scheduleEndDate: session.schedule_end_at
+        ? new Date(session.schedule_end_at).toLocaleDateString("en-CA")
+        : "",
+      scheduleEndTime: session.schedule_end_at
+        ? new Date(session.schedule_end_at).toTimeString().slice(0, 5)
+        : "",
+    });
+  } else {
+    setFormData({
+      sessionName: "",
+      timeLimit: 60,
+      passingScore: 70,
+      maxAttempts: 3,
+      maxQuestions: 0,
+      scheduleStartDate: "",
+      scheduleStartTime: "",
+      scheduleEndDate: "",
+      scheduleEndTime: "",
+    });
+  }
+}, [session]);
 
   // Reset form when modal closes
-  useEffect(() => {
-    if (!open) {
-      // Reset form to default values when modal closes
-      if (quiz) {
-        setFormData({
-          name: quiz.name || "",
-          description: quiz.description || "",
-          subject: quiz.subject || "",
-          difficulty: quiz.difficulty || "medium",
-          timeLimit: quiz.timeLimit || "30",
-          passingScore: quiz.passingScore || "70",
-          maxAttempts: quiz.maxAttempts || "3",
-          maxQuestions: quiz.questionCount || 0,
-          randomizeQuestions: quiz.randomizeQuestions ?? true,
-          showResults: quiz.showResults ?? true,
-          allowReview: quiz.allowReview ?? true,
-          isPublic: quiz.isPublic ?? false,
-          tags: quiz.tags || [],
-          scheduleStartDate: quiz.schedule_start_at
-            ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
-            : "",
-          scheduleStartTime: quiz.schedule_start_at
-            ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
-            : "",
-          scheduleEndDate: quiz.schedule_end_at
-            ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
-            : "",
-          scheduleEndTime: quiz.schedule_end_at
-            ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
-            : "",
-        });
-      } else {
-        setFormData({
-          name: "",
-          description: "",
-          subject: "",
-          difficulty: "medium",
-          timeLimit: "30",
-          passingScore: "70",
-          maxAttempts: "3",
-          maxQuestions: 0,
-          randomizeQuestions: true,
-          showResults: true,
-          allowReview: true,
-          isPublic: false,
-          tags: [],
-          scheduleStartDate: "",
-          scheduleStartTime: "",
-          scheduleEndDate: "",
-          scheduleEndTime: "",
-        });
-      }
-    }
-  }, [open, quiz]);
+  // useEffect(() => {
+  //   if (!open) {
+  //     // Reset form to default values when modal closes
+  //     if (quiz) {
+  //       setFormData({
+  //         name: quiz.name || "",
+  //         description: quiz.description || "",
+  //         subject: quiz.subject || "",
+  //         difficulty: quiz.difficulty || "medium",
+  //         timeLimit: quiz.timeLimit || "30",
+  //         passingScore: quiz.passingScore || "70",
+  //         maxAttempts: quiz.maxAttempts || "3",
+  //         maxQuestions: quiz.questionCount || 0,
+  //         randomizeQuestions: quiz.randomizeQuestions ?? true,
+  //         showResults: quiz.showResults ?? true,
+  //         allowReview: quiz.allowReview ?? true,
+  //         isPublic: quiz.isPublic ?? false,
+  //         tags: quiz.tags || [],
+  //         scheduleStartDate: quiz.schedule_start_at
+  //           ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
+  //           : "",
+  //         scheduleStartTime: quiz.schedule_start_at
+  //           ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
+  //           : "",
+  //         scheduleEndDate: quiz.schedule_end_at
+  //           ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
+  //           : "",
+  //         scheduleEndTime: quiz.schedule_end_at
+  //           ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
+  //           : "",
+  //       });
+  //     } else {
+  //       setFormData({
+  //         name: "",
+  //         description: "",
+  //         subject: "",
+  //         difficulty: "medium",
+  //         timeLimit: "30",
+  //         passingScore: "70",
+  //         maxAttempts: "3",
+  //         maxQuestions: 0,
+  //         randomizeQuestions: true,
+  //         showResults: true,
+  //         allowReview: true,
+  //         isPublic: false,
+  //         tags: [],
+  //         scheduleStartDate: "",
+  //         scheduleStartTime: "",
+  //         scheduleEndDate: "",
+  //         scheduleEndTime: "",
+  //       });
+  //     }
+  //   }
+  // }, [open, quiz]);
 
   const [newTag, setNewTag] = useState("");
 
@@ -219,21 +260,30 @@ export function QuizFormModal({ quiz, open, onOpenChange }) {
     };
 
     try {
-      if (isEditing && quiz?.id) {
-        console.log("Editing quiz with id:", quiz.id);
-        // Update existing quiz
-        await axios.put(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/edit/${
-            quiz.id
-          }`,
-          quizData
-        );
-        toast({
+      if (isEditing && session?.sessionId) {
+  await axios.put(
+    `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/${session.sessionId}`,
+    {
+      sessionName: formData.sessionName,
+      timeLimit: formData.timeLimit,
+      passingScore: formData.passingScore,
+      maxAttempts: formData.maxAttempts,
+      maxQuestions: formData.maxQuestions,
+      scheduleStartDate: formData.scheduleStartDate,
+      scheduleStartTime: formData.scheduleStartTime,
+      scheduleEndDate: formData.scheduleEndDate,
+      scheduleEndTime: formData.scheduleEndTime,
+    }
+  );
+  toast({
           title: "Assessment Updated",
           description: `Assessment "${quizData.name}" has been updated successfully.`,
           variant: "success",
         });
-      } else {
+}
+
+        
+      else {
         // Create new quiz
         await axios.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/create`,
@@ -268,7 +318,7 @@ export function QuizFormModal({ quiz, open, onOpenChange }) {
     }
   };
 
-  console.log("formData: ", formData);
+  // console.log("formData: ", formData);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -288,10 +338,10 @@ export function QuizFormModal({ quiz, open, onOpenChange }) {
               : "Set up a new Assignment with questions and settings"}
           </DialogDescription>
 
-          {isEditing && quiz?.name && (
+          {isEditing && session?.name && (
             <div className="text-sm text-muted-foreground mt-2 px-1">
               Selected Assessment:{" "}
-              <span className="font-medium">{quiz.name}</span>
+              <span className="font-medium">{session.name}</span>
             </div>
           )}
         </DialogHeader>
@@ -528,7 +578,7 @@ export function QuizFormModal({ quiz, open, onOpenChange }) {
                     id="max-questions"
                     type="number"
                     min="1"
-                    max={quiz?.questionCount ?? 1}
+                    max={session?.questionCount ?? 1}
                     value={formData.maxQuestions}
                     onChange={(e) => {
                       const rawValue = e.target.value;
@@ -543,18 +593,18 @@ export function QuizFormModal({ quiz, open, onOpenChange }) {
                       if (!value || value < 1) value = 1;
 
                       // Clamp to max
-                      if (quiz?.questionCount && value > quiz.questionCount) {
-                        value = quiz.questionCount;
+                      if (session?.questionCount && value > session.questionCount) {
+                        value = session.questionCount;
                       }
 
                       setFormData({ ...formData, maxQuestions: value });
                     }}
-                    placeholder={`Up to ${quiz?.questionCount ?? 1}`}
+                    placeholder={`Up to ${session?.questionCount ?? 1}`}
                   />
 
-                  {quiz?.questionCount && (
+                  {session?.questionCount && (
                     <p className="text-xs text-gray-500">
-                      Max {quiz.questionCount} questions allowed.
+                      Max {session.questionCount} questions allowed.
                     </p>
                   )}
                 </div>

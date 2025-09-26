@@ -32,28 +32,29 @@ const handleViewDetails = (id) => {
       // First, get all quizzes
       const quizzesRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`);
       const quizzes = quizzesRes.data.data;
-
+console.log("Fetched quizzes:", quizzes); // Debugging
       // Now fetch assignments summary for each quiz
-      const reportsWithSummary = await Promise.all(
-        quizzes.map(async (q) => {
-          const assignRes = await axios.get(
-            `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.id}`
-          );
-          const { summary } = assignRes.data.data;
-        console
-          return {
-            id: q.id,
-            quizName: q.title,
-            participants: summary.total_assigned ?? 0,
-            completedCount: summary.passed_count ?? 0,
-            inProgressCount: summary.in_progress_count ?? 0,
-            failedCount: summary.failed_count ?? 0,
-            averageScore: q.average_score ?? 0, // optional: calculate if needed
-            date: q.created_at ? new Date(q.created_at).toLocaleDateString() : "-",
-            status: q.is_active === 1 ? "Active" : "Completed",
-          };
-        })
-      );
+     const reportsWithSummary = await Promise.all(
+  quizzes.map(async (q) => {
+    const assignRes = await axios.get(
+      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${q.session_id}`
+    );
+    const { summary } = assignRes.data.data;
+    console.log("Summary for session ID", q.session_id, ":", summary);
+
+    return {
+      id: q.session_id, // use session_id as unique id
+      quizName: q.quiz_title,
+      participants: summary.total_assigned ?? 0,
+      completedCount: summary.took_exam_count ?? 0,
+      inProgressCount: summary.in_progress_count ?? 0,
+      failedCount: summary.failed_count ?? 0,
+      averageScore: summary.avg_score ?? 0,
+      date: summary.started_at,
+      status: q.is_active === 1 ? "Active" : "Completed",
+    };
+  })
+);
 
       setReports(reportsWithSummary);
     } catch (error) {
@@ -125,7 +126,7 @@ const handleViewDetails = (id) => {
                   <div className="font-semibold">{report.averageScore}%</div>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Date:</span>
+                  <span className="text-muted-foreground">Assigned Date:</span>
                   <div className="font-semibold flex items-center">
                     <Calendar className="h-3 w-3 mr-1" />
                     {report.date}

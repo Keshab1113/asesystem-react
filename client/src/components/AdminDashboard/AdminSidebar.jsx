@@ -24,6 +24,7 @@ import {
   Edit,
   Key,
   Home,
+ CalendarCheck,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -63,6 +64,7 @@ const navigationItems = [
     items: [
       // { title: "Add Questions", icon: Plus, page: "add-questions" },
       { title: "Assessment Master", icon: FileText, page: "subject-master" },
+        { title: "Schedule Master", icon: CalendarCheck, page: "quiz-sessions" },
       { title: "Group Master", icon: Building, page: "contractor-master" },
     ],
   },

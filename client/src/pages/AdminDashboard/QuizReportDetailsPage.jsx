@@ -90,7 +90,7 @@ export function QuizReportDetailsPage() {
           import.meta.env.VITE_BACKEND_URL
         }/api/quiz-attempts/assignment/export`,
         {
-          quiz_id: id,
+          session_id: id,
           group: groupFilter,
           team: teamFilter,
           status: statusFilter,

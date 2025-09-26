@@ -11,11 +11,21 @@ exports.getQuizResult = async (req, res) => {
   try {
     // Fetch assignment + quiz details
     const [rows] = await db.query(
-      `SELECT qa.id AS assignment_id, qa.quiz_id, qa.user_id, qa.user_started_at, qa.user_ended_at, qa.score AS user_score,
-              q.max_questions, q.passing_score
-       FROM quiz_assignments qa
-       JOIN quizzes q ON qa.quiz_id = q.id
-       WHERE qa.id = ?`,
+      `SELECT 
+  qa.id AS assignment_id,
+  qa.quiz_id,
+  qa.quiz_session_id,
+  qa.user_id,
+  qa.user_started_at,
+  qa.user_ended_at,
+  qa.score AS user_score,
+  qs.max_questions,
+  qs.passing_score
+FROM quiz_assignments qa
+JOIN quizzes q ON qa.quiz_id = q.id
+JOIN quiz_sessions qs ON qa.quiz_session_id = qs.id
+WHERE qa.id = ?
+`,
       [assignmentId]
     );
 
@@ -56,15 +66,13 @@ exports.getQuizResult = async (req, res) => {
       [assignmentId]
     );
 
-    const wrongAnswers = wrongRows
-  .map((wa) => ({
-    id: wa.question_id,
-    question: wa.question_text,
-    options: JSON.parse(wa.options || "[]"),
-    userAnswer: wa.userAnswer || "",
-    correctAnswer: wa.correct_answer,
-  }))
-  .filter((wa) => wa.userAnswer && wa.userAnswer.trim() !== "");
+    const wrongAnswers = wrongRows.map((wa) => ({
+  id: wa.question_id,
+  question: wa.question_text,
+  options: JSON.parse(wa.options || "[]"),
+  userAnswer: wa.userAnswer || null, // keep null for skipped/wrong answers
+  correctAnswer: wa.correct_answer,
+}));
 
 
     // Time spent
