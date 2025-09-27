@@ -393,10 +393,7 @@ console.log("Assignment ID:", assessment.assignment_id);
        assignmentId: assignmentId,
       }
     );
-console.log("Quiz ID:", assessment.quiz_id);
-console.log("Quiz Session ID:", assessment.quiz_session_id);
-console.log("User ID:", user.id);
-console.log("Assignment ID:", assessment.assignment_id);
+ 
     console.log("Assign Random Response:", assignRes.data);
 
     if (!assignRes.data.success) {

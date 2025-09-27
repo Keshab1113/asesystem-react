@@ -52,7 +52,7 @@ console.log("Quiz ID from params:", quizId);
     (state) => state.quiz.questionsByQuiz[quizId] || []
   );
   const answers = useSelector((state) => state.quiz.answers[quizId] || {});
-  // console.log("Redux answers right now:", answers);
+   
 
   const [loading, setLoading] = useState(true);
   const [warnings, setWarnings] = useState(0);
@@ -79,8 +79,27 @@ console.log("Quiz ID from params:", quizId);
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : "";
 
   // Check if all questions are answered
-  const allQuestionsAnswered = questions.every((q) => answers[q.id]);
+  const allQuestionsAnswered = questions.every((q) => {
+    const currentAnswers = store.getState().quiz.answers[quizId] || {};
+    return currentAnswers[q.id];
+  });
 useEffect(() => {
+  // Automatically request fullscreen on page load
+  const requestFullscreen = () => {
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
+    // Don't request fullscreen on iOS as it doesn't support the fullscreen API
+    if (!isIOS && !isFullscreenActive()) {
+      const el = document.documentElement;
+      if (el.requestFullscreen) el.requestFullscreen();
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    }
+  };
+
+  // Request fullscreen after a short delay to ensure DOM is ready
+  setTimeout(requestFullscreen, 100);
   
   const hasAccepted = localStorage.getItem(
     `quiz_${quizId}_instructions_accepted`
@@ -104,6 +123,12 @@ useEffect(() => {
         dispatch(setQuizQuestions({ quizId, questions: data.data }));
       }
       console.log("Fetched Questions:", data.data);
+      // Debug question IDs
+      if (data.data && Array.isArray(data.data)) {
+        data.data.forEach((q, index) => {
+         
+        });
+      }
     } catch (error) {
       console.error("Error fetching assigned questions:", error);
     } finally {
@@ -156,6 +181,29 @@ useEffect(() => {
 
     return () => clearInterval(timer);
   }, [timerStarted, acceptedInstructions]);
+
+  // Monitor fullscreen changes and uncheck the checkbox when fullscreen is exited
+  useEffect(() => {
+    if (showInstructions && accepted) {
+      const handleFullscreenChange = () => {
+        if (!isFullscreenActive()) {
+          setAccepted(false);
+        }
+      };
+
+      document.addEventListener("fullscreenchange", handleFullscreenChange);
+      document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+
+      return () => {
+        document.removeEventListener("fullscreenchange", handleFullscreenChange);
+        document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+        document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+        document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
+      };
+    }
+  }, [showInstructions, accepted]);
 
   useEffect(() => {
     if (!timerStarted || !acceptedInstructions) return;
@@ -294,7 +342,17 @@ useEffect(() => {
   }, [timerStarted, acceptedInstructions]);
 
   const handleAnswerChange = (questionId, option) => {
+    // console.log(`Answer changed - Question ID: ${questionId}, Answer: ${option}, Question Text: ${currentQuestion?.question_text}`);
+    // console.log(`Current question object:`, currentQuestion);
+    
     dispatch(setAnswer({ quizId, questionId, answer: option }));
+    
+    // Log current Redux state after dispatch
+    setTimeout(() => {
+      const currentState = store.getState().quiz.answers[quizId] || {};
+      // console.log(`Current Redux answers for quiz ${quizId}:`, currentState);
+      // console.log(`Answer stored for question ${questionId}:`, currentState[questionId]);
+    }, 0);
   };
 
   const handleNext = () => {
@@ -310,7 +368,8 @@ useEffect(() => {
   };
 
   const goToUnansweredQuestion = () => {
-    const unansweredIndex = questions.findIndex((q) => !answers[q.id]);
+    const currentAnswers = store.getState().quiz.answers[quizId] || {};
+    const unansweredIndex = questions.findIndex((q) => !currentAnswers[q.id]);
     if (unansweredIndex !== -1) {
       setCurrentQuestionIndex(unansweredIndex);
     }
@@ -424,7 +483,14 @@ useEffect(() => {
     // 1. Manual submit (user action)
     // 🔑 Always re-read latest Redux state
     const latestAnswers = store.getState().quiz.answers[quizId] || {};
-    // console.log("Submitting answers before :", Object.entries(latestAnswers));
+    console.log("Submitting answers:", Object.entries(latestAnswers));
+    console.log("Total questions:", questions.length);
+    console.log("Answered questions:", Object.keys(latestAnswers).length);
+    
+    // Debug question IDs and answers
+    questions.forEach((q, index) => {
+      // console.log(`Question ${index + 1}: ID=${q.id}, Text=${q.question_text}, Answer=${latestAnswers[q.id] || 'Not answered'}`);
+    });
 
     if (!forced) {
       const allQuestionsAnswered = questions.every((q) => latestAnswers[q.id]);
@@ -462,17 +528,14 @@ useEffect(() => {
           assignment_id: assignmentId,
           quiz_session_id: quizSessionId,
           passing_score: passing_score,
-          answers: forced
-            ? Object.entries(latestAnswers).map(([question_id, answer]) => ({
-                question_id: Number(question_id),
-                answer: answer || "",
-              }))
-            : Object.entries(latestAnswers)
-                .filter(([_, answer]) => answer && answer.trim() !== "")
-                .map(([question_id, answer]) => ({
-                  question_id: Number(question_id),
-                  answer,
-                })),
+          answers: questions.map((question) => {
+            const answer = latestAnswers[question.id] || "";
+            console.log(`Sending to backend - Question ID: ${question.id}, Answer: ${answer}`);
+            return {
+              question_id: Number(question.id),
+              answer: answer,
+            };
+          }),
         }
       );
       setExamState({ started: false, completed: true, resultPage: true });
@@ -519,7 +582,8 @@ useEffect(() => {
 
   const getQuestionStatus = (questionIndex) => {
     const question = questions[questionIndex];
-    return answers[question?.id] ? "answered" : "unanswered";
+    const currentAnswers = store.getState().quiz.answers[quizId] || {};
+    return currentAnswers[question?.id] ? "answered" : "unanswered";
   };
 
   if (loading) {
@@ -587,7 +651,7 @@ useEffect(() => {
                 <li>This assessment has a time limit of {time} minutes.</li>
                 <li>Once started, the timer cannot be paused.</li>
                 <li>You must answer all questions before submitting.</li>
-                <li>Now you are on fullScreen mode, cannot exit fullscreen mode during the assessment.</li>
+                <li>Fullscreen mode is automatically enabled. Do not exit fullscreen during the assessment.</li>
                 <li>
                   Right-click, developer tools, and certain keyboard shortcuts
                   are disabled.
