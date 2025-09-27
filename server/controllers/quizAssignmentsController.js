@@ -241,6 +241,183 @@ exports.startAssessment = async (req, res) => {
 //   }
 // };
 
+// exports.endAssessment = async (req, res) => {
+//   try {
+//     const {
+//       quiz_id,
+//       user_id,
+//       assignment_id,
+//       passing_score,
+//       answers,
+//       quiz_session_id,
+//     } = req.body;
+
+//     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "quiz_id, user_id, assignment_id, and answers required",
+//       });
+//     }
+
+//     // 🔹 Get current reassigned cycle for this assignment
+//     const [qaRows] = await db.query(
+//       `SELECT reassigned 
+//        FROM quiz_assignments 
+//        WHERE id = ? AND user_id = ? AND quiz_session_id = ?`,
+//       [assignment_id, user_id, quiz_session_id]
+//     );
+//     if (!qaRows.length) {
+//       return res.status(404).json({ success: false, message: "Assignment not found" });
+//     }
+//     const reassignedCycle = qaRows[0].reassigned;
+
+//     let score = 0;
+
+//     // 🔹 Insert/update each answer
+//     for (const { question_id, answer } of answers) {
+//       // Map assigned_questions.id → real questions.id (filtered by reassigned cycle)
+//       const [aqRows] = await db.query(
+//         `SELECT question_id 
+//          FROM assigned_questions 
+//          WHERE id = ? 
+//            AND assignment_id = ? 
+//            AND quiz_session_id = ? 
+//            AND user_id = ? 
+//            AND reassigned = ?`,
+//         [question_id, assignment_id, quiz_session_id, user_id, reassignedCycle]
+//       );
+
+//       if (!aqRows.length) continue;
+//       const real_question_id = aqRows[0].question_id;
+
+//       // Get correct answer
+//       const [qRows] = await db.query(
+//         "SELECT correct_answer FROM questions WHERE id = ?",
+//         [real_question_id]
+//       );
+//       if (!qRows.length) continue;
+
+//       const correct_answer = qRows[0].correct_answer;
+//       const is_correct =
+//         answer && answer.trim() === correct_answer.trim() ? 1 : 0;
+
+//       // Insert/update into answers table
+//       const [ansRes] = await db.query(
+//         `INSERT INTO answers (quiz_id, question_id, user_id, assignment_id, answer, is_correct, answered_at) 
+//          VALUES (?, ?, ?, ?, ?, ?, NOW())
+//          ON DUPLICATE KEY UPDATE 
+//            answer = VALUES(answer),
+//            is_correct = VALUES(is_correct),
+//            answered_at = NOW()`,
+//         [
+//           quiz_id,
+//           real_question_id,
+//           user_id,
+//           assignment_id,
+//           answer || "",
+//           is_correct,
+//         ]
+//       );
+
+//       const answer_id = ansRes.insertId || null;
+
+//       // Update assigned_questions row
+//       await db.query(
+//         `UPDATE assigned_questions 
+//          SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+//          WHERE id = ? AND assignment_id = ? AND user_id = ? AND reassigned = ?`,
+//         [
+//           answer_id,
+//           is_correct,
+//           correct_answer,
+//           is_correct,
+//           question_id, // assigned_questions.id
+//           assignment_id,
+//           user_id,
+//           reassignedCycle,
+//         ]
+//       );
+
+//       if (is_correct) score++;
+//     }
+
+//     // 🔹 Total assigned questions (filtered by reassigned cycle)
+//     const [assignedCountRows] = await db.query(
+//       `SELECT COUNT(*) as totalAssigned 
+//        FROM assigned_questions 
+//        WHERE assignment_id = ? AND user_id = ? AND reassigned = ?`,
+//       [assignment_id, user_id, reassignedCycle]
+//     );
+//     const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
+
+//     // 🔹 Count answered (answer_id is set)
+//     const [answeredCountRows] = await db.query(
+//       `SELECT COUNT(*) as totalAnswered 
+//        FROM assigned_questions 
+//        WHERE assignment_id = ? AND user_id = ? AND reassigned = ? AND answer_id IS NOT NULL`,
+//       [assignment_id, user_id, reassignedCycle]
+//     );
+//     const totalAnswered = answeredCountRows[0]?.totalAnswered || 0;
+
+//     let status = "terminated";
+//     let percentage = 0;
+
+//     if (totalAnswered === totalAssigned) {
+//       percentage = (score / totalAssigned) * 100;
+//       status = percentage >= passing_score ? "passed" : "failed";
+//     }
+
+//     // ✅ Update quiz_assignments (without changing reassigned counter)
+//         // ✅ Update quiz_assignments (without changing reassigned counter)
+//     await db.query(
+//       `UPDATE quiz_assignments 
+//        SET user_ended_at = ?, status = ?, score = ? 
+//        WHERE id = ? AND quiz_session_id = ? AND user_id = ?`,
+//       [new Date(), status, percentage, assignment_id, quiz_session_id, user_id]
+//     );
+
+//     // 🔹 Fetch wrong answers (filtered by reassigned cycle)
+//     // 🔹 Fetch wrong answers (filtered by reassigned cycle)
+// // 🔹 Fetch wrong or unanswered questions (filtered by reassigned cycle)
+// const [wrongAnswers] = await db.query(
+//   `SELECT 
+//       aq.id, 
+//       q.question_text AS question, 
+//       q.options, 
+//       q.correct_answer AS correctAnswer, 
+//       a.answer AS userAnswer
+//    FROM assigned_questions aq
+//    JOIN questions q ON aq.question_id = q.id
+//    LEFT JOIN answers a 
+//       ON a.quiz_id = aq.quiz_id 
+//       AND a.assignment_id = aq.assignment_id 
+//       AND a.question_id = aq.question_id 
+//       AND a.user_id = aq.user_id
+//    WHERE aq.assignment_id = ? 
+//      AND aq.user_id = ? 
+//      AND aq.quiz_session_id = ? 
+//      AND aq.reassigned = ? 
+//      AND (aq.is_correct = 0 OR aq.answer_id IS NULL)`,
+//   [assignment_id, user_id, quiz_session_id, reassignedCycle]
+// );
+
+
+
+//     return res.json({
+//       success: true,
+//       message: "Assessment ended",
+//       score,
+//       percentage,
+//       status,
+//       wrongAnswers,
+//     });
+
+//   } catch (error) {
+//     console.error("Error in endAssessment:", error);
+//     return res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
 exports.endAssessment = async (req, res) => {
   try {
     const {
@@ -259,7 +436,7 @@ exports.endAssessment = async (req, res) => {
       });
     }
 
-    // 🔹 Get current reassigned cycle for this assignment
+    // 🔹 Get current reassigned cycle
     const [qaRows] = await db.query(
       `SELECT reassigned 
        FROM quiz_assignments 
@@ -275,7 +452,7 @@ exports.endAssessment = async (req, res) => {
 
     // 🔹 Insert/update each answer
     for (const { question_id, answer } of answers) {
-      // Map assigned_questions.id → real questions.id (filtered by reassigned cycle)
+      // Ensure this is a valid assigned question for this cycle
       const [aqRows] = await db.query(
         `SELECT question_id 
          FROM assigned_questions 
@@ -301,39 +478,48 @@ exports.endAssessment = async (req, res) => {
       const is_correct =
         answer && answer.trim() === correct_answer.trim() ? 1 : 0;
 
-      // Insert/update into answers table
+      // ✅ Insert/update into answers table WITH quiz_session_id + reassigned
       const [ansRes] = await db.query(
-        `INSERT INTO answers (quiz_id, question_id, user_id, assignment_id, answer, is_correct, answered_at) 
-         VALUES (?, ?, ?, ?, ?, ?, NOW())
-         ON DUPLICATE KEY UPDATE 
-           answer = VALUES(answer),
-           is_correct = VALUES(is_correct),
-           answered_at = NOW()`,
-        [
-          quiz_id,
-          real_question_id,
-          user_id,
-          assignment_id,
-          answer || "",
-          is_correct,
-        ]
-      );
+  `INSERT INTO answers 
+     (quiz_id, question_id, user_id, assignment_id, answer, is_correct, attempt_number, answered_at) 
+   VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+   ON DUPLICATE KEY UPDATE 
+     answer = VALUES(answer),
+     is_correct = VALUES(is_correct),
+     attempt_number = VALUES(attempt_number),
+     answered_at = NOW()`,
+  [
+    quiz_id,
+    real_question_id,
+    user_id,
+    assignment_id,
+    answer || "",
+    is_correct,
+    reassignedCycle, // map reassigned cycle → attempt_number
+  ]
+);
+
 
       const answer_id = ansRes.insertId || null;
 
-      // Update assigned_questions row
+      // ✅ Update assigned_questions row with same filters
       await db.query(
         `UPDATE assigned_questions 
          SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
-         WHERE id = ? AND assignment_id = ? AND user_id = ? AND reassigned = ?`,
+         WHERE id = ? 
+           AND assignment_id = ? 
+           AND user_id = ? 
+           AND quiz_session_id = ? 
+           AND reassigned = ?`,
         [
           answer_id,
           is_correct,
           correct_answer,
           is_correct,
-          question_id, // assigned_questions.id
+          question_id,
           assignment_id,
           user_id,
+          quiz_session_id,
           reassignedCycle,
         ]
       );
@@ -341,21 +527,28 @@ exports.endAssessment = async (req, res) => {
       if (is_correct) score++;
     }
 
-    // 🔹 Total assigned questions (filtered by reassigned cycle)
+    // 🔹 Total assigned questions (filtered by cycle + session)
     const [assignedCountRows] = await db.query(
       `SELECT COUNT(*) as totalAssigned 
        FROM assigned_questions 
-       WHERE assignment_id = ? AND user_id = ? AND reassigned = ?`,
-      [assignment_id, user_id, reassignedCycle]
+       WHERE assignment_id = ? 
+         AND user_id = ? 
+         AND quiz_session_id = ? 
+         AND reassigned = ?`,
+      [assignment_id, user_id, quiz_session_id, reassignedCycle]
     );
     const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
 
-    // 🔹 Count answered (answer_id is set)
+    // 🔹 Count answered
     const [answeredCountRows] = await db.query(
       `SELECT COUNT(*) as totalAnswered 
        FROM assigned_questions 
-       WHERE assignment_id = ? AND user_id = ? AND reassigned = ? AND answer_id IS NOT NULL`,
-      [assignment_id, user_id, reassignedCycle]
+       WHERE assignment_id = ? 
+         AND user_id = ? 
+         AND quiz_session_id = ? 
+         AND reassigned = ? 
+         AND answer_id IS NOT NULL`,
+      [assignment_id, user_id, quiz_session_id, reassignedCycle]
     );
     const totalAnswered = answeredCountRows[0]?.totalAnswered || 0;
 
@@ -367,8 +560,7 @@ exports.endAssessment = async (req, res) => {
       status = percentage >= passing_score ? "passed" : "failed";
     }
 
-    // ✅ Update quiz_assignments (without changing reassigned counter)
-        // ✅ Update quiz_assignments (without changing reassigned counter)
+    // 🔹 Update quiz_assignments
     await db.query(
       `UPDATE quiz_assignments 
        SET user_ended_at = ?, status = ?, score = ? 
@@ -376,32 +568,31 @@ exports.endAssessment = async (req, res) => {
       [new Date(), status, percentage, assignment_id, quiz_session_id, user_id]
     );
 
-    // 🔹 Fetch wrong answers (filtered by reassigned cycle)
-    // 🔹 Fetch wrong answers (filtered by reassigned cycle)
-// 🔹 Fetch wrong or unanswered questions (filtered by reassigned cycle)
-const [wrongAnswers] = await db.query(
-  `SELECT 
-      aq.id, 
-      q.question_text AS question, 
-      q.options, 
-      q.correct_answer AS correctAnswer, 
-      a.answer AS userAnswer
-   FROM assigned_questions aq
-   JOIN questions q ON aq.question_id = q.id
-   LEFT JOIN answers a 
-      ON a.quiz_id = aq.quiz_id 
-      AND a.assignment_id = aq.assignment_id 
-      AND a.question_id = aq.question_id 
-      AND a.user_id = aq.user_id
-   WHERE aq.assignment_id = ? 
-     AND aq.user_id = ? 
-     AND aq.quiz_session_id = ? 
-     AND aq.reassigned = ? 
-     AND (aq.is_correct = 0 OR aq.answer_id IS NULL)`,
-  [assignment_id, user_id, quiz_session_id, reassignedCycle]
-);
+    // 🔹 Fetch wrong/unanswered (filtered by reassigned + session)
+    const [wrongAnswers] = await db.query(
+      `SELECT 
+          aq.id, 
+          q.question_text AS question, 
+          q.options, 
+          q.correct_answer AS correctAnswer, 
+          a.answer AS userAnswer
+       FROM assigned_questions aq
+       JOIN questions q ON aq.question_id = q.id
+       LEFT JOIN answers a 
+   ON a.quiz_id = aq.quiz_id 
+   AND a.assignment_id = aq.assignment_id 
+   AND a.question_id = aq.question_id 
+   AND a.user_id = aq.user_id 
+   AND a.attempt_number = aq.reassigned
 
 
+       WHERE aq.assignment_id = ? 
+         AND aq.user_id = ? 
+         AND aq.quiz_session_id = ? 
+         AND aq.reassigned = ? 
+         AND (aq.is_correct = 0 OR aq.answer_id IS NULL)`,
+      [assignment_id, user_id, quiz_session_id, reassignedCycle]
+    );
 
     return res.json({
       success: true,
@@ -417,7 +608,6 @@ const [wrongAnswers] = await db.query(
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
-
 
 
 exports.assignRandomQuestions = async (req, res) => {
