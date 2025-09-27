@@ -428,7 +428,7 @@ exports.endAssessment = async (req, res) => {
       answers,
       quiz_session_id,
     } = req.body;
-
+console.log(req.body);
     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
       return res.status(400).json({
         success: false,
@@ -451,18 +451,20 @@ exports.endAssessment = async (req, res) => {
     let score = 0;
 
     // 🔹 Insert/update each answer
-    for (const { question_id, answer } of answers) {
+    for (const { question_id: assigned_question_id, answer } of answers) {
+
       // Ensure this is a valid assigned question for this cycle
-      const [aqRows] = await db.query(
-        `SELECT question_id 
-         FROM assigned_questions 
-         WHERE id = ? 
-           AND assignment_id = ? 
-           AND quiz_session_id = ? 
-           AND user_id = ? 
-           AND reassigned = ?`,
-        [question_id, assignment_id, quiz_session_id, user_id, reassignedCycle]
-      );
+    const [aqRows] = await db.query(
+  `SELECT id, question_id 
+   FROM assigned_questions 
+   WHERE id = ? 
+     AND assignment_id = ? 
+     AND quiz_session_id = ? 
+     AND user_id = ? 
+     AND reassigned = ?`,
+  [assigned_question_id, assignment_id, quiz_session_id, user_id, reassignedCycle]
+);
+
 
       if (!aqRows.length) continue;
       const real_question_id = aqRows[0].question_id;
@@ -479,7 +481,7 @@ exports.endAssessment = async (req, res) => {
         answer && answer.trim() === correct_answer.trim() ? 1 : 0;
 
       // ✅ Insert/update into answers table WITH quiz_session_id + reassigned
-      const [ansRes] = await db.query(
+      await db.query(
   `INSERT INTO answers 
      (quiz_id, question_id, user_id, assignment_id, answer, is_correct, attempt_number, answered_at) 
    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
@@ -495,34 +497,45 @@ exports.endAssessment = async (req, res) => {
     assignment_id,
     answer || "",
     is_correct,
-    reassignedCycle, // map reassigned cycle → attempt_number
+    reassignedCycle,
+  ]
+);
+
+// ✅ Get the answer_id reliably
+const [[existingAnswer]] = await db.query(
+  `SELECT id FROM answers 
+   WHERE quiz_id = ? AND question_id = ? AND user_id = ? AND assignment_id = ?`,
+  [quiz_id, real_question_id, user_id, assignment_id]
+);
+const answer_id = existingAnswer?.id || null;
+
+
+
+     
+
+      // ✅ Update assigned_questions row with same filters
+     await db.query(
+  `UPDATE assigned_questions 
+   SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+   WHERE id = ? 
+     AND assignment_id = ? 
+     AND user_id = ? 
+     AND quiz_session_id = ? 
+     AND reassigned = ?`,
+  [
+    answer_id,
+    is_correct,
+    correct_answer,
+    is_correct,
+    assigned_question_id,
+    assignment_id,
+    user_id,
+    quiz_session_id,
+    reassignedCycle,
   ]
 );
 
 
-      const answer_id = ansRes.insertId || null;
-
-      // ✅ Update assigned_questions row with same filters
-      await db.query(
-        `UPDATE assigned_questions 
-         SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
-         WHERE id = ? 
-           AND assignment_id = ? 
-           AND user_id = ? 
-           AND quiz_session_id = ? 
-           AND reassigned = ?`,
-        [
-          answer_id,
-          is_correct,
-          correct_answer,
-          is_correct,
-          question_id,
-          assignment_id,
-          user_id,
-          quiz_session_id,
-          reassignedCycle,
-        ]
-      );
 
       if (is_correct) score++;
     }
