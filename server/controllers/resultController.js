@@ -57,14 +57,36 @@ WHERE qa.id = ?
     const correctAnswers = correctRows[0]?.correctCount || 0;
 
     // Wrong answers
-    const [wrongRows] = await db.query(
-      `SELECT aq.question_id, q.question_text, q.options, q.correct_answer, a.answer AS userAnswer
-       FROM assigned_questions aq
-       JOIN questions q ON aq.question_id = q.id
-       LEFT JOIN answers a ON aq.answer_id = a.id
-       WHERE aq.assignment_id = ? AND aq.is_correct = 0`,
-      [assignmentId]
-    );
+    // 🔹 Get current reassigned cycle for this assignment
+const [qaRows] = await db.query(
+  `SELECT reassigned 
+   FROM quiz_assignments 
+   WHERE id = ?`,
+  [assignmentId]
+);
+const reassignedCycle = qaRows[0]?.reassigned || 0;
+
+const [wrongRows] = await db.query(
+  `SELECT 
+      aq.id AS assigned_question_id,
+      aq.question_id,
+      q.question_text,
+      q.options,
+      q.correct_answer,
+      a.answer AS userAnswer
+   FROM assigned_questions aq
+   JOIN questions q ON aq.question_id = q.id
+   LEFT JOIN answers a 
+      ON a.quiz_id = aq.quiz_id 
+      AND a.assignment_id = aq.assignment_id 
+      AND a.question_id = aq.question_id 
+      AND a.user_id = aq.user_id
+   WHERE aq.assignment_id = ? 
+     AND aq.user_id = ? 
+     AND aq.reassigned = ? 
+     AND (aq.is_correct = 0 OR aq.answer_id IS NULL)`,
+  [assignmentId, assignment.user_id, reassignedCycle]
+);
 
     const wrongAnswers = wrongRows.map((wa) => ({
   id: wa.question_id,
