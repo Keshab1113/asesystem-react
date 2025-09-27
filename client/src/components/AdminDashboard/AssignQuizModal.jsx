@@ -10,7 +10,16 @@ import {
 } from "../ui/select";
 import { Input } from "../ui/input";
 
-const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssigned, }) => {
+const AssignQuizModal = ({
+  sessionId,
+  quizId,
+  quizTitle,
+  isOpen,
+  onClose,
+  onAssigned,
+  sessionName,
+  allSessions,
+}) => {
   const { toast } = useToast();
   const [users, setUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -20,6 +29,7 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
   const [selectedGroup, setSelectedGroup] = useState("all");
   const [selectedTeam, setSelectedTeam] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
+  const [selectedSession, setSelectedSession] = useState(sessionId || null);
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -28,7 +38,7 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
     if (open && quizId && sessionId) {
       fetchUsers();
     }
-  }, [open, quizId, sessionId]);
+  }, [open, quizId, sessionId, selectedSession]);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -40,7 +50,7 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
         {
           params: {
             quizId,
-            sessionId,
+            sessionId: selectedSession,
           },
         }
       );
@@ -87,7 +97,7 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
       setSelectedUsers([]);
       onClose();
       if (onAssigned) {
-        onAssigned()
+        onAssigned();
       }
     } catch (err) {
       if (err.response && err.response.data?.message) {
@@ -136,7 +146,7 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
     return matchesSearch && matchesGroup && matchesTeam && matchesLocation;
   });
 
-  console.log("filteredUsers: ", filteredUsers);
+  console.log("selectedSession: ", selectedSession, typeof selectedSession);
 
   if (!open) return null;
 
@@ -167,7 +177,7 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
               </h2>
             </div>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 truncate font-medium">
-              {quizName || "Assessment"}
+              {quizTitle || "Assessment"} - {sessionName || "Assessment-1"}
             </p>
           </div>
           <button
@@ -239,7 +249,7 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
           {/* Collapsible Filters */}
           {showFilters && (
             <div className="px-4 sm:px-6 lg:px-8 py-4 space-y-3 bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-gray-700 animate-slideDown">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                 {/* Search Input */}
                 <div className="sm:col-span-2 lg:col-span-1 relative">
                   <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500">
@@ -342,6 +352,32 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
                     </SelectItem>
                   </SelectContent>
                 </Select>
+                <Select
+                  value={selectedSession}
+                  onValueChange={(val) => setSelectedSession(val)}
+                >
+                  <SelectTrigger className="h-9 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none text-gray-900 dark:text-white bg-white dark:bg-slate-900 text-sm">
+                    <SelectValue
+                      placeholder="Select Session"
+                      value={
+                        allSessions.find((s) => s.sessionId === selectedSession)
+                          ?.session_name
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="dark:bg-slate-900 dark:border-gray-600">
+                    {allSessions
+                      .filter((session) => session.quiz_id === quizId)
+                      .map((session) => (
+                        <SelectItem
+                          key={session.sessionId}
+                          value={session.sessionId}
+                        >
+                          {session.session_name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
@@ -388,21 +424,21 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssig
                         <div className="flex-shrink-0">
                           <input
                             type="checkbox"
-                            checked={
-                              (u.score || u.status)
-                                ? true
-                                : selectedUsers.includes(u.id)
-                            }
+                            // checked={
+                            //   u.score || u.status
+                            //     ? true
+                            //     : selectedUsers.includes(u.id)
+                            // }
+                            checked={selectedUsers.includes(u.id)}
+                            // onChange={() => {
+                            //   if (!(u.score || u.status)) {
+                            //     toggleUser(u.id);
+                            //   }
+                            // }}
                             onChange={() => {
-                              if (
-                                !(u.score || u.status)
-                              ) {
                                 toggleUser(u.id);
-                              }
                             }}
-                            disabled={
-                              (u.score || u.status)
-                            }
+                            // disabled={u.score || u.status}
                             className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                         </div>

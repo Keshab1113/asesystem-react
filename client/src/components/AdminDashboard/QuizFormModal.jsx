@@ -281,7 +281,7 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
         }
         toast({
           title: "Assessment Updated",
-          description: `Assessment "${quizData.name}" has been updated successfully.`,
+          description: `Assessment has been updated successfully.`,
           variant: "success",
         });
       } else {

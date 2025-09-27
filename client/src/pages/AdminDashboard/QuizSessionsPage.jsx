@@ -114,7 +114,7 @@ export default function QuizSessionsPage() {
     }
   };
 
-  console.log("sessions: ", sessions);
+  console.log("selectedSession: ", selectedSession);
 
   const grouped = sessions.reduce((acc, session) => {
     if (!acc[session.quizTitle]) {
@@ -132,7 +132,10 @@ export default function QuizSessionsPage() {
   };
 
   return (
-    <div className="md:p-4">
+    <div className="md:p-4 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-foreground">Schedule Master</h1>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>All Assessment Sessions ({sessions.length})</CardTitle>
@@ -317,6 +320,7 @@ export default function QuizSessionsPage() {
           quizTitle={selectedSession.quizTitle}
           sessionName={selectedSession.session_name}
           onAssigned={fetchSessions}
+          allSessions={sessions || []}
         />
       )}
       <ConfirmationDialog
