@@ -11,6 +11,8 @@ import {
   Trash2,
   MoreVertical,
   Power,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -36,12 +38,12 @@ export default function QuizSessionsPage() {
   const [selectedSession, setSelectedSession] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [expanded, setExpanded] = useState({});
   // const [selectedSession, setSelectedSession] = useState(null);
 
   const handleEditSession = (session) => {
     setSelectedSession(session);
     setModalOpen(true);
-    console.log("Edit session:", session);
   };
   const handleAssignClick = (session) => {
     setSelectedSession(session);
@@ -88,7 +90,7 @@ export default function QuizSessionsPage() {
       await axios.delete(
         `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}`
       );
-      fetchSessions()
+      fetchSessions();
       setSessions((prev) => prev.filter((quiz) => quiz.id !== id));
       toast({
         title: "✅ Assessment Session Deleted",
@@ -112,120 +114,185 @@ export default function QuizSessionsPage() {
     }
   };
 
+  console.log("sessions: ", sessions);
+
+  const grouped = sessions.reduce((acc, session) => {
+    if (!acc[session.quizTitle]) {
+      acc[session.quizTitle] = [];
+    }
+    acc[session.quizTitle].push(session);
+    return acc;
+  }, {});
+
+  const toggleExpand = (quizTitle) => {
+    setExpanded((prev) => ({
+      ...prev,
+      [quizTitle]: !prev[quizTitle],
+    }));
+  };
+
   return (
-    <div className="p-4">
+    <div className="md:p-4">
       <Card>
         <CardHeader>
           <CardTitle>All Assessment Sessions ({sessions.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {sessions.map((session) => (
-              <div key={session.sessionId} className="p-4 border rounded-lg">
-                <div className="flex items-start gap-1 justify-between">
-                  <div className="flex-1">
-                    <div className="flex flex-col items-start gap-2 mb-2">
-                      <h3 className="font-semibold">{session.session_name}</h3>
-                      <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline">{session.quizTitle}</Badge>
-                        <Badge variant="outline">
-                          Max Attempts: {session.max_attempts}
-                        </Badge>
-                        <Badge variant="outline">
-                          Time Limit: {session.time_limit} mins
-                        </Badge>
-                        <Badge variant="outline">
-                          Max Questions: {session.max_questions}
-                        </Badge>
-                        <Badge variant="outline">
-                          Passing Score: {session.passing_score}
-                        </Badge>
-                      </div>
+          <div className="space-y-4">
+            {Object.keys(grouped).map((quizTitle) => {
+              const quizSessions = grouped[quizTitle];
+              return (
+                <div
+                  key={quizTitle}
+                  className="border rounded-lg p-4 shadow-sm bg-white dark:bg-slate-900"
+                >
+                  {/* Parent Row */}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="font-bold text-lg">{quizTitle}</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Total Sessions: {quizSessions.length}
+                      </p>
                     </div>
 
-                    <p className="text-xs mb-1">
-                      Starting:{" "}
-                      {session.schedule_start_at
-                        ? new Date(session.schedule_start_at).toLocaleString()
-                        : "Not Scheduled"}
-                    </p>
-                    <p className="text-xs mb-1">
-                      Ending:{" "}
-                      {session.schedule_end_at
-                        ? new Date(session.schedule_end_at).toLocaleString()
-                        : "Not Scheduled"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Created:{" "}
-                      {new Date(session.created_at).toLocaleDateString()}
-                    </p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => toggleExpand(quizTitle)}
+                      className="flex items-center gap-1"
+                    >
+                      {expanded[quizTitle] ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                      {expanded[quizTitle] ? "Hide" : "Show"}
+                    </Button>
                   </div>
 
-                  <div className="flex gap-2">
-                    {/* Desktop */}
-                    <div className="hidden md:flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditSession(session)}
-                        className="flex items-center gap-2"
-                      >
-                        <Edit className="h-3 w-3" /> Edit
-                      </Button>
+                  {/* Child Sessions */}
+                  {expanded[quizTitle] && (
+                    <div className="mt-4 space-y-3">
+                      {quizSessions.map((session) => (
+                        <div
+                          key={session.sessionId}
+                          className="p-3 border rounded-lg"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex flex-col gap-2 mb-2">
+                                <h3 className="font-semibold">
+                                  {session.session_name}
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="outline">
+                                    Max Attempts: {session.max_attempts}
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    Time Limit: {session.time_limit} mins
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    Max Questions: {session.max_questions}
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    Passing Score: {session.passing_score}
+                                  </Badge>
+                                </div>
+                              </div>
+                              <p className="text-xs">
+                                Starting:{" "}
+                                {session.schedule_start_at
+                                  ? new Date(
+                                      session.schedule_start_at
+                                    ).toLocaleString()
+                                  : "Not Scheduled"}
+                              </p>
+                              <p className="text-xs">
+                                Ending:{" "}
+                                {session.schedule_end_at
+                                  ? new Date(
+                                      session.schedule_end_at
+                                    ).toLocaleString()
+                                  : "Not Scheduled"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Created:{" "}
+                                {new Date(
+                                  session.created_at
+                                ).toLocaleDateString()}
+                              </p>
+                            </div>
 
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleAssignClick(session)}
-                        className="flex items-center gap-2"
-                      >
-                        <Users className="h-3 w-3" /> Assign
-                      </Button>
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                              <div className="hidden md:flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditSession(session)}
+                                >
+                                  <Edit className="h-3 w-3" /> Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleAssignClick(session)}
+                                >
+                                  <Users className="h-3 w-3" /> Assign
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() =>
+                                    handleDeleteSession(session.sessionId)
+                                  }
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
 
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDeleteSession(session.sessionId)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                              {/* Mobile Dropdown */}
+                              <div className="md:hidden">
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button size="sm" variant="outline">
+                                      <MoreVertical className="h-5 w-5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent
+                                    align="end"
+                                    className="w-40"
+                                  >
+                                    <DropdownMenuItem
+                                      onClick={() => handleEditSession(session)}
+                                    >
+                                      <Edit className="h-4 w-4 mr-2" /> Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => handleAssignClick(session)}
+                                    >
+                                      <Users className="h-4 w-4 mr-2" /> Assign
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() =>
+                                        handleDeleteSession(session.sessionId)
+                                      }
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-
-                    {/* Mobile / Tablet */}
-                    <div className="md:hidden">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="outline">
-                            <MoreVertical className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-40">
-                          <DropdownMenuItem
-                            onClick={() => handleEditSession(session)}
-                          >
-                            <Edit className="h-4 w-4 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleAssignClick(session)}
-                          >
-                            <Users className="h-4 w-4 mr-2" /> Assign
-                          </DropdownMenuItem>
-
-                          <DropdownMenuItem
-                            className="text-red-600"
-                            onClick={() =>
-                              handleDeleteSession(session.sessionId)
-                            }
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {sessions.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
@@ -239,6 +306,7 @@ export default function QuizSessionsPage() {
         session={selectedSession}
         open={modalOpen}
         onOpenChange={setModalOpen}
+        onAssigned={fetchSessions}
       />
       {isAssignModalOpen && selectedSession && (
         <AssignQuizModal
@@ -248,6 +316,7 @@ export default function QuizSessionsPage() {
           quizId={selectedSession.quiz_id}
           quizTitle={selectedSession.quizTitle}
           sessionName={selectedSession.session_name}
+          onAssigned={fetchSessions}
         />
       )}
       <ConfirmationDialog

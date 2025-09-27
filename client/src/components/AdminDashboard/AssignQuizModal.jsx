@@ -10,7 +10,7 @@ import {
 } from "../ui/select";
 import { Input } from "../ui/input";
 
-const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
+const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose, onAssigned, }) => {
   const { toast } = useToast();
   const [users, setUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -25,15 +25,26 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    if (open) fetchUsers();
-  }, [open]);
+    if (open && quizId && sessionId) {
+      fetchUsers();
+    }
+  }, [open, quizId, sessionId]);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/auth/role/user`
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/quiz-attempts/assignment/usersDeatils`,
+        {
+          params: {
+            quizId,
+            sessionId,
+          },
+        }
       );
+
       const data = res.data.data || [];
       setUsers(data);
 
@@ -63,10 +74,10 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
   const handleAssign = async () => {
     setAssigning(true);
     try {
-     await axios.post(
-  `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/assign-session`,
-  { session_id: sessionId, user_ids: selectedUsers }
-);
+      await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/assign-session`,
+        { session_id: sessionId, user_ids: selectedUsers }
+      );
 
       toast({
         title: "Success",
@@ -75,6 +86,9 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
       });
       setSelectedUsers([]);
       onClose();
+      if (onAssigned) {
+        onAssigned()
+      }
     } catch (err) {
       if (err.response && err.response.data?.message) {
         toast({
@@ -121,6 +135,8 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
       selectedLocation === "all" || u.location === selectedLocation;
     return matchesSearch && matchesGroup && matchesTeam && matchesLocation;
   });
+
+  console.log("filteredUsers: ", filteredUsers);
 
   if (!open) return null;
 
@@ -275,18 +291,11 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
                     <SelectValue placeholder="All Groups" />
                   </SelectTrigger>
                   <SelectContent className="">
-                    <SelectItem
-                      value="all"
-                      className=""
-                    >
+                    <SelectItem value="all" className="">
                       All Groups
                     </SelectItem>
                     {groups.map((g, idx) => (
-                      <SelectItem
-                        key={idx}
-                        value={g}
-                        className=""
-                      >
+                      <SelectItem key={idx} value={g} className="">
                         {g}
                       </SelectItem>
                     ))}
@@ -302,18 +311,11 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
                     <SelectValue placeholder="All Teams" />
                   </SelectTrigger>
                   <SelectContent className="dark:bg-slate-900 dark:border-gray-600">
-                    <SelectItem
-                      value="all"
-                      className=""
-                    >
+                    <SelectItem value="all" className="">
                       All Teams
                     </SelectItem>
                     {teams.map((t, idx) => (
-                      <SelectItem
-                        key={idx}
-                        value={t}
-                        className=""
-                      >
+                      <SelectItem key={idx} value={t} className="">
                         {t}
                       </SelectItem>
                     ))}
@@ -329,22 +331,13 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
                     <SelectValue placeholder="Work Location" />
                   </SelectTrigger>
                   <SelectContent className="dark:bg-slate-900 dark:border-gray-600">
-                    <SelectItem
-                      value="all"
-                      className=""
-                    >
+                    <SelectItem value="all" className="">
                       All Locations
                     </SelectItem>
-                    <SelectItem
-                      value="Rig Based Employee (ROE)"
-                      className=""
-                    >
+                    <SelectItem value="Rig Based Employee (ROE)" className="">
                       Rig Based Employee (ROE)
                     </SelectItem>
-                    <SelectItem
-                      value="Office Based Employee"
-                      className=""
-                    >
+                    <SelectItem value="Office Based Employee" className="">
                       Office Based Employee
                     </SelectItem>
                   </SelectContent>
@@ -395,9 +388,22 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
                         <div className="flex-shrink-0">
                           <input
                             type="checkbox"
-                            checked={selectedUsers.includes(u.id)}
-                            onChange={() => toggleUser(u.id)}
-                            className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer"
+                            checked={
+                              (u.score || u.status)
+                                ? true
+                                : selectedUsers.includes(u.id)
+                            }
+                            onChange={() => {
+                              if (
+                                !(u.score || u.status)
+                              ) {
+                                toggleUser(u.id);
+                              }
+                            }}
+                            disabled={
+                              (u.score || u.status)
+                            }
+                            className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           />
                         </div>
 
@@ -412,6 +418,16 @@ const AssignQuizModal = ({ sessionId, quizId, quizName, isOpen, onClose }) => {
                               </p>
                             </div>
                             <div className="flex flex-wrap items-center gap-1">
+                              {u.status && (
+                                <span className="px-2 capitalize py-0.5 text-xs font-medium bg-purple-100 dark:bg-green-900/30 text-green-700 dark:text-purple-300 rounded whitespace-nowrap">
+                                  {u.status}
+                                </span>
+                              )}
+                              {u.score && (
+                                <span className="px-2 capitalize py-0.5 text-xs font-medium bg-purple-100 dark:bg-green-900/30 text-green-700 dark:text-purple-300 rounded whitespace-nowrap">
+                                  Score: {u.score}
+                                </span>
+                              )}
                               {u.group && (
                                 <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded whitespace-nowrap">
                                   {u.group}

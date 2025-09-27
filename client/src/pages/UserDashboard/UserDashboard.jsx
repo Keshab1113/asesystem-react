@@ -65,21 +65,52 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
+    let intervalId;
     if (user?.id) {
       fetchAssignments();
+      // 🔄 refetch every 5 minutes
+      intervalId = setInterval(fetchAssignments, 5 * 60 * 1000);
     }
+    return () => clearInterval(intervalId);
   }, [user?.id]);
 
   const getStatusBadge = (assessment) => {
+    const now = new Date();
+    const startDateTime = assessment.schedule_start_at
+      ? new Date(assessment.schedule_start_at)
+      : null;
+    const endDateTime = assessment.schedule_end_at
+      ? new Date(assessment.schedule_end_at)
+      : null;
+    const isNotStartedYet = startDateTime ? now < startDateTime : false;
+    const isExpired = endDateTime ? now > endDateTime : false;
+
     switch (assessment.status) {
       case "scheduled":
-        return (
-          <Badge variant="success">
-            <Clock className="w-3 h-3 mr-1" />
-            Scheduled
-          </Badge>
-        );
+        if (isNotStartedYet) {
+          return (
+            <Badge variant="secondary">
+              <Clock className="w-3 h-3 mr-1" />
+              Scheduled
+            </Badge>
+          );
+        } else if (isExpired) {
+          return (
+            <Badge variant="destructive">
+              <Clock className="w-3 h-3 mr-1" />
+              Closed
+            </Badge>
+          );
+        } else {
+          return (
+            <Badge variant="success">
+              <Clock className="w-3 h-3 mr-1" />
+              Live
+            </Badge>
+          );
+        }
 
       case "in_progress":
         return (
@@ -543,18 +574,15 @@ export default function DashboardPage() {
     .filter((a) => {
       if (a.status !== "scheduled") return false;
 
-      if (a.schedule_end_date && a.schedule_end_time) {
-        const endDateTime = new Date(
-          `${a.schedule_end_date.split("T")[0]}T${a.schedule_end_time}`
-        );
-        return now <= endDateTime; // keep only not expired scheduled
+      if (a.schedule_end_at) {
+        const endDateTime = new Date(a.schedule_end_at);
+        return now <= endDateTime;
       }
 
-      return true; // if no end date/time, keep it as scheduled
+      return true;
     })
     .sort(
-      (a, b) =>
-        new Date(b.schedule_start_date) - new Date(a.schedule_start_date)
+      (a, b) => new Date(b.schedule_start_at) - new Date(a.schedule_start_at)
     );
 
   const completed = assignments
@@ -570,22 +598,14 @@ export default function DashboardPage() {
       )
         return true;
 
-      if (
-        a.status === "scheduled" &&
-        a.schedule_end_date &&
-        a.schedule_end_time
-      ) {
-        const endDateTime = new Date(
-          `${a.schedule_end_date.split("T")[0]}T${a.schedule_end_time}`
-        );
-        return now > endDateTime; // expired scheduled treated as completed
+      if (a.status === "scheduled" && a.schedule_end_at) {
+        const endDateTime = new Date(a.schedule_end_at);
+        return now > endDateTime;
       }
 
       return false;
     })
     .sort((a, b) => new Date(b.user_ended_at) - new Date(a.user_ended_at));
-
-  // console.log("assignments: ", assignments);
 
   return (
     <div className="space-y-10">

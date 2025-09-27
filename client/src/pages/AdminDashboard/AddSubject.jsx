@@ -256,9 +256,9 @@ export default function AddSubjectPage() {
 
   return (
     <div className="flex flex-col h-full ">
-      <div className="flex justify-between ">
+      <div className="flex md:flex-row flex-col gap-2 justify-between ">
         <h1 className="text-3xl font-bold text-foreground">Assesment Master</h1>
-        <div className="flex items-center mb-4">
+        <div className="flex items-center justify-end mb-4">
           <Button
             variant="outline"
             onClick={handleBack}
@@ -481,7 +481,7 @@ export default function AddSubjectPage() {
         {/* Questions List */}
 
         <Card className="h-full flex flex-col  ">
-          <CardHeader className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4 ">
+          <CardHeader className="flex md:flex-row flex-col gap-2 items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-4 ">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <svg

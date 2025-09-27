@@ -95,6 +95,7 @@ exports.getAllQuizzes = async (req, res) => {
          qs.quiz_id,
          q.title AS quiz_title,   -- changed from q.name
          qs.time_limit,
+         q.is_active,
          qs.passing_score,
          qs.max_attempts,
          qs.max_questions,
@@ -1120,3 +1121,52 @@ exports.downloadQuizQuestions = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+exports.getNormalUsersWithAssignments = async (req, res) => {
+  const { quizId, sessionId } = req.query; // or req.params, depending on your route
+
+  try {
+    const [rows] = await db.execute(
+      `
+      SELECT 
+        u.id, 
+        u.name,
+        u.location,
+        u.employee_id,
+        u.team_id,
+        u.group_id,
+        u.controlling_team,
+        u.\`group\`,
+        u.email,
+        u.role,
+        u.phone,
+        u.position,
+        u.bio,
+        u.is_active,
+        u.profile_pic_url,
+        u.created_at,
+        u.updated_at,
+
+        qa.user_started_at,
+        qa.user_ended_at,
+        qa.reassigned,
+        qa.score,
+        qa.status
+      FROM users u
+      LEFT JOIN quiz_assignments qa
+        ON qa.user_id = u.id
+        AND qa.quiz_id = ?
+        AND qa.quiz_session_id = ?
+      WHERE u.role = 'user'
+      ORDER BY u.created_at DESC
+      `,
+      [quizId, sessionId]
+    );
+
+    res.json({ success: true, data: rows });
+  } catch (error) {
+    console.error("Get normal users with assignments error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+

@@ -20,6 +20,8 @@ import {
   Plus,
   Loader2,
   Copy,
+  Radio,
+  Zap,
 } from "lucide-react";
 import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
 import useToast from "../../hooks/ToastContext";
@@ -28,6 +30,7 @@ import { QuizDetailsModal } from "./QuizDetailsModal";
 import { QuizFormModal } from "./QuizFormModal";
 import { BulkActionsToolbar } from "./BulkActionsToolbar";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
+import { BorderBeam } from "../ui/border-beam";
 
 const defaultFilters = {
   search: "",
@@ -87,7 +90,12 @@ export function DashboardContent() {
               }`
             );
             const { summary } = assignRes.data.data;
-            console.log("Fetched summary for quiz ID", q.session_id, ":", summary); // Debug log
+            console.log(
+              "Fetched summary for quiz ID",
+              q.session_id,
+              ":",
+              summary
+            ); // Debug log
             return {
               id: q.session_id,
               name: q.session_name, // for UI
@@ -459,8 +467,25 @@ export function DashboardContent() {
           {filteredAndSortedQuizzes.map((quiz) => (
             <Card
               key={quiz.id}
-              className="hover:shadow-md transition-shadow overflow-hidden relative"
+              className={`hover:shadow-md transition-shadow overflow-hidden relative bg-gray-200  ${quiz.status === "Active"? "dark:bg-green-900/10 bg-green-900/10":" dark:bg-gray-900"}`}
             >
+              {quiz.status === "Active" && (
+                <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0">
+                  {/* Option 1: Pulsing Radio Wave Icon */}
+                  <div className="relative">
+                    <Radio className="text-red-600 w-16 h-16 animate-pulse" />
+                    <div className="absolute inset-0 animate-ping">
+                      <Radio className="text-red-500 w-16 h-16 opacity-75" />
+                    </div>
+                    <div
+                      className="absolute inset-0 animate-ping"
+                      style={{ animationDelay: "1s" }}
+                    >
+                      <Radio className="text-red-400 w-16 h-16 opacity-50" />
+                    </div>
+                  </div>
+                </div>
+              )}
               <CardHeader>
                 <div className="flex items-center justify-between ">
                   <div className="flex items-center gap-2 mt-4">
@@ -470,15 +495,16 @@ export function DashboardContent() {
                         handleSelectQuiz(quiz.id, checked)
                       }
                     />
-                    <CardTitle className="text-lg text-card-foreground text-balance">
+                    <CardTitle className="text-lg text-card-foreground text-balance flex flex-col">
                       {quiz.name}
+                      <span className=" text-xs">{quiz.quiz_title}</span>
                     </CardTitle>
                   </div>
                   <Badge
                     variant={quiz.status === "Active" ? "default" : "secondary"}
                     className={
                       quiz.status === "Active"
-                        ? "bg-primary text-primary-foreground absolute top-2 right-2"
+                        ? "bg-green-500 text-white absolute top-2 right-2"
                         : "bg-muted text-muted-foreground absolute top-2 right-2"
                     }
                   >
@@ -530,7 +556,7 @@ export function DashboardContent() {
                     <Copy className="h-3 w-3 mr-1" />
                     <span className=" md:block hidden">Copy</span>
                   </Button> */}
-                  <Button
+                  {/* <Button
                     size="sm"
                     variant={
                       quiz.status === "Active" ? "destructive" : "default"
@@ -545,7 +571,7 @@ export function DashboardContent() {
                     ) : (
                       "Activate"
                     )}
-                  </Button>
+                  </Button> */}
                   <Button
                     size="sm"
                     // variant="destructive"
@@ -566,6 +592,23 @@ export function DashboardContent() {
                   </Button>
                 </div>
               </CardContent>
+              {quiz.status === "Active" && (
+                <BorderBeam
+                  duration={6}
+                  size={200}
+                  borderWidth={3}
+                  className="from-transparent via-red-500 to-transparent"
+                />
+              )}
+              {quiz.status === "Active" && (
+                <BorderBeam
+                  duration={6}
+                  delay={3}
+                  size={200}
+                  borderWidth={3}
+                  className="from-transparent via-blue-500 to-transparent"
+                />
+              )}
             </Card>
           ))}
         </div>

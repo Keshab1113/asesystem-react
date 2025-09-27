@@ -45,32 +45,31 @@ import { Calendar } from "../../components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
-export function QuizFormModal({ session,  open, onOpenChange }) {
+export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
   const { toast } = useToast();
   // const isEditing = !!quiz;
-   const isEditing = !!session;
+  const isEditing = !!session;
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-  sessionName: session?.session_name || "",
-  timeLimit: session?.time_limit || 60,
-  passingScore: session?.passing_score || 70,
-  maxAttempts: session?.max_attempts || 3,
-  maxQuestions: session?.max_questions || 0,
-  scheduleStartDate: session?.schedule_start_at
-    ? new Date(session.schedule_start_at).toLocaleDateString("en-CA")
-    : "",
-  scheduleStartTime: session?.schedule_start_at
-    ? new Date(session.schedule_start_at).toTimeString().slice(0, 5)
-    : "",
-  scheduleEndDate: session?.schedule_end_at
-    ? new Date(session.schedule_end_at).toLocaleDateString("en-CA")
-    : "",
-  scheduleEndTime: session?.schedule_end_at
-    ? new Date(session.schedule_end_at).toTimeString().slice(0, 5)
-    : "",
-});
-
+    sessionName: session?.session_name || "",
+    timeLimit: session?.time_limit || 60,
+    passingScore: session?.passing_score || 70,
+    maxAttempts: session?.max_attempts || 3,
+    maxQuestions: session?.max_questions || 0,
+    scheduleStartDate: session?.schedule_start_at
+      ? new Date(session.schedule_start_at).toLocaleDateString("en-CA")
+      : "",
+    scheduleStartTime: session?.schedule_start_at
+      ? new Date(session.schedule_start_at).toTimeString().slice(0, 5)
+      : "",
+    scheduleEndDate: session?.schedule_end_at
+      ? new Date(session.schedule_end_at).toLocaleDateString("en-CA")
+      : "",
+    scheduleEndTime: session?.schedule_end_at
+      ? new Date(session.schedule_end_at).toTimeString().slice(0, 5)
+      : "",
+  });
 
   // console.log("Hi keshab, I am on QuizFormModal: ", quiz);
 
@@ -127,41 +126,41 @@ export function QuizFormModal({ session,  open, onOpenChange }) {
   //     });
   //   }
   // }, [quiz]);
-useEffect(() => {
-  if (session) {
-    setFormData({
-      sessionName: session.session_name || "",
-      timeLimit: session.time_limit || 60,
-      passingScore: session.passing_score || 70,
-      maxAttempts: session.max_attempts || 3,
-      maxQuestions: session.max_questions || 0,
-      scheduleStartDate: session.schedule_start_at
-        ? new Date(session.schedule_start_at).toLocaleDateString("en-CA")
-        : "",
-      scheduleStartTime: session.schedule_start_at
-        ? new Date(session.schedule_start_at).toTimeString().slice(0, 5)
-        : "",
-      scheduleEndDate: session.schedule_end_at
-        ? new Date(session.schedule_end_at).toLocaleDateString("en-CA")
-        : "",
-      scheduleEndTime: session.schedule_end_at
-        ? new Date(session.schedule_end_at).toTimeString().slice(0, 5)
-        : "",
-    });
-  } else {
-    setFormData({
-      sessionName: "",
-      timeLimit: 60,
-      passingScore: 70,
-      maxAttempts: 3,
-      maxQuestions: 0,
-      scheduleStartDate: "",
-      scheduleStartTime: "",
-      scheduleEndDate: "",
-      scheduleEndTime: "",
-    });
-  }
-}, [session]);
+  useEffect(() => {
+    if (session) {
+      setFormData({
+        sessionName: session.session_name || "",
+        timeLimit: session.time_limit || 60,
+        passingScore: session.passing_score || 70,
+        maxAttempts: session.max_attempts || 3,
+        maxQuestions: session.max_questions || 0,
+        scheduleStartDate: session.schedule_start_at
+          ? new Date(session.schedule_start_at).toLocaleDateString("en-CA")
+          : "",
+        scheduleStartTime: session.schedule_start_at
+          ? new Date(session.schedule_start_at).toTimeString().slice(0, 5)
+          : "",
+        scheduleEndDate: session.schedule_end_at
+          ? new Date(session.schedule_end_at).toLocaleDateString("en-CA")
+          : "",
+        scheduleEndTime: session.schedule_end_at
+          ? new Date(session.schedule_end_at).toTimeString().slice(0, 5)
+          : "",
+      });
+    } else {
+      setFormData({
+        sessionName: "",
+        timeLimit: 60,
+        passingScore: 70,
+        maxAttempts: 3,
+        maxQuestions: 0,
+        scheduleStartDate: "",
+        scheduleStartTime: "",
+        scheduleEndDate: "",
+        scheduleEndTime: "",
+      });
+    }
+  }, [session]);
 
   // Reset form when modal closes
   // useEffect(() => {
@@ -261,29 +260,31 @@ useEffect(() => {
 
     try {
       if (isEditing && session?.sessionId) {
-  await axios.put(
-    `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/${session.sessionId}`,
-    {
-      sessionName: formData.sessionName,
-      timeLimit: formData.timeLimit,
-      passingScore: formData.passingScore,
-      maxAttempts: formData.maxAttempts,
-      maxQuestions: formData.maxQuestions,
-      scheduleStartDate: formData.scheduleStartDate,
-      scheduleStartTime: formData.scheduleStartTime,
-      scheduleEndDate: formData.scheduleEndDate,
-      scheduleEndTime: formData.scheduleEndTime,
-    }
-  );
-  toast({
+        await axios.put(
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/${
+            session.sessionId
+          }`,
+          {
+            sessionName: formData.sessionName,
+            timeLimit: formData.timeLimit,
+            passingScore: formData.passingScore,
+            maxAttempts: formData.maxAttempts,
+            maxQuestions: formData.maxQuestions,
+            scheduleStartDate: formData.scheduleStartDate,
+            scheduleStartTime: formData.scheduleStartTime,
+            scheduleEndDate: formData.scheduleEndDate,
+            scheduleEndTime: formData.scheduleEndTime,
+          }
+        );
+        if (onAssigned) {
+          onAssigned();
+        }
+        toast({
           title: "Assessment Updated",
           description: `Assessment "${quizData.name}" has been updated successfully.`,
           variant: "success",
         });
-}
-
-        
-      else {
+      } else {
         // Create new quiz
         await axios.post(
           `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/create`,
@@ -593,7 +594,10 @@ useEffect(() => {
                       if (!value || value < 1) value = 1;
 
                       // Clamp to max
-                      if (session?.questionCount && value > session.questionCount) {
+                      if (
+                        session?.questionCount &&
+                        value > session.questionCount
+                      ) {
                         value = session.questionCount;
                       }
 

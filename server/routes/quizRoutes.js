@@ -1,5 +1,5 @@
 const express = require("express");
-const { getAllQuizAttempts, getAllQuizTitles,getAllQuizzes,updateQuiz ,assignQuiz,getQuizAssignments,getQuizQuestions,updateQuizQuestionsBulk,getQuizReportDetails, updateQuizStatus, getAllQuizzesWithNoActive, downloadQuizQuestions, deleteAssignedQuiz, rescheduleAssignedQuiz, exportQuizReport, deleteSessionQuiz, deleteAssessment} = require("../controllers/quizController");
+const { getAllQuizAttempts, getAllQuizTitles,getAllQuizzes,updateQuiz ,assignQuiz,getQuizAssignments,getQuizQuestions,updateQuizQuestionsBulk,getQuizReportDetails, updateQuizStatus, getAllQuizzesWithNoActive, downloadQuizQuestions, deleteAssignedQuiz, rescheduleAssignedQuiz, exportQuizReport, deleteSessionQuiz, deleteAssessment, getNormalUsersWithAssignments} = require("../controllers/quizController");
 const router = express.Router();
 
 router.get("/", getAllQuizAttempts);
@@ -21,6 +21,7 @@ router.get("/:id/download", downloadQuizQuestions);
 router.delete("/assignment/delete", deleteAssignedQuiz);
 router.put("/assignment/reschedule", rescheduleAssignedQuiz);
 router.post("/assignment/export", exportQuizReport);
+router.get("/assignment/usersDeatils", getNormalUsersWithAssignments);
 
 // router.put("/edit-questions/:quizId", updateQuizQuestionsBulk);
 router.put('/edit-question/:id', updateQuizQuestionsBulk);

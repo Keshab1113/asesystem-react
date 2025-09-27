@@ -789,7 +789,7 @@ export default function QuestionsPage() {
             {/* Left: Secure Mode */}
             <div className="flex items-center justify-between gap-3 md:w-fit w-full">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                Assessment
+                KOC HSE MS Assessment
               </h1>
               <Badge
                 variant="outline"
