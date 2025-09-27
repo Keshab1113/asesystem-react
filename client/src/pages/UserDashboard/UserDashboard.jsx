@@ -139,7 +139,6 @@ export default function DashboardPage() {
   };
 
   const handleStartAssessment = async (assessment) => {
-    fetchAssignments();
     console.log("Clicked Start Assessment");
     console.log("Assessment Details:", assessment);
     const assignmentId = assessment.assignment_id || assessment.assesment_id;
@@ -175,10 +174,7 @@ export default function DashboardPage() {
           assignmentId: assignmentId,
         }
       );
-      console.log("Quiz ID:", assessment.quiz_id);
-      console.log("Quiz Session ID:", assessment.quiz_session_id);
-      console.log("User ID:", user.id);
-      console.log("Assignment ID:", assessment.assignment_id);
+
       console.log("Assign Random Response:", assignRes.data);
 
       if (!assignRes.data.success) {
@@ -482,7 +478,7 @@ export default function DashboardPage() {
 
               return (
                 <Button
-                  onClick={()=>handleStartAssessment(assessment)}
+                  onClick={() => handleStartAssessment(assessment)}
                   disabled={isNotStartedYet || isExpired} // disable outside start-end range
                   className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >

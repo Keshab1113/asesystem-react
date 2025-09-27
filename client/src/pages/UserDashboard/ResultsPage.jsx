@@ -73,6 +73,7 @@ export default function ResultsPage() {
       if (!assignmentId) return;
 
       try {
+    
         const res = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/results/${assignmentId}`,
           { headers: { Authorization: `Bearer ${token}` } }
