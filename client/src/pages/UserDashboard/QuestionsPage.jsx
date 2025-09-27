@@ -81,6 +81,7 @@ export default function QuestionsPage() {
   const allQuestionsAnswered = questions.every((q) => {
     const currentAnswers = store.getState().quiz.answers[quizId] || {};
     return currentAnswers[q.id];
+    
   });
   useEffect(() => {
     // Automatically request fullscreen on page load
