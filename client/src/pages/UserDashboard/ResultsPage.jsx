@@ -17,6 +17,7 @@ import {
   Clock,
   Brain,
   Target,
+  Loader2
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import axios from "axios";
@@ -37,6 +38,7 @@ export default function ResultsPage() {
   const [searchParams] = useSearchParams();
   const assignmentId = searchParams.get("assignmentId");
   const { setExamState } = useExam();
+  const [loading, setLoading] = useState(true);
 
   // const attemptId = searchParams.get("attemptId");
   const [allQuiz, setAllQuiz] = useState([]);
@@ -73,7 +75,6 @@ export default function ResultsPage() {
       if (!assignmentId) return;
 
       try {
-    
         const res = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/results/${assignmentId}`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -118,6 +119,13 @@ export default function ResultsPage() {
       }));
     };
   }, [setExamState]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000); // 5 sec loader
+
+    return () => clearTimeout(timer); // cleanup
+  }, []);
 
   const correctCount = results.correctAnswers;
   const scorePercentage = results.score;
@@ -370,6 +378,15 @@ export default function ResultsPage() {
             <h1>No wrong answers</h1>
           </div>
         )}
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex flex-col justify-center items-center h-screen gap-4">
+        <Loader2 className="animate-spin w-8 h-8" />
+        <p className="text-lg">Loading... Please wait</p>
       </div>
     );
   }

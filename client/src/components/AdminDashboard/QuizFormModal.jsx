@@ -567,9 +567,9 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">1 attempt</SelectItem>
-                      <SelectItem value="3">3 attempts</SelectItem>
-                      <SelectItem value="5">5 attempts</SelectItem>
-                      <SelectItem value="unlimited">Unlimited</SelectItem>
+                      {/* <SelectItem value="3">3 attempts</SelectItem> */}
+                      {/* <SelectItem value="5">5 attempts</SelectItem> */}
+                      {/* <SelectItem value="unlimited">Unlimited</SelectItem> */}
                     </SelectContent>
                   </Select>
                 </div>

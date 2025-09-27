@@ -524,11 +524,11 @@ export function DashboardContent() {
                     {quiz.participants} participants
                   </span>
                 </div>
-                <div className="text-xs text-muted-foreground mb-14">
+                <div className="text-xs text-muted-foreground ">
                   {/* Subject: {quiz.subject} • Difficulty: {quiz.difficulty} • */}
                   Created: {quiz.date}
                 </div>
-                <div className="flex gap-2 pt-2 flex-wrap absolute bottom-2">
+                {/* <div className="flex gap-2 pt-2 flex-wrap absolute bottom-2"> */}
                   {/* <Button
                     size="sm"
                     variant="outline"
@@ -538,7 +538,7 @@ export function DashboardContent() {
                     <Eye className="h-3 w-3 mr-1" />
                     <span className=" md:block hidden">View</span>
                   </Button> */}
-                  <Button
+                  {/* <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleEditQuiz(quiz)}
@@ -546,7 +546,7 @@ export function DashboardContent() {
                   >
                     <Edit className="h-3 w-3 mr-1" />
                     <span className=" block">Edit</span>
-                  </Button>
+                  </Button> */}
                   {/* <Button
                     size="sm"
                     variant="outline"
@@ -572,7 +572,7 @@ export function DashboardContent() {
                       "Activate"
                     )}
                   </Button> */}
-                  <Button
+                  {/* <Button
                     size="sm"
                     // variant="destructive"
                     onClick={() => openDeleteDialog(quiz.id)}
@@ -589,8 +589,8 @@ export function DashboardContent() {
                         <span className=" block ">Delete</span>
                       </>
                     )}
-                  </Button>
-                </div>
+                  </Button> */}
+                {/* </div> */}
               </CardContent>
               {quiz.status === "Active" && (
                 <BorderBeam
