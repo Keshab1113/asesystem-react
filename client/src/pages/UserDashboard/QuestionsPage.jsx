@@ -36,11 +36,11 @@ import { useExam } from "../../lib/ExamContext";
 
 export default function QuestionsPage() {
   const { quizId } = useParams();
-  
+
   const [searchParams] = useSearchParams();
   const quizSessionId = searchParams.get("session_id");
-console.log("Quiz Session ID:", quizSessionId);
-console.log("Quiz ID from params:", quizId);
+  console.log("Quiz Session ID:", quizSessionId);
+  console.log("Quiz ID from params:", quizId);
   const time = searchParams.get("time");
   const passing_score = searchParams.get("passing_score");
   const assignmentId = searchParams.get("assignment_id");
@@ -80,41 +80,42 @@ console.log("Quiz ID from params:", quizId);
 
   // Check if all questions are answered
   const allQuestionsAnswered = questions.every((q) => answers[q.id]);
-useEffect(() => {
-  
-  const hasAccepted = localStorage.getItem(
-    `quiz_${quizId}_instructions_accepted`
-  );
-  if (hasAccepted === "true" && isFullscreenActive() && !isDevToolsOpen()) {
-    setAcceptedInstructions(true);
-    setShowInstructions(false);
-    setTimerStarted(true);
-  } else {
-    localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
-  }
-
-  const fetchQuestions = async () => {
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${quizId}/fetch-assigned-questions?userId=${user.id}&quizSessionId=${quizSessionId}&assignmentId=${assignmentId}`
-      );
-
-      const data = await res.json();
-      if (data.success) {
-        dispatch(setQuizQuestions({ quizId, questions: data.data }));
-      }
-      console.log("Fetched Questions:", data.data);
-    } catch (error) {
-      console.error("Error fetching assigned questions:", error);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    const hasAccepted = localStorage.getItem(
+      `quiz_${quizId}_instructions_accepted`
+    );
+    if (hasAccepted === "true" && isFullscreenActive() && !isDevToolsOpen()) {
+      setAcceptedInstructions(true);
+      setShowInstructions(false);
+      setTimerStarted(true);
+    } else {
+      localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
     }
-  };
 
-  if (quizSessionId) fetchQuestions();
-}, [quizId, quizSessionId, dispatch]);
+    const fetchQuestions = async () => {
+      try {
+        const res = await fetch(
+          `${
+            import.meta.env.VITE_BACKEND_URL
+          }/api/quiz-assignments/${quizId}/fetch-assigned-questions?userId=${
+            user.id
+          }&quizSessionId=${quizSessionId}&assignmentId=${assignmentId}`
+        );
 
+        const data = await res.json();
+        if (data.success) {
+          dispatch(setQuizQuestions({ quizId, questions: data.data }));
+        }
+        console.log("Fetched Questions:", data.data);
+      } catch (error) {
+        console.error("Error fetching assigned questions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
+    if (quizSessionId) fetchQuestions();
+  }, [quizId, quizSessionId, dispatch]);
 
   useEffect(() => {
     if (!timerStarted || !acceptedInstructions) return;
@@ -262,7 +263,10 @@ useEffect(() => {
 
           const newWarnings = prev + 1;
           if (newWarnings >= limit) {
-            handleSubmit(true, "App/tab switch detected. Assessment auto-submitted.");
+            handleSubmit(
+              true,
+              "App/tab switch detected. Assessment auto-submitted."
+            );
           }
           return newWarnings;
         });
@@ -317,108 +321,108 @@ useEffect(() => {
   };
 
   // ✅ Check if DevTools is open
- const isDevToolsOpen = () => {
-  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-  if (isMobile) return false;
+  const isDevToolsOpen = () => {
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    if (isMobile) return false;
 
-  const threshold = 160;
-  return (
-    window.outerWidth - window.innerWidth > threshold ||
-    window.outerHeight - window.innerHeight > threshold
-  );
-};
-
+    const threshold = 160;
+    return (
+      window.outerWidth - window.innerWidth > threshold ||
+      window.outerHeight - window.innerHeight > threshold
+    );
+  };
 
   // ✅ Check if fullscreen is active
   const isFullscreenActive = () => {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  if (isIOS) {
-    // iOS has no fullscreen API → fallback check
-    return window.innerHeight === screen.height && window.innerWidth === screen.width;
-  }
+    if (isIOS) {
+      // iOS has no fullscreen API → fallback check
+      return (
+        window.innerHeight === screen.height &&
+        window.innerWidth === screen.width
+      );
+    }
 
-  return (
-    document.fullscreenElement ||
-    document.webkitFullscreenElement ||
-    document.mozFullScreenElement ||
-    document.msFullscreenElement
-  );
-};
-
+    return (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  };
 
   const handleAcceptInstructions = async () => {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-  // 🔎 Check secure state first
-  if (isDevToolsOpen() || (!isIOS && !isFullscreenActive())) {
-    const reason = isDevToolsOpen()
-      ? "Developer Tools detected. Close them to start."
-      : isIOS
+    // 🔎 Check secure state first
+    if (isDevToolsOpen() || (!isIOS && !isFullscreenActive())) {
+      const reason = isDevToolsOpen()
+        ? "Developer Tools detected. Close them to start."
+        : isIOS
         ? "Rotate your device to portrait and keep this tab active."
         : "Fullscreen is required. Enter fullscreen to start.";
 
-    toast({
-      title: "⚠️ Cannot Start Assessment",
-      description: reason,
-      variant: "destructive",
-    });
+      toast({
+        title: "⚠️ Cannot Start Assessment",
+        description: reason,
+        variant: "destructive",
+      });
 
-    // Request fullscreen if needed (desktop + Android, NOT iOS)
-    if (!isIOS && !isFullscreenActive()) {
-      const el = document.documentElement;
-      if (el.requestFullscreen) el.requestFullscreen();
-      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-      else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+      // Request fullscreen if needed (desktop + Android, NOT iOS)
+      if (!isIOS && !isFullscreenActive()) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+        else if (el.msRequestFullscreen) el.msRequestFullscreen();
+      }
+
+      return; // block start until conditions met
     }
 
-    return; // block start until conditions met
-  }
+    // ✅ Passed checks → allow start
+    setAcceptedInstructions(true);
+    setShowInstructions(false);
+    setTimerStarted(true);
 
-  // ✅ Passed checks → allow start
-  setAcceptedInstructions(true);
-  setShowInstructions(false);
-  setTimerStarted(true);
+    // Lock screen orientation (mobile only)
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("portrait").catch(() => {});
+    }
 
-  // Lock screen orientation (mobile only)
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock("portrait").catch(() => {});
-  }
-
-  // 🔗 Call backend to mark quiz start
-  try {
-    const startRes = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
-      {
-        quiz_id: quizId,
-        user_id: user.id,
+    // 🔗 Call backend to mark quiz start
+    try {
+      const startRes = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
+        {
+          quiz_id: quizId,
+          user_id: user.id,
           assignment_id: assignmentId,
           quiz_session_id: quizSessionId,
-      }
-    );
+        }
+      );
 
-    if (!startRes.data.success) {
+      if (!startRes.data.success) {
+        toast({
+          title: "Error",
+          description: startRes.data.message || "Failed to start assessment",
+          variant: "error",
+        });
+        return;
+      }
+
+      // ✅ Save accepted only after backend success
+      localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
+    } catch (err) {
+      console.error("Start assessment failed:", err);
       toast({
         title: "Error",
-        description: startRes.data.message || "Failed to start assessment",
+        description: "Network error starting assessment",
         variant: "error",
       });
-      return;
     }
-
-    // ✅ Save accepted only after backend success
-    localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
-  } catch (err) {
-    console.error("Start assessment failed:", err);
-    toast({
-      title: "Error",
-      description: "Network error starting assessment",
-      variant: "error",
-    });
-  }
-};
-
+  };
 
   const handleSubmit = async (forced = false, message = null) => {
     // 1. Manual submit (user action)
@@ -587,13 +591,22 @@ useEffect(() => {
                 <li>This assessment has a time limit of {time} minutes.</li>
                 <li>Once started, the timer cannot be paused.</li>
                 <li>You must answer all questions before submitting.</li>
-                <li>Now you are on fullScreen mode, cannot exit fullscreen mode during the assessment.</li>
+                <li>
+                  Now you are on fullScreen mode, cannot exit fullscreen mode
+                  during the assessment.
+                </li>
                 <li>
                   Right-click, developer tools, and certain keyboard shortcuts
                   are disabled.
                 </li>
-                <li>Switching Tabs or windows will trigger a warning. (Auto-Submit/ Session Termination).</li>
-                <li>Multiple violations may result in automatic submission/ termination.</li>
+                <li>
+                  Switching Tabs or windows will trigger a warning.
+                  (Auto-Submit/ Session Termination).
+                </li>
+                <li>
+                  Multiple violations may result in automatic submission/
+                  termination.
+                </li>
               </ul>
             </div>
 

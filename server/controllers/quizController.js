@@ -812,7 +812,7 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
       });
     }
 
-    // Update query
+    // Update query with reassigned increment
     const [result] = await db.query(
       `
       UPDATE quiz_assignments
@@ -820,7 +820,8 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
         status = 'scheduled',
         user_started_at = NULL,
         user_ended_at = NULL,
-        score = NULL
+        score = NULL,
+        reassigned = reassigned + 1
       WHERE id = ? AND quiz_id = ? AND user_id = ?
       `,
       [id, quiz_id, user_id]
@@ -845,6 +846,7 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
     });
   }
 };
+
 
 exports.exportQuizReport = async (req, res) => {
   try {

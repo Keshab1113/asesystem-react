@@ -241,121 +241,6 @@ exports.endAssessment = async (req, res) => {
   }
 };
 
-// exports.assignRandomQuestions = async (req, res) => {
-//   const { quizId, userId, assignmentId } = req.body;
-//   console.log(req.body);
-
-//   if (!quizId || !userId || !assignmentId) {
-//     return res
-//       .status(400)
-//       .json({
-//         success: false,
-//         message: "quizId, userId, and assignmentId are required",
-//       });
-//   }
-
-//   try {
-//     // 1. Check if questions already assigned for this user + quiz + assignment
-//     const [existingRows] = await db.query(
-//       `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
-//               aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
-//        FROM assigned_questions aq
-//        JOIN questions q ON aq.question_id = q.id
-//        WHERE aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ?`,
-//       [quizId, userId, assignmentId]
-//     );
-
-//     if (existingRows.length > 0) {
-//       return res.json({
-//         success: true,
-//         message: "Questions already assigned",
-//         data: existingRows,
-//       });
-//     }
-
-//     // 2. Get quiz info (max_questions)
-//     const [quizRows] = await db.query(
-//       `SELECT max_questions FROM quizzes WHERE id = ?`,
-//       [quizId]
-//     );
-//     if (!quizRows.length)
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Quiz not found" });
-
-//     const maxQuestions = quizRows[0].max_questions || 10;
-
-//     // 3. Get all active questions
-//     const [questionRows] = await db.query(
-//       `SELECT id, question_text, question_type, options, correct_answer, explanation, difficulty_level
-//        FROM questions
-//        WHERE quiz_id = ? AND is_active = 1`,
-//       [quizId]
-//     );
-//     if (!questionRows.length)
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "No active questions found" });
-//     // console.log("maxQuestions from quiz:", maxQuestions);
-//     // console.log("Total active questions available:", questionRows.length);
-
-//     // 4. Shuffle + pick
-//     const shuffled = [...questionRows].sort(() => Math.random() - 0.5);
-//     const selected = shuffled.slice(0, maxQuestions);
-
-//     // 5. Save in assigned_questions
-//     await Promise.all(
-//       selected.map((q) =>
-//         db.query(
-//           `INSERT INTO assigned_questions
-//          (quiz_id, user_id, assignment_id, question_id, answer_id, is_correct, correct_answers, score)
-//        VALUES (?, ?, ?, ?, NULL, 0, ?, 0)`,
-//           [quizId, userId, assignmentId, q.id, q.correct_answer]
-//         )
-//       )
-//     );
-
-//     return res.json({
-//       success: true,
-//       message: "Random questions assigned successfully",
-//       data: selected,
-//     });
-//   } catch (err) {
-//     console.error("Error assigning random questions:", err);
-//     return res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
-
-// exports.fetchAssignedQuestions = async (req, res) => {
-//   const { quizId } = req.params;
-//   const { userId, assignmentId } = req.query;
-
-//   if (!quizId || !userId || !assignmentId) {
-//     return res
-//       .status(400)
-//       .json({
-//         success: false,
-//         message: "quizId, userId, and assignmentId are required",
-//       });
-//   }
-
-//   try {
-//     const [rows] = await db.query(
-//       `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
-//               aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
-//        FROM assigned_questions aq
-//        JOIN questions q ON aq.question_id = q.id
-//        WHERE aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ?`,
-//       [quizId, userId, assignmentId]
-//     );
-
-//     return res.json({ success: true, data: rows });
-//   } catch (err) {
-//     console.error("Error fetching assigned questions:", err);
-//     return res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
-
 exports.assignRandomQuestions = async (req, res) => {
   const { quizSessionId, quizId, userId, assignmentId } = req.body;
 
@@ -368,14 +253,23 @@ exports.assignRandomQuestions = async (req, res) => {
 
   try {
     // 1. Check if questions already assigned for this user + session + assignment
-    const [existingRows] = await db.query(
-      `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
-              aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
-       FROM assigned_questions aq
-       JOIN questions q ON aq.question_id = q.id
-       WHERE aq.quiz_session_id = ? AND aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ?`,
-      [quizSessionId, quizId, userId, assignmentId]
-    );
+   // Get reassigned value from quiz_assignments
+const [[assignmentRow]] = await db.query(
+  `SELECT reassigned FROM quiz_assignments WHERE id = ?`,
+  [assignmentId]
+);
+const reassigned = assignmentRow ? assignmentRow.reassigned : 0;
+
+// 1. Check if questions already assigned for this user + session + assignment + reassigned
+const [existingRows] = await db.query(
+  `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
+          aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
+   FROM assigned_questions aq
+   JOIN questions q ON aq.question_id = q.id
+   WHERE aq.quiz_session_id = ? AND aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ? AND aq.reassigned = ?`,
+  [quizSessionId, quizId, userId, assignmentId, reassigned]
+);
+
 
     if (existingRows.length > 0) {
       return res.json({
@@ -414,16 +308,18 @@ exports.assignRandomQuestions = async (req, res) => {
     const selected = shuffled.slice(0, maxQuestions);
 
     // 5. Save in assigned_questions
-    await Promise.all(
-      selected.map((q) =>
-        db.query(
-          `INSERT INTO assigned_questions 
-           (quiz_id, quiz_session_id, user_id, assignment_id, question_id, answer_id, is_correct, correct_answers, score) 
-           VALUES (?, ?, ?, ?, ?, NULL, 0, ?, 0)`,
-          [quizId, quizSessionId, userId, assignmentId, q.id, q.correct_answer]
-        )
-      )
-    );
+    // 5. Save in assigned_questions with reassigned value
+await Promise.all(
+  selected.map((q) =>
+    db.query(
+      `INSERT INTO assigned_questions 
+       (quiz_id, quiz_session_id, user_id, assignment_id, reassigned, question_id, answer_id, is_correct, correct_answers, score) 
+       VALUES (?, ?, ?, ?, ?, ?, NULL, 0, ?, 0)`,
+      [quizId, quizSessionId, userId, assignmentId, reassigned, q.id, q.correct_answer]
+    )
+  )
+);
+
 
     return res.json({
       success: true,
@@ -435,6 +331,8 @@ exports.assignRandomQuestions = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
 exports.fetchAssignedQuestions = async (req, res) => {
   const { quizId } = req.params;
   const { userId, quizSessionId, assignmentId } = req.query;
@@ -454,14 +352,22 @@ exports.fetchAssignedQuestions = async (req, res) => {
   }
 
   try {
-    const [rows] = await db.query(
-      `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
-              aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
-       FROM assigned_questions aq
-       JOIN questions q ON aq.question_id = q.id
-       WHERE aq.quiz_session_id = ? AND aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ?`,
-      [quizSessionId, quizId, userId, assignmentId]
-    );
+    // Get reassigned value from quiz_assignments
+const [[assignmentRow]] = await db.query(
+  `SELECT reassigned FROM quiz_assignments WHERE id = ?`,
+  [assignmentId]
+);
+const reassigned = assignmentRow ? assignmentRow.reassigned : 0;
+
+const [rows] = await db.query(
+  `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
+          aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
+   FROM assigned_questions aq
+   JOIN questions q ON aq.question_id = q.id
+   WHERE aq.quiz_session_id = ? AND aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ? AND aq.reassigned = ?`,
+  [quizSessionId, quizId, userId, assignmentId, reassigned]
+);
+
 
     return res.json({ success: true, data: rows });
   } catch (err) {

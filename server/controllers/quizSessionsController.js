@@ -227,7 +227,7 @@ existingAssignments.forEach((row) => {
           "scheduled", // status
           null, // user_started_at
           null, // user_ended_at
-          1, // reassigned
+          0, // reassigned
           now,
           now,
         ]);
