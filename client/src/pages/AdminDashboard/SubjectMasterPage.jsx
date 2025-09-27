@@ -73,7 +73,6 @@ export function SubjectMasterPage() {
 
         // Map backend fields to frontend display fields
         const quizzes = response.data.data.map((q) => ({
-         
           id: q.id,
           name: q.title,
           description: q.description || "",
@@ -111,9 +110,8 @@ export function SubjectMasterPage() {
 
           createdBy: q.created_by,
           updatedAt: new Date(q.updated_at).toLocaleString(),
-          
         }));
-  
+
         setSubjects(quizzes);
         console.log("Fetched quizzes:", quizzes);
       } catch (error) {
@@ -128,28 +126,28 @@ export function SubjectMasterPage() {
       subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       subject.description.toLowerCase().includes(searchTerm.toLowerCase())
   );
-const handleCreateSession = async (quizId) => {
-  try {
-    const response = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/create-session`,
-      { quiz_id: quizId }
-    );
+  const handleCreateSession = async (quizId) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/create-session`,
+        { quiz_id: quizId }
+      );
 
-    toast({
-      title: "✅ Session Created",
-      description: response.data.message,
-      variant: "success",
-    });
-  } catch (error) {
-    console.error("Error creating session:", error);
-    toast({
-      title: "❌ Error",
-      description: error.response?.data?.message || "Failed to create session",
-      variant: "destructive",
-    });
-  }
-};
-
+      toast({
+        title: "✅ Session Created",
+        description: response.data.message,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Error creating session:", error);
+      toast({
+        title: "❌ Error",
+        description:
+          error.response?.data?.message || "Failed to create session",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleDeleteSubject = (id) => {
     setDeleteDialog({ open: true, assessmentId: id });
@@ -157,7 +155,7 @@ const handleCreateSession = async (quizId) => {
   const handleDeleteQuiz = async () => {
     try {
       await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/assessment/${
           deleteDialog.assessmentId
         }`
       );
@@ -227,8 +225,6 @@ const handleCreateSession = async (quizId) => {
     console.log("Editing quiz:", quiz);
   };
 
- 
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -290,7 +286,6 @@ const handleCreateSession = async (quizId) => {
                             {" "}
                             {subject.difficultyLevel}
                           </Badge>
-                       
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground mb-2">
@@ -334,15 +329,13 @@ const handleCreateSession = async (quizId) => {
                         >
                           <Eye className="h-4 w-4" /> View
                         </Button>
-<Button
-  size="sm"
-  variant="default"
-  onClick={() => handleCreateSession(subject.id)}
->
-  ➕ Create Session
-</Button>
-
-                        
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => handleCreateSession(subject.id)}
+                        >
+                          ➕ Create Session
+                        </Button>
 
                         <Button
                           size="sm"
@@ -428,7 +421,7 @@ const handleCreateSession = async (quizId) => {
           </CardContent>
         </Card>
       </div>
-      
+
       <EditQuestionsModal
         quizId={editQuestionsModal.quizId}
         open={editQuestionsModal.open}

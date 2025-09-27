@@ -46,27 +46,26 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const { setExamState } = useExam();
 
-  useEffect(() => {
-    const fetchAssignments = async () => {
-      try {
-        const res = await fetch(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${user.id}`
-        );
-        const data = await res.json();
-        console.log("Fetched assignments data:", data); // Debug log
-        if (!data.success) {
-          setError(data.message || "Failed to fetch assignments");
-        } else {
-          setAssignments(data.data);
-        }
-      } catch (err) {
-        console.error("Error on user dashboard: ", err);
-        setError("Something went wrong");
-      } finally {
-        setLoading(false);
+  const fetchAssignments = async () => {
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${user.id}`
+      );
+      const data = await res.json();
+      console.log("Fetched assignments data:", data); // Debug log
+      if (!data.success) {
+        setError(data.message || "Failed to fetch assignments");
+      } else {
+        setAssignments(data.data);
       }
-    };
-
+    } catch (err) {
+      console.error("Error on user dashboard: ", err);
+      setError("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
     if (user?.id) {
       fetchAssignments();
     }
@@ -139,6 +138,132 @@ export default function DashboardPage() {
     }
   };
 
+  const handleStartAssessment = async (assessment) => {
+    fetchAssignments();
+    console.log("Clicked Start Assessment");
+    console.log("Assessment Details:", assessment);
+    const assignmentId = assessment.assignment_id || assessment.assesment_id;
+
+    const quizSessionId = assessment.quiz_session_id; // ✅ new field
+    console.log("Assignment ID:", assignmentId);
+    console.log("Quiz ID:", assessment.quiz_id);
+    console.log("Quiz Session ID:", assessment.quiz_session_id);
+    console.log("User ID:", user.id);
+    console.log("Assignment ID:", assessment.assignment_id);
+
+    if (!assignmentId) {
+      toast({
+        title: "Assignment not found",
+        description: "Cannot start assessment.",
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      // Step 1: Mark assessment as started
+
+      // Step 2: Assign random questions
+      const assignRes = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/quiz-assignments/assign-random`,
+        {
+          quizId: assessment.quiz_id,
+          quizSessionId: assessment.quiz_session_id, // ✅ new field
+          userId: user.id,
+          assignmentId: assignmentId,
+        }
+      );
+      console.log("Quiz ID:", assessment.quiz_id);
+      console.log("Quiz Session ID:", assessment.quiz_session_id);
+      console.log("User ID:", user.id);
+      console.log("Assignment ID:", assessment.assignment_id);
+      console.log("Assign Random Response:", assignRes.data);
+
+      if (!assignRes.data.success) {
+        toast({
+          title: "Error",
+          description: assignRes.data.message || "Failed to assign questions",
+          variant: "error",
+        });
+        return;
+      }
+
+      setExamState({
+        started: true,
+        completed: false,
+        resultPage: true,
+      });
+      console.log("Navigating to Questions page...");
+      // Step 3: Navigate to QuestionsPage
+      navigate(
+        `/user-dashboard/assessment/${assessment.quiz_id}?session_id=${assessment.quiz_session_id}&time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assignment_id=${assignmentId}`
+      );
+    } catch (err) {
+      console.error("Error starting assessment:", err);
+      toast({
+        title: "Try again",
+        description: "Failed to start assessment.",
+        variant: "error",
+      });
+    }
+  };
+
+  const handleContinueAssessment = async (assessment) => {
+    fetchAssignments();
+    console.log("Clicked Start Assessment");
+    const assignmentId = assessment.assignment_id || assessment.assesment_id;
+    console.log("Assignment ID:", assignmentId);
+
+    if (!assignmentId) {
+      toast({
+        title: "Assignment not found",
+        description: "Cannot start assessment.",
+        variant: "error",
+      });
+      return;
+    }
+
+    try {
+      // Step 2: Assign random questions
+      const assignRes = await axios.post(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/quiz-assignments/assign-random`,
+        {
+          quizId: assessment.quiz_id,
+          quizSessionId: assessment.quiz_session_id, // ✅ new field
+          userId: user.id,
+          assignmentId: assignmentId,
+        }
+      );
+
+      console.log("Assign Random Response:", assignRes.data);
+
+      if (!assignRes.data.success) {
+        toast({
+          title: "Error",
+          description: assignRes.data.message || "Failed to assign questions",
+          variant: "error",
+        });
+        return;
+      }
+
+      // Step 3: Navigate to QuestionsPage
+      navigate(
+        `/user-dashboard/assessment/${assessment.quiz_id}?session_id=${assessment.quiz_session_id}&time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
+      );
+    } catch (err) {
+      console.error("Error starting assessment:", err);
+      toast({
+        title: "Try again",
+        description: "Failed to start assessment.",
+        variant: "error",
+      });
+    }
+  };
+
   const AssessmentCard = ({ assessment }) => (
     <Card className="group hover:shadow-lg hover:shadow-slate-200/50 dark:hover:shadow-slate-800/50 transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:-translate-y-1">
       <CardHeader className="pb-3">
@@ -172,7 +297,6 @@ export default function DashboardPage() {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Progress Bar for In Progress */}
         {assessment.status === "in_progress" && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
@@ -192,7 +316,6 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Stats Grid */}
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-1">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
@@ -338,7 +461,7 @@ export default function DashboardPage() {
         <div className="flex gap-3 pt-2">
           {(assessment.status === "scheduled" ||
             (assessment.status === "failed" &&
-              assessment.attempt_no < assessment.max_attempts)) &&
+              assessment.reassigned < assessment.max_attempts)) &&
             (() => {
               // Combine date + time into a single Date object
               const now = new Date();
@@ -357,82 +480,9 @@ export default function DashboardPage() {
                 : false;
               const isExpired = endDateTime ? now > endDateTime : false;
 
-             const handleStartAssessment = async () => {
-  console.log("Clicked Start Assessment");
-  console.log("Assessment Details:", assessment);
-  const assignmentId =
-    assessment.assignment_id || assessment.assesment_id;
-
-    const quizSessionId = assessment.quiz_session_id;   // ✅ new field
-  console.log("Assignment ID:", assignmentId);
-  console.log("Quiz ID:", assessment.quiz_id);
-console.log("Quiz Session ID:", assessment.quiz_session_id);
-console.log("User ID:", user.id);
-console.log("Assignment ID:", assessment.assignment_id);
-
-  if (!assignmentId) {
-    toast({
-      title: "Assignment not found",
-      description: "Cannot start assessment.",
-      variant: "error",
-    });
-    return;
-  }
-
-  try {
-    // Step 1: Mark assessment as started
-
-    // Step 2: Assign random questions
-    const assignRes = await axios.post(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/assign-random`,
-      {
-
-       quizId: assessment.quiz_id,
-       quizSessionId: assessment.quiz_session_id,   // ✅ new field
-       userId: user.id,
-       assignmentId: assignmentId,
-      }
-    );
-console.log("Quiz ID:", assessment.quiz_id);
-console.log("Quiz Session ID:", assessment.quiz_session_id);
-console.log("User ID:", user.id);
-console.log("Assignment ID:", assessment.assignment_id);
-    console.log("Assign Random Response:", assignRes.data);
-
-    if (!assignRes.data.success) {
-      toast({
-        title: "Error",
-        description:
-          assignRes.data.message || "Failed to assign questions",
-        variant: "error",
-      });
-      return;
-    }
-
-    setExamState({
-      started: true,
-      completed: false,
-      resultPage: true,
-    });
-console.log("Navigating to Questions page...");
-    // Step 3: Navigate to QuestionsPage
-   navigate(
-  `/user-dashboard/assessment/${assessment.quiz_id}?session_id=${assessment.quiz_session_id}&time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assignment_id=${assignmentId}`
-);
-
-  } catch (err) {
-    console.error("Error starting assessment:", err);
-    toast({
-      title: "Try again",
-      description: "Failed to start assessment.",
-      variant: "error",
-    });
-  }
-};
-
               return (
                 <Button
-                  onClick={handleStartAssessment}
+                  onClick={()=>handleStartAssessment(assessment)}
                   disabled={isNotStartedYet || isExpired} // disable outside start-end range
                   className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -449,63 +499,9 @@ console.log("Navigating to Questions page...");
 
           {assessment.status === "in_progress" &&
             (() => {
-              const handleStartAssessment = async () => {
-                console.log("Clicked Start Assessment");
-                const assignmentId =
-                  assessment.assignment_id || assessment.assesment_id;
-                console.log("Assignment ID:", assignmentId);
-
-                if (!assignmentId) {
-                  toast({
-                    title: "Assignment not found",
-                    description: "Cannot start assessment.",
-                    variant: "error",
-                  });
-                  return;
-                }
-
-                try {
-                  // Step 2: Assign random questions
-                  const assignRes = await axios.post(
-                    `${
-                      import.meta.env.VITE_BACKEND_URL
-                    }/api/quiz-assignments/assign-random`,
-                    {
-                       quizId: assessment.quiz_id,
-       quizSessionId: assessment.quiz_session_id,   // ✅ new field
-       userId: user.id,
-       assignmentId: assignmentId,
-                    }
-                  );
-
-                  console.log("Assign Random Response:", assignRes.data);
-
-                  if (!assignRes.data.success) {
-                    toast({
-                      title: "Error",
-                      description:
-                        assignRes.data.message || "Failed to assign questions",
-                      variant: "error",
-                    });
-                    return;
-                  }
-
-                  // Step 3: Navigate to QuestionsPage
-                  navigate(
-                   `/user-dashboard/assessment/${assessment.quiz_id}?session_id=${assessment.quiz_session_id}&time=${assessment.quiz_time_limit}&passing_score=${assessment.passing_score}&assesment_id=${assignmentId}`
-    );
-                } catch (err) {
-                  console.error("Error starting assessment:", err);
-                  toast({
-                    title: "Try again",
-                    description: "Failed to start assessment.",
-                    variant: "error",
-                  });
-                }
-              };
               return (
                 <Button
-                  onClick={handleStartAssessment}
+                  onClick={handleContinueAssessment(assessment)}
                   className="flex-1 text-white dark:text-slate-900 shadow-sm"
                 >
                   <Play className="w-4 h-4 mr-2" />

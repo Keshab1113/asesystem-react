@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Eye, Edit, Users, Trash2, MoreVertical, Power } from "lucide-react";
+import {
+  Pencil,
+  Eye,
+  Edit,
+  Users,
+  Trash2,
+  MoreVertical,
+  Power,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -18,29 +21,33 @@ import {
 // import { useToast } from "@/components/ui/use-toast";
 import useToast from "../../hooks/ToastContext";
 import { QuizFormModal } from "../../components/AdminDashboard/QuizFormModal";
-import  AssignQuizModal  from "../../components/AdminDashboard/AssignQuizModal";
+import AssignQuizModal from "../../components/AdminDashboard/AssignQuizModal";
+import { ConfirmationDialog } from "../../components/AdminDashboard/ConfirmationDialog";
 
 export default function QuizSessionsPage() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const [deleteDialog, setDeleteDialog] = useState({
+    open: false,
+    sessionID: null,
+  });
 
-    const [selectedSession, setSelectedSession] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-// const [selectedSession, setSelectedSession] = useState(null);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  // const [selectedSession, setSelectedSession] = useState(null);
 
   const handleEditSession = (session) => {
     setSelectedSession(session);
     setModalOpen(true);
-     console.log("Edit session:", session);
+    console.log("Edit session:", session);
   };
-const handleAssignClick = (session) => {
-  setSelectedSession(session);
-  setIsAssignModalOpen(true);
-  console.log("Assign session:", session);
-};
-
+  const handleAssignClick = (session) => {
+    setSelectedSession(session);
+    setIsAssignModalOpen(true);
+    console.log("Assign session:", session);
+  };
 
   const fetchSessions = async () => {
     setLoading(true);
@@ -66,23 +73,50 @@ const handleAssignClick = (session) => {
     fetchSessions();
   }, []);
 
-//   // Example handlers (fill with your logic)
-//   const handleEditSession = (session) => {
-//     console.log("Edit session:", session);
-//     // open modal to edit session schedule
-//   };
+  //   // Example handlers (fill with your logic)
+  //   const handleEditSession = (session) => {
+  //     console.log("Edit session:", session);
+  //     // open modal to edit session schedule
+  //   };
 
   const handleDeleteSession = (id) => {
-    console.log("Delete session:", id);
+    setDeleteDialog({ open: true, sessionID: id });
+  };
+  const handleDeleteQuiz = async (id) => {
+    try {
+      setLoading(id, true);
+      await axios.delete(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}`
+      );
+      fetchSessions()
+      setSessions((prev) => prev.filter((quiz) => quiz.id !== id));
+      toast({
+        title: "✅ Assessment Session Deleted",
+        description: `Assessment Session has been deleted successfully.`,
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Error deleting Assessment:", error);
+      toast({
+        title: "❌ Error",
+        description: "Failed to delete Assessment Session. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(id, false);
+    }
+  };
+  const confirmDelete = () => {
+    if (deleteDialog.sessionID) {
+      handleDeleteQuiz(deleteDialog.sessionID);
+    }
   };
 
   return (
     <div className="p-4">
       <Card>
         <CardHeader>
-          <CardTitle>
-            All Assessment Sessions ({sessions.length})
-          </CardTitle>
+          <CardTitle>All Assessment Sessions ({sessions.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -91,9 +125,9 @@ const handleAssignClick = (session) => {
                 <div className="flex items-start gap-1 justify-between">
                   <div className="flex-1">
                     <div className="flex flex-col items-start gap-2 mb-2">
-                      <h3 className="font-semibold">{session.quizTitle}</h3>
+                      <h3 className="font-semibold">{session.session_name}</h3>
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="outline">{session.session_name}</Badge>
+                        <Badge variant="outline">{session.quizTitle}</Badge>
                         <Badge variant="outline">
                           Max Attempts: {session.max_attempts}
                         </Badge>
@@ -130,33 +164,32 @@ const handleAssignClick = (session) => {
                   <div className="flex gap-2">
                     {/* Desktop */}
                     <div className="hidden md:flex gap-2">
-  <Button
-    size="sm"
-    variant="outline"
-    onClick={() => handleEditSession(session)}
-    className="flex items-center gap-2"
-  >
-    <Edit className="h-3 w-3" /> Edit
-  </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditSession(session)}
+                        className="flex items-center gap-2"
+                      >
+                        <Edit className="h-3 w-3" /> Edit
+                      </Button>
 
-  <Button
-    size="sm"
-    variant="outline"
-    onClick={() => handleAssignClick(session)}
-    className="flex items-center gap-2"
-  >
-    <Users className="h-3 w-3" /> Assign
-  </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleAssignClick(session)}
+                        className="flex items-center gap-2"
+                      >
+                        <Users className="h-3 w-3" /> Assign
+                      </Button>
 
-  <Button
-    size="sm"
-    variant="destructive"
-    onClick={() => handleDeleteSession(session.sessionId)}
-  >
-    <Trash2 className="h-3 w-3" />
-  </Button>
-</div>
-
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteSession(session.sessionId)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
 
                     {/* Mobile / Tablet */}
                     <div className="md:hidden">
@@ -172,9 +205,11 @@ const handleAssignClick = (session) => {
                           >
                             <Edit className="h-4 w-4 mr-2" /> Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleAssignClick(session)}>
-  <Users className="h-4 w-4 mr-2" /> Assign
-</DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleAssignClick(session)}
+                          >
+                            <Users className="h-4 w-4 mr-2" /> Assign
+                          </DropdownMenuItem>
 
                           <DropdownMenuItem
                             className="text-red-600"
@@ -200,24 +235,30 @@ const handleAssignClick = (session) => {
           </div>
         </CardContent>
       </Card>
-       <QuizFormModal
+      <QuizFormModal
         session={selectedSession}
         open={modalOpen}
         onOpenChange={setModalOpen}
       />
       {isAssignModalOpen && selectedSession && (
-  <AssignQuizModal
-    isOpen={isAssignModalOpen}
-    onClose={() => setIsAssignModalOpen(false)}
-    sessionId={selectedSession.sessionId}
-    quizId={selectedSession.quiz_id}
-    quizTitle={selectedSession.quizTitle}
-    sessionName={selectedSession.session_name}
-  />
-)}
-
-
-
+        <AssignQuizModal
+          isOpen={isAssignModalOpen}
+          onClose={() => setIsAssignModalOpen(false)}
+          sessionId={selectedSession.sessionId}
+          quizId={selectedSession.quiz_id}
+          quizTitle={selectedSession.quizTitle}
+          sessionName={selectedSession.session_name}
+        />
+      )}
+      <ConfirmationDialog
+        open={deleteDialog.open}
+        onOpenChange={(open) => setDeleteDialog({ open, sessionID: null })}
+        title="Delete Assessment Session"
+        description="Are you sure you want to delete this assessment session? This action cannot be undone and will remove all associated data."
+        confirmText="Delete Assessment Session"
+        variant="destructive"
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

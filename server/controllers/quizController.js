@@ -241,13 +241,12 @@ exports.updateQuiz = async (req, res) => {
   }
 };
 
-exports.deleteQuiz = async (req, res) => {
+exports.deleteAssessment = async (req, res) => {
   const { id } = req.params;
 
   try {
-    await db.query("DELETE FROM quiz_attempts WHERE quiz_id = ?", [id]);
     await db.query("DELETE FROM quiz_assignments WHERE quiz_id = ?", [id]);
-    await db.query("DELETE FROM questions WHERE quiz_id = ?", [id]);
+    await db.query("DELETE FROM quiz_sessions WHERE quiz_id = ?", [id]);
     const [existing] = await db.query("SELECT * FROM quizzes WHERE id = ?", [
       id,
     ]);
@@ -272,6 +271,44 @@ exports.deleteQuiz = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Assessment deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting Assessment:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+exports.deleteSessionQuiz = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await db.query("DELETE FROM quiz_assignments WHERE quiz_session_id = ?", [id]);
+    const [existing] = await db.query("SELECT * FROM quiz_sessions WHERE id = ?", [
+      id,
+    ]);
+
+    if (!existing.length) {
+      return res.status(404).json({
+        success: false,
+        message: "Assessment not found",
+      });
+    }
+
+    // Delete quiz (and optionally related questions if you want cascade delete)
+    const [result] = await db.query("DELETE FROM quiz_sessions WHERE id = ?", [id]);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Assessment Session not found or already deleted",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Assessment Session deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting Assessment:", error);
@@ -839,7 +876,7 @@ exports.exportQuizReport = async (req, res) => {
         u.location,
         qa.user_started_at,
         qa.user_ended_at,
-        qa.attempt_no
+        qa.reassigned
       FROM quiz_assignments qa
       JOIN users u ON qa.user_id = u.id
       LEFT JOIN teams t ON qa.team_id = t.id
@@ -898,7 +935,7 @@ exports.exportQuizReport = async (req, res) => {
       { header: "Location", key: "location", width: 20 },
       { header: "User Started At", key: "user_started_at", width: 20 },
       { header: "User Ended At", key: "user_ended_at", width: 20 },
-      { header: "Attempt No", key: "attempt_no", width: 15 },
+      { header: "Attempt No", key: "reassigned", width: 15 },
     ];
 
     rows.forEach((row) => worksheet.addRow(row));

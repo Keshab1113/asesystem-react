@@ -29,7 +29,7 @@ exports.getAssignmentById = async (req, res) => {
       qa.user_ended_at,
       qa.score,
       qa.status,
-      qa.attempt_no,
+      qa.reassigned,
       qa.created_at AS assignment_created_at,
       qa.updated_at AS assignment_updated_at,
 
@@ -223,7 +223,7 @@ exports.endAssessment = async (req, res) => {
     // ✅ Update quiz_assignments
     await db.query(
       `UPDATE quiz_assignments 
-   SET user_ended_at = ?, status = ?, score = ?, attempt_no = attempt_no + 1 
+   SET user_ended_at = ?, status = ?, score = ?, reassigned = reassigned + 1 
    WHERE id = ? AND quiz_session_id = ? AND user_id = ?`,
       [new Date(), status, percentage, assignment_id, quiz_session_id, user_id]
     );
