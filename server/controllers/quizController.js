@@ -813,8 +813,8 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
       });
     }
 
-    // Update query with reassigned increment
-    const [result] = await db.query(
+    // Update quiz_assignments
+    const [updateResult] = await db.query(
       `
       UPDATE quiz_assignments
       SET 
@@ -828,25 +828,45 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
       [id, quiz_id, user_id]
     );
 
-    if (result.affectedRows === 0) {
+    if (updateResult.affectedRows === 0) {
+      await db.rollback();
       return res.status(404).json({
         success: false,
         message: "Assigned assessment not found or update failed",
       });
     }
 
+    // Delete assigned questions for this assignment
+    await db.query(
+      `
+      DELETE FROM assigned_questions
+      WHERE assignment_id = ? AND quiz_id = ? AND user_id = ?
+      `,
+      [id, quiz_id, user_id]
+    );
+    await db.query(
+      `
+      DELETE FROM answers
+      WHERE assignment_id = ? AND quiz_id = ? AND user_id = ?
+      `,
+      [id, quiz_id, user_id]
+    );
+
+
     res.status(200).json({
       success: true,
-      message: `Assigned assessment rescheduled successfully (id: ${id}, quiz_id: ${quiz_id}, user_id: ${user_id})`,
+      message: `Assigned assessment rescheduled successfully and assigned questions cleared (id: ${id}, quiz_id: ${quiz_id}, user_id: ${user_id})`,
     });
   } catch (error) {
     console.error("Error rescheduling assigned quiz:", error);
+    await db.rollback();
     res.status(500).json({
       success: false,
       message: "Server error",
     });
   }
 };
+
 
 
 exports.exportQuizReport = async (req, res) => {

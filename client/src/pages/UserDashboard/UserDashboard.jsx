@@ -486,9 +486,7 @@ export default function DashboardPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
-          {(assessment.status === "scheduled" ||
-            (assessment.status === "failed" &&
-              assessment.reassigned < assessment.max_attempts)) &&
+          {(assessment.status === "scheduled") &&
             (() => {
               // Combine date + time into a single Date object
               const now = new Date();

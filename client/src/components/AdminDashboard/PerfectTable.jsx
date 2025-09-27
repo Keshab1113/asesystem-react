@@ -2,8 +2,11 @@ import axios from "axios";
 import React, { useState } from "react";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 import useToast from "../../hooks/ToastContext";
+import { useDispatch } from "react-redux";
+import { resetQuiz } from "../../redux/slices/quizSlice";
 
 const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
+  const dispatch = useDispatch();
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
     id: null,
@@ -162,6 +165,7 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
       );
 
       if (res.data.success) {
+        dispatch(resetQuiz(quiz_id));
         toast({
           title: "Rescheduled!",
           description: res.data.message || "Quiz has been rescheduled",
