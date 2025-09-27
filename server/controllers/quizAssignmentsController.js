@@ -29,7 +29,7 @@ exports.getAssignmentById = async (req, res) => {
       qa.user_ended_at,
       qa.score,
       qa.status,
-      qa.attempt_no,
+      qa.reassigned,
       qa.created_at AS assignment_created_at,
       qa.updated_at AS assignment_updated_at,
 
@@ -115,6 +115,133 @@ exports.startAssessment = async (req, res) => {
   }
 };
 
+// exports.endAssessment = async (req, res) => {
+//   try {
+//     const {
+//       quiz_id,
+//       user_id,
+//       assignment_id,
+//       passing_score,
+//       answers,
+//       quiz_session_id,
+//     } = req.body;
+
+//     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "quiz_id, user_id, assignment_id, and answers required",
+//       });
+//     }
+
+//     let score = 0;
+
+//     // 🔹 Insert/update each answer
+//     for (const { question_id, answer } of answers) {
+//       // question_id here might be assigned_questions.id, so map it
+//       const [aqRows] = await db.query(
+//         "SELECT question_id FROM assigned_questions WHERE id = ? AND assignment_id = ? AND quiz_session_id = ? AND user_id = ?",
+//         [question_id, assignment_id, quiz_session_id, user_id]
+//       );
+
+//       if (!aqRows.length) continue;
+//       const real_question_id = aqRows[0].question_id; // ✅ actual questions.id
+
+//       // Get correct answer from questions table
+//       const [qRows] = await db.query(
+//         "SELECT correct_answer FROM questions WHERE id = ?",
+//         [real_question_id]
+//       );
+//       if (!qRows.length) continue;
+
+//       const correct_answer = qRows[0].correct_answer;
+//       const is_correct =
+//         answer && answer.trim() === correct_answer.trim() ? 1 : 0;
+
+//       // Insert into answers table with real question id
+//       const [ansRes] = await db.query(
+//         `INSERT INTO answers (quiz_id, question_id, user_id, assignment_id, answer, is_correct, answered_at) 
+//    VALUES (?, ?, ?, ?, ?, ?, NOW())
+//    ON DUPLICATE KEY UPDATE 
+//      answer = VALUES(answer),
+//      is_correct = VALUES(is_correct),
+//      answered_at = NOW()`,
+//         [
+//           quiz_id,
+//           real_question_id,
+//           user_id,
+//           assignment_id,
+//           answer || "",
+//           is_correct,
+//         ]
+//       );
+
+//       const answer_id = ansRes.insertId;
+
+//       // Update assigned_questions row (using assigned_questions.id)
+//       // Only update answer_id if we actually have a valid answer inserted
+//       await db.query(
+//         `UPDATE assigned_questions 
+//    SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+//    WHERE id = ? AND assignment_id = ? AND user_id = ?`,
+//         [
+//           answer_id || null, // use null instead of 0 to satisfy FK constraint
+//           is_correct,
+//           correct_answer,
+//           is_correct,
+//           question_id,
+//           assignment_id,
+//           user_id,
+//         ]
+//       );
+
+//       if (is_correct) score++;
+//     }
+
+//     // 🔹 Total assigned questions
+//     const [assignedCountRows] = await db.query(
+//       "SELECT COUNT(*) as totalAssigned FROM assigned_questions WHERE assignment_id = ? AND user_id = ?",
+//       [assignment_id, user_id]
+//     );
+//     const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
+
+//     // 🔹 Count how many answered
+//     const [answeredCountRows] = await db.query(
+//       "SELECT COUNT(*) as totalAnswered FROM assigned_questions WHERE assignment_id = ? AND user_id = ? AND answer_id IS NOT NULL",
+//       [assignment_id, user_id]
+//     );
+//     const totalAnswered = answeredCountRows[0]?.totalAnswered || 0;
+
+//     let status = "terminated";
+//     let percentage = 0;
+
+//     if (totalAnswered === totalAssigned) {
+//       // All answered → calculate result
+//       percentage = (score / totalAssigned) * 100;
+//       status = percentage >= passing_score ? "passed" : "failed";
+//     }
+
+//     // ✅ Update quiz_assignments
+//     await db.query(
+//       `UPDATE quiz_assignments 
+//    SET user_ended_at = ?, status = ?, score = ?, reassigned = reassigned + 1 
+//    WHERE id = ? AND quiz_session_id = ? AND user_id = ?`,
+//       [new Date(), status, percentage, assignment_id, quiz_session_id, user_id]
+//     );
+
+//     return res.json({
+//       success: true,
+//       message: "Assessment ended",
+//       score,
+//       percentage,
+//       status,
+//     });
+//   } catch (error) {
+//     console.error("Error in endAssessment:", error);
+//     return res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+ 
+
 exports.endAssessment = async (req, res) => {
   try {
     const {
@@ -137,16 +264,16 @@ exports.endAssessment = async (req, res) => {
 
     // 🔹 Insert/update each answer
     for (const { question_id, answer } of answers) {
-      // question_id here might be assigned_questions.id, so map it
+      // Map assigned_questions.id → real questions.id
       const [aqRows] = await db.query(
         "SELECT question_id FROM assigned_questions WHERE id = ? AND assignment_id = ? AND quiz_session_id = ? AND user_id = ?",
         [question_id, assignment_id, quiz_session_id, user_id]
       );
 
       if (!aqRows.length) continue;
-      const real_question_id = aqRows[0].question_id; // ✅ actual questions.id
+      const real_question_id = aqRows[0].question_id;
 
-      // Get correct answer from questions table
+      // Get correct answer
       const [qRows] = await db.query(
         "SELECT correct_answer FROM questions WHERE id = ?",
         [real_question_id]
@@ -157,14 +284,14 @@ exports.endAssessment = async (req, res) => {
       const is_correct =
         answer && answer.trim() === correct_answer.trim() ? 1 : 0;
 
-      // Insert into answers table with real question id
+      // Insert/update into answers table
       const [ansRes] = await db.query(
         `INSERT INTO answers (quiz_id, question_id, user_id, assignment_id, answer, is_correct, answered_at) 
-   VALUES (?, ?, ?, ?, ?, ?, NOW())
-   ON DUPLICATE KEY UPDATE 
-     answer = VALUES(answer),
-     is_correct = VALUES(is_correct),
-     answered_at = NOW()`,
+         VALUES (?, ?, ?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE 
+           answer = VALUES(answer),
+           is_correct = VALUES(is_correct),
+           answered_at = NOW()`,
         [
           quiz_id,
           real_question_id,
@@ -175,20 +302,19 @@ exports.endAssessment = async (req, res) => {
         ]
       );
 
-      const answer_id = ansRes.insertId;
+      const answer_id = ansRes.insertId || null;
 
-      // Update assigned_questions row (using assigned_questions.id)
-      // Only update answer_id if we actually have a valid answer inserted
+      // Update assigned_questions row
       await db.query(
         `UPDATE assigned_questions 
-   SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
-   WHERE id = ? AND assignment_id = ? AND user_id = ?`,
+         SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+         WHERE id = ? AND assignment_id = ? AND user_id = ?`,
         [
-          answer_id || null, // use null instead of 0 to satisfy FK constraint
+          answer_id,
           is_correct,
           correct_answer,
           is_correct,
-          question_id,
+          question_id, // still using assigned_questions.id
           assignment_id,
           user_id,
         ]
@@ -204,7 +330,7 @@ exports.endAssessment = async (req, res) => {
     );
     const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
 
-    // 🔹 Count how many answered
+    // 🔹 Count answered (answer_id is set)
     const [answeredCountRows] = await db.query(
       "SELECT COUNT(*) as totalAnswered FROM assigned_questions WHERE assignment_id = ? AND user_id = ? AND answer_id IS NOT NULL",
       [assignment_id, user_id]
@@ -215,16 +341,15 @@ exports.endAssessment = async (req, res) => {
     let percentage = 0;
 
     if (totalAnswered === totalAssigned) {
-      // All answered → calculate result
       percentage = (score / totalAssigned) * 100;
       status = percentage >= passing_score ? "passed" : "failed";
     }
 
-    // ✅ Update quiz_assignments
+    // ✅ Update quiz_assignments (NO reassigned increment)
     await db.query(
       `UPDATE quiz_assignments 
-   SET user_ended_at = ?, status = ?, score = ?, attempt_no = attempt_no + 1 
-   WHERE id = ? AND quiz_session_id = ? AND user_id = ?`,
+       SET user_ended_at = ?, status = ?, score = ? 
+       WHERE id = ? AND quiz_session_id = ? AND user_id = ?`,
       [new Date(), status, percentage, assignment_id, quiz_session_id, user_id]
     );
 
@@ -241,121 +366,6 @@ exports.endAssessment = async (req, res) => {
   }
 };
 
-// exports.assignRandomQuestions = async (req, res) => {
-//   const { quizId, userId, assignmentId } = req.body;
-//   console.log(req.body);
-
-//   if (!quizId || !userId || !assignmentId) {
-//     return res
-//       .status(400)
-//       .json({
-//         success: false,
-//         message: "quizId, userId, and assignmentId are required",
-//       });
-//   }
-
-//   try {
-//     // 1. Check if questions already assigned for this user + quiz + assignment
-//     const [existingRows] = await db.query(
-//       `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
-//               aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
-//        FROM assigned_questions aq
-//        JOIN questions q ON aq.question_id = q.id
-//        WHERE aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ?`,
-//       [quizId, userId, assignmentId]
-//     );
-
-//     if (existingRows.length > 0) {
-//       return res.json({
-//         success: true,
-//         message: "Questions already assigned",
-//         data: existingRows,
-//       });
-//     }
-
-//     // 2. Get quiz info (max_questions)
-//     const [quizRows] = await db.query(
-//       `SELECT max_questions FROM quizzes WHERE id = ?`,
-//       [quizId]
-//     );
-//     if (!quizRows.length)
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "Quiz not found" });
-
-//     const maxQuestions = quizRows[0].max_questions || 10;
-
-//     // 3. Get all active questions
-//     const [questionRows] = await db.query(
-//       `SELECT id, question_text, question_type, options, correct_answer, explanation, difficulty_level
-//        FROM questions
-//        WHERE quiz_id = ? AND is_active = 1`,
-//       [quizId]
-//     );
-//     if (!questionRows.length)
-//       return res
-//         .status(404)
-//         .json({ success: false, message: "No active questions found" });
-//     // console.log("maxQuestions from quiz:", maxQuestions);
-//     // console.log("Total active questions available:", questionRows.length);
-
-//     // 4. Shuffle + pick
-//     const shuffled = [...questionRows].sort(() => Math.random() - 0.5);
-//     const selected = shuffled.slice(0, maxQuestions);
-
-//     // 5. Save in assigned_questions
-//     await Promise.all(
-//       selected.map((q) =>
-//         db.query(
-//           `INSERT INTO assigned_questions
-//          (quiz_id, user_id, assignment_id, question_id, answer_id, is_correct, correct_answers, score)
-//        VALUES (?, ?, ?, ?, NULL, 0, ?, 0)`,
-//           [quizId, userId, assignmentId, q.id, q.correct_answer]
-//         )
-//       )
-//     );
-
-//     return res.json({
-//       success: true,
-//       message: "Random questions assigned successfully",
-//       data: selected,
-//     });
-//   } catch (err) {
-//     console.error("Error assigning random questions:", err);
-//     return res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
-
-// exports.fetchAssignedQuestions = async (req, res) => {
-//   const { quizId } = req.params;
-//   const { userId, assignmentId } = req.query;
-
-//   if (!quizId || !userId || !assignmentId) {
-//     return res
-//       .status(400)
-//       .json({
-//         success: false,
-//         message: "quizId, userId, and assignmentId are required",
-//       });
-//   }
-
-//   try {
-//     const [rows] = await db.query(
-//       `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
-//               aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
-//        FROM assigned_questions aq
-//        JOIN questions q ON aq.question_id = q.id
-//        WHERE aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ?`,
-//       [quizId, userId, assignmentId]
-//     );
-
-//     return res.json({ success: true, data: rows });
-//   } catch (err) {
-//     console.error("Error fetching assigned questions:", err);
-//     return res.status(500).json({ success: false, message: "Server error" });
-//   }
-// };
-
 exports.assignRandomQuestions = async (req, res) => {
   const { quizSessionId, quizId, userId, assignmentId } = req.body;
 
@@ -368,14 +378,23 @@ exports.assignRandomQuestions = async (req, res) => {
 
   try {
     // 1. Check if questions already assigned for this user + session + assignment
-    const [existingRows] = await db.query(
-      `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
-              aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
-       FROM assigned_questions aq
-       JOIN questions q ON aq.question_id = q.id
-       WHERE aq.quiz_session_id = ? AND aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ?`,
-      [quizSessionId, quizId, userId, assignmentId]
-    );
+   // Get reassigned value from quiz_assignments
+const [[assignmentRow]] = await db.query(
+  `SELECT reassigned FROM quiz_assignments WHERE id = ?`,
+  [assignmentId]
+);
+const reassigned = assignmentRow ? assignmentRow.reassigned : 0;
+
+// 1. Check if questions already assigned for this user + session + assignment + reassigned
+const [existingRows] = await db.query(
+  `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
+          aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
+   FROM assigned_questions aq
+   JOIN questions q ON aq.question_id = q.id
+   WHERE aq.quiz_session_id = ? AND aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ? AND aq.reassigned = ?`,
+  [quizSessionId, quizId, userId, assignmentId, reassigned]
+);
+
 
     if (existingRows.length > 0) {
       return res.json({
@@ -414,16 +433,18 @@ exports.assignRandomQuestions = async (req, res) => {
     const selected = shuffled.slice(0, maxQuestions);
 
     // 5. Save in assigned_questions
-    await Promise.all(
-      selected.map((q) =>
-        db.query(
-          `INSERT INTO assigned_questions 
-           (quiz_id, quiz_session_id, user_id, assignment_id, question_id, answer_id, is_correct, correct_answers, score) 
-           VALUES (?, ?, ?, ?, ?, NULL, 0, ?, 0)`,
-          [quizId, quizSessionId, userId, assignmentId, q.id, q.correct_answer]
-        )
-      )
-    );
+    // 5. Save in assigned_questions with reassigned value
+await Promise.all(
+  selected.map((q) =>
+    db.query(
+      `INSERT INTO assigned_questions 
+       (quiz_id, quiz_session_id, user_id, assignment_id, reassigned, question_id, answer_id, is_correct, correct_answers, score) 
+       VALUES (?, ?, ?, ?, ?, ?, NULL, 0, ?, 0)`,
+      [quizId, quizSessionId, userId, assignmentId, reassigned, q.id, q.correct_answer]
+    )
+  )
+);
+
 
     return res.json({
       success: true,
@@ -435,6 +456,8 @@ exports.assignRandomQuestions = async (req, res) => {
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
 exports.fetchAssignedQuestions = async (req, res) => {
   const { quizId } = req.params;
   const { userId, quizSessionId, assignmentId } = req.query;
@@ -454,14 +477,22 @@ exports.fetchAssignedQuestions = async (req, res) => {
   }
 
   try {
-    const [rows] = await db.query(
-      `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
-              aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
-       FROM assigned_questions aq
-       JOIN questions q ON aq.question_id = q.id
-       WHERE aq.quiz_session_id = ? AND aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ?`,
-      [quizSessionId, quizId, userId, assignmentId]
-    );
+    // Get reassigned value from quiz_assignments
+const [[assignmentRow]] = await db.query(
+  `SELECT reassigned FROM quiz_assignments WHERE id = ?`,
+  [assignmentId]
+);
+const reassigned = assignmentRow ? assignmentRow.reassigned : 0;
+
+const [rows] = await db.query(
+  `SELECT aq.id, q.id AS question_id, q.question_text, q.question_type, q.options, q.correct_answer, q.explanation, q.difficulty_level,
+          aq.answer_id, aq.is_correct, aq.correct_answers, aq.score
+   FROM assigned_questions aq
+   JOIN questions q ON aq.question_id = q.id
+   WHERE aq.quiz_session_id = ? AND aq.quiz_id = ? AND aq.user_id = ? AND aq.assignment_id = ? AND aq.reassigned = ?`,
+  [quizSessionId, quizId, userId, assignmentId, reassigned]
+);
+
 
     return res.json({ success: true, data: rows });
   } catch (err) {

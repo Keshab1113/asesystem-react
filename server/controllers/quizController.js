@@ -775,7 +775,7 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
       });
     }
 
-    // Update query
+    // Update query with reassigned increment
     const [result] = await db.query(
       `
       UPDATE quiz_assignments
@@ -783,7 +783,8 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
         status = 'scheduled',
         user_started_at = NULL,
         user_ended_at = NULL,
-        score = NULL
+        score = NULL,
+        reassigned = reassigned + 1
       WHERE id = ? AND quiz_id = ? AND user_id = ?
       `,
       [id, quiz_id, user_id]
@@ -808,6 +809,7 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
     });
   }
 };
+
 
 exports.exportQuizReport = async (req, res) => {
   try {
@@ -839,7 +841,7 @@ exports.exportQuizReport = async (req, res) => {
         u.location,
         qa.user_started_at,
         qa.user_ended_at,
-        qa.attempt_no
+        qa.reassigned
       FROM quiz_assignments qa
       JOIN users u ON qa.user_id = u.id
       LEFT JOIN teams t ON qa.team_id = t.id
@@ -898,7 +900,7 @@ exports.exportQuizReport = async (req, res) => {
       { header: "Location", key: "location", width: 20 },
       { header: "User Started At", key: "user_started_at", width: 20 },
       { header: "User Ended At", key: "user_ended_at", width: 20 },
-      { header: "Attempt No", key: "attempt_no", width: 15 },
+      { header: "Attempt No", key: "reassigned", width: 15 },
     ];
 
     rows.forEach((row) => worksheet.addRow(row));

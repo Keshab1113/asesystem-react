@@ -227,7 +227,7 @@ existingAssignments.forEach((row) => {
           "scheduled", // status
           null, // user_started_at
           null, // user_ended_at
-          1, // attempt_no
+          0, // reassigned
           now,
           now,
         ]);
@@ -250,7 +250,7 @@ existingAssignments.forEach((row) => {
     // 4. Insert assignments
     await db.query(
       `INSERT INTO quiz_assignments 
-        (quiz_id, quiz_session_id, user_id, team_id, group_id, time_limit, started_at, ended_at, score, status, user_started_at, user_ended_at, attempt_no, created_at, updated_at) 
+        (quiz_id, quiz_session_id, user_id, team_id, group_id, time_limit, started_at, ended_at, score, status, user_started_at, user_ended_at, reassigned, created_at, updated_at) 
        VALUES ?`,
       [values]
     );
