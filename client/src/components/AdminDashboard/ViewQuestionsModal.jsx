@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import { Button } from "../ui/button";
 import { Download, X, FileText, ExternalLink } from "lucide-react";
+import api from "../../api/api";
 
 const ViewQuestionsModal = ({ quizId, open, onClose }) => {
   const [questions, setQuestions] = useState([]);
@@ -15,10 +15,8 @@ const ViewQuestionsModal = ({ quizId, open, onClose }) => {
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/api/quiz-attempts/${quizId}/questions`
+      const res = await api.get(
+        `/api/quiz-attempts/${quizId}/questions`
       );
       setQuestions(res.data.data || []);
       setFiles(res.data.files || []);
@@ -33,8 +31,8 @@ const ViewQuestionsModal = ({ quizId, open, onClose }) => {
 
   const handleDownload = async () => {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${quizId}/download`,
+      const response = await api.get(
+        `/api/quiz-attempts/${quizId}/download`,
         { responseType: "blob" }
       );
 

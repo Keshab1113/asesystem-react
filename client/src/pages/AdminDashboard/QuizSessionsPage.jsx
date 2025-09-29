@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ import useToast from "../../hooks/ToastContext";
 import { QuizFormModal } from "../../components/AdminDashboard/QuizFormModal";
 import AssignQuizModal from "../../components/AdminDashboard/AssignQuizModal";
 import { ConfirmationDialog } from "../../components/AdminDashboard/ConfirmationDialog";
+import api from "../../api/api";
 
 export default function QuizSessionsPage() {
   const [sessions, setSessions] = useState([]);
@@ -54,8 +54,8 @@ export default function QuizSessionsPage() {
   const fetchSessions = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions`
+      const res = await api.get(
+        "/api/quiz-sessions"
       );
       console.log("Fetched sessions:", res.data.data); // Debugging
       setSessions(res.data.data || []);
@@ -87,8 +87,8 @@ export default function QuizSessionsPage() {
   const handleDeleteQuiz = async (id) => {
     try {
       setLoading(id, true);
-      await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}`
+      await api.delete(
+        `/api/quiz-attempts/${id}`
       );
       fetchSessions();
       setSessions((prev) => prev.filter((quiz) => quiz.id !== id));

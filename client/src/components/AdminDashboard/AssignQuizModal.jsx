@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import useToast from "../../hooks/ToastContext";
 import {
   Select,
@@ -9,6 +8,7 @@ import {
   SelectValue,
 } from "../ui/select";
 import { Input } from "../ui/input";
+import api from "../../api/api";
 
 const AssignQuizModal = ({
   sessionId,
@@ -43,17 +43,12 @@ const AssignQuizModal = ({
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/api/quiz-attempts/assignment/usersDeatils`,
-        {
-          params: {
-            quizId,
-            sessionId: selectedSession,
-          },
-        }
-      );
+      const res = await api.get("/api/quiz-attempts/assignment/usersDeatils", {
+        params: {
+          quizId,
+          sessionId: selectedSession,
+        },
+      });
 
       const data = res.data.data || [];
       setUsers(data);
@@ -84,10 +79,10 @@ const AssignQuizModal = ({
   const handleAssign = async () => {
     setAssigning(true);
     try {
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/assign-session`,
-        { session_id: sessionId, user_ids: selectedUsers }
-      );
+      await api.post("/api/quiz-sessions/assign-session", {
+        session_id: sessionId,
+        user_ids: selectedUsers,
+      });
 
       toast({
         title: "Success",
@@ -436,7 +431,7 @@ const AssignQuizModal = ({
                             //   }
                             // }}
                             onChange={() => {
-                                toggleUser(u.id);
+                              toggleUser(u.id);
                             }}
                             // disabled={u.score || u.status}
                             className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"

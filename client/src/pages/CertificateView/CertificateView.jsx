@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Download } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import axios from "axios";
+import api from "../../api/api";
 // import { Document, Page } from "react-pdf";
 
 export default function CertificateView() {
@@ -22,8 +22,7 @@ export default function CertificateView() {
 
     const fetchCertificate = async () => {
       try {
-        const response = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/certificates/get-by-number`,
+        const response = await api.post("/api/certificates/get-by-number",
           { certificate_number: certificateNumber }
         );
 

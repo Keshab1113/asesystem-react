@@ -7,19 +7,53 @@ import {
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 import ToggleTheme from "../ToggleTheme";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../redux/slices/authSlice";
 import { persistor } from "../../redux/store";
 import { useNavigate } from "react-router-dom";
+import api from "../../api/api";
 
 export function AdminHeader({ onMenuClick }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const handleLogout = () => {
-    dispatch(logout());
-    persistor.purge(); // Clear persisted Redux store
-    navigate("/");
+  const { token } = useSelector((state) => state.auth);
+  const handleLogout = async () => {
+    try {
+      if (!token) {
+        console.warn("No token found, logging out locally.");
+        dispatch(logout());
+        await persistor.purge();
+        navigate("/");
+        return;
+      }
+
+      // Call backend logout with Authorization header
+      await api.post(
+        "/api/auth/logout",
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Clear redux & storage
+      dispatch(logout());
+      await persistor.purge();
+      // localStorage.removeItem("token");
+
+      // Redirect to login
+      navigate("/");
+    } catch (error) {
+      console.error("Frontend logout failed:", error);
+
+      // Fallback: clear everything anyway
+      dispatch(logout());
+      await persistor.purge();
+      // localStorage.removeItem("token");
+      navigate("/");
+    }
   };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border h-16 flex items-center justify-between px-4 lg:px-6">
       <div className="flex items-center gap-4">

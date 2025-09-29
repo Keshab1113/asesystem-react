@@ -16,8 +16,8 @@ import {
 } from "../../components/ui/select";
 import { Badge } from "../../components/ui/badge";
 import { Search, Download, Eye, Calendar } from "lucide-react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import api from "../../api/api";
 
 export function QuizReportPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,16 +43,16 @@ export function QuizReportPage() {
     const fetchReports = async () => {
       try {
         // First, get all quizzes
-        const quizzesRes = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`
+        const quizzesRes = await api.get(
+          "/api/quiz-attempts/list"
         );
         const quizzes = quizzesRes.data.data;
         console.log("Fetched quizzes:", quizzes); // Debugging
         // Now fetch assignments summary for each quiz
         const reportsWithSummary = await Promise.all(
           quizzes.map(async (q) => {
-            const assignRes = await axios.get(
-              `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${
+            const assignRes = await api.get(
+              `/api/quiz-attempts/${
                 q.session_id
               }`
             );

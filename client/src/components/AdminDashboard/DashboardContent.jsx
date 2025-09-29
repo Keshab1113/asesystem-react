@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect } from "react";
-import axios from "axios";
 import {
   Card,
   CardContent,
@@ -31,6 +30,7 @@ import { QuizFormModal } from "./QuizFormModal";
 import { BulkActionsToolbar } from "./BulkActionsToolbar";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
 import { BorderBeam } from "../ui/border-beam";
+import api from "../../api/api";
 
 const defaultFilters = {
   search: "",
@@ -76,18 +76,14 @@ export function DashboardContent() {
     const fetchReports = async () => {
       try {
         // First, get all quizzes
-        const quizzesRes = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list`
-        );
+        const quizzesRes = await api.get("/api/quiz-attempts/list");
         const quizzes = quizzesRes.data.data;
         console.log("Fetched quizzes:", quizzes); // Debugging
         // Now fetch assignments summary for each quiz
         const reportsWithSummary = await Promise.all(
           quizzes.map(async (q) => {
-            const assignRes = await axios.get(
-              `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${
-                q.session_id
-              }`
+            const assignRes = await api.get(
+              `/api/quiz-attempts/${q.session_id}`
             );
             const { summary } = assignRes.data.data;
             console.log(
@@ -304,9 +300,7 @@ export function DashboardContent() {
   const handleDeleteQuiz = async (id) => {
     try {
       setLoading(id, true);
-      await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}`
-      );
+      await api.delete(`/api/quiz-attempts/${id}`);
       setQuizzes((prev) => prev.filter((quiz) => quiz.id !== id));
       toast({
         title: "✅ Assessment Session Deleted",
@@ -467,7 +461,11 @@ export function DashboardContent() {
           {filteredAndSortedQuizzes.map((quiz) => (
             <Card
               key={quiz.id}
-              className={`hover:shadow-md transition-shadow overflow-hidden relative bg-gray-200  ${quiz.status === "Active"? "dark:bg-green-900/10 bg-green-900/10":" dark:bg-gray-900"}`}
+              className={`hover:shadow-md transition-shadow overflow-hidden relative bg-gray-200  ${
+                quiz.status === "Active"
+                  ? "dark:bg-green-900/10 bg-green-900/10"
+                  : " dark:bg-gray-900"
+              }`}
             >
               {quiz.status === "Active" && (
                 <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0">
@@ -529,7 +527,7 @@ export function DashboardContent() {
                   Created: {quiz.date}
                 </div>
                 {/* <div className="flex gap-2 pt-2 flex-wrap absolute bottom-2"> */}
-                  {/* <Button
+                {/* <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleViewQuiz(quiz)}
@@ -538,7 +536,7 @@ export function DashboardContent() {
                     <Eye className="h-3 w-3 mr-1" />
                     <span className=" md:block hidden">View</span>
                   </Button> */}
-                  {/* <Button
+                {/* <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleEditQuiz(quiz)}
@@ -547,7 +545,7 @@ export function DashboardContent() {
                     <Edit className="h-3 w-3 mr-1" />
                     <span className=" block">Edit</span>
                   </Button> */}
-                  {/* <Button
+                {/* <Button
                     size="sm"
                     variant="outline"
                     onClick={() => handleDuplicateQuiz(quiz)}
@@ -556,7 +554,7 @@ export function DashboardContent() {
                     <Copy className="h-3 w-3 mr-1" />
                     <span className=" md:block hidden">Copy</span>
                   </Button> */}
-                  {/* <Button
+                {/* <Button
                     size="sm"
                     variant={
                       quiz.status === "Active" ? "destructive" : "default"
@@ -572,7 +570,7 @@ export function DashboardContent() {
                       "Activate"
                     )}
                   </Button> */}
-                  {/* <Button
+                {/* <Button
                     size="sm"
                     // variant="destructive"
                     onClick={() => openDeleteDialog(quiz.id)}

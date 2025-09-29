@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../api/api";
 
 export default function EditQuestionsModal({ quizId, open, onClose }) {
   const [questions, setQuestions] = useState([]);
@@ -12,9 +12,7 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
   const fetchQuestions = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${quizId}/questions`
-      );
+      const res = await api.get(`/api/quiz-attempts/${quizId}/questions`);
 
       if (res.data.success) {
         const parsedQuestions = res.data.data.map((q) => ({
@@ -43,10 +41,9 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
         options: q.options || [],
       }));
 
-      await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/edit-question/${quizId}`,
-        { questions: payload }
-      );
+      await api.put(`/api/quiz-attempts/edit-question/${quizId}`, {
+        questions: payload,
+      });
 
       alert("All questions updated successfully");
       onClose();
@@ -62,7 +59,9 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
         q.id === questionId
           ? {
               ...q,
-              options: q.options.map((opt, i) => (i === optionIndex ? value : opt)),
+              options: q.options.map((opt, i) =>
+                i === optionIndex ? value : opt
+              ),
             }
           : q
       )
@@ -71,9 +70,7 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
 
   const updateQuestionField = (questionId, field, value) => {
     setQuestions((prev) =>
-      prev.map((q) =>
-        q.id === questionId ? { ...q, [field]: value } : q
-      )
+      prev.map((q) => (q.id === questionId ? { ...q, [field]: value } : q))
     );
   };
 
@@ -84,8 +81,11 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
       <div className="bg-white dark:bg-gray-800 rounded-lg w-[650px] max-h-[85vh] overflow-hidden shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">Edit Assesment Questions {questions[0]?.quiz_name ? `- ${questions[0].quiz_name}` : ""}</h2>
-          <button 
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-white">
+            Edit Assesment Questions{" "}
+            {questions[0]?.quiz_name ? `- ${questions[0].quiz_name}` : ""}
+          </h2>
+          <button
             onClick={onClose}
             className="w-8 h-8 cursor-pointer flex items-center justify-center rounded-full hover:bg-red-400 text-black dark:text-white hover:text-black"
           >
@@ -101,25 +101,36 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
               <span className="ml-2 text-gray-600">Loading...</span>
             </div>
           ) : questions.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No questions found</div>
+            <div className="text-center py-8 text-gray-500">
+              No questions found
+            </div>
           ) : (
             <div className="space-y-6">
               {questions.map((q, index) => (
-                <div key={q.id} className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
+                <div
+                  key={q.id}
+                  className="border rounded-lg p-4 bg-gray-50 dark:bg-gray-700"
+                >
                   {/* Question */}
                   <div className="mb-4">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="w-6 h-6 bg-blue-600 text-white rounded-full text-xs flex items-center justify-center font-medium">
                         {index + 1}
                       </span>
-                      <span className="text-sm font-medium text-gray-700">Question</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        Question
+                      </span>
                     </div>
                     <textarea
                       className="w-full border rounded-md p-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 overflow-hidden"
                       rows="1"
                       value={q.question_text || ""}
                       onChange={(e) => {
-                        updateQuestionField(q.id, "question_text", e.target.value);
+                        updateQuestionField(
+                          q.id,
+                          "question_text",
+                          e.target.value
+                        );
                         // Auto-resize
                         e.target.style.height = "auto";
                         e.target.style.height = `${e.target.scrollHeight}px`;
@@ -135,7 +146,9 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
 
                   {/* Options */}
                   <div className="mb-4">
-                    <span className="text-sm font-medium text-gray-700 mb-2 block">Options</span>
+                    <span className="text-sm font-medium text-gray-700 mb-2 block">
+                      Options
+                    </span>
                     <div className="space-y-2">
                       {["A", "B", "C", "D"].map((letter, i) => (
                         <div key={i} className="flex items-center gap-2">
@@ -148,24 +161,38 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
                             onChange={(e) => {
                               updateQuestionOption(q.id, i, e.target.value);
                               // Auto-resize if it were a textarea
-                              if (e.target.tagName === 'TEXTAREA') {
+                              if (e.target.tagName === "TEXTAREA") {
                                 e.target.style.height = "auto";
                                 e.target.style.height = `${e.target.scrollHeight}px`;
                               }
                             }}
                             onInput={(e) => {
                               // Convert to textarea if content is long
-                              if (e.target.value.length > 50 || e.target.value.includes('\n')) {
-                                const textarea = document.createElement('textarea');
-                                textarea.className = e.target.className.replace('input', 'textarea');
+                              if (
+                                e.target.value.length > 50 ||
+                                e.target.value.includes("\n")
+                              ) {
+                                const textarea =
+                                  document.createElement("textarea");
+                                textarea.className = e.target.className.replace(
+                                  "input",
+                                  "textarea"
+                                );
                                 textarea.value = e.target.value;
                                 textarea.rows = 1;
                                 textarea.style.height = "auto";
                                 textarea.style.height = `${textarea.scrollHeight}px`;
-                                e.target.parentNode.replaceChild(textarea, e.target);
+                                e.target.parentNode.replaceChild(
+                                  textarea,
+                                  e.target
+                                );
                                 textarea.focus();
-                                textarea.addEventListener('input', (te) => {
-                                  updateQuestionOption(q.id, i, te.target.value);
+                                textarea.addEventListener("input", (te) => {
+                                  updateQuestionOption(
+                                    q.id,
+                                    i,
+                                    te.target.value
+                                  );
                                   te.target.style.height = "auto";
                                   te.target.style.height = `${te.target.scrollHeight}px`;
                                 });
@@ -187,7 +214,11 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
                         className="w-full border rounded-md p-2 text-sm bg-green-50 dark:bg-gray-700 border-green-300 focus:outline-none focus:ring-2 focus:ring-green-500"
                         value={q.correct_answer || ""}
                         onChange={(e) =>
-                          updateQuestionField(q.id, "correct_answer", e.target.value)
+                          updateQuestionField(
+                            q.id,
+                            "correct_answer",
+                            e.target.value
+                          )
                         }
                       />
                     </div>
@@ -200,7 +231,11 @@ export default function EditQuestionsModal({ quizId, open, onClose }) {
                         rows="1"
                         value={q.explanation || ""}
                         onChange={(e) => {
-                          updateQuestionField(q.id, "explanation", e.target.value);
+                          updateQuestionField(
+                            q.id,
+                            "explanation",
+                            e.target.value
+                          );
                           // Auto-resize
                           e.target.style.height = "auto";
                           e.target.style.height = `${e.target.scrollHeight}px`;

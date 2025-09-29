@@ -1,5 +1,5 @@
 import { useState } from "react";
-import {Link, useNavigate} from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "@/lib/language-context";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,19 +36,52 @@ import { useDispatch, useSelector } from "react-redux";
 import ToggleTheme from "../ToggleTheme";
 import { logout } from "../../redux/slices/authSlice";
 import NavItems from "./NavItems";
+import { persistor } from "../../redux/store";
+import api from "../../api/api";
 
 export function DashboardNav() {
   const router = useNavigate();
-  const {user } = useSelector(
-    (state) => state.auth
-  );
+  const { user,token } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const { language, setLanguage, t } = useLanguage();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    dispatch(logout())
-    router("/login");
+  const handleLogout = async () => {
+    try {
+      if (!token) {
+        console.warn("No token found, logging out locally.");
+        dispatch(logout());
+        await persistor.purge();
+        navigate("/");
+        return;
+      }
+
+      // Call backend logout with Authorization header
+      await api.post(
+        "/api/auth/logout",
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      // Clear redux & storage
+      dispatch(logout());
+      await persistor.purge();
+      // localStorage.removeItem("token");
+
+      // Redirect to login
+      navigate("/");
+    } catch (error) {
+      console.error("Frontend logout failed:", error);
+
+      // Fallback: clear everything anyway
+      dispatch(logout());
+      await persistor.purge();
+      // localStorage.removeItem("token");
+      navigate("/");
+    }
   };
 
   return (
@@ -109,7 +142,10 @@ export function DashboardNav() {
                   </div>
                 </div>
                 <nav className="flex flex-col gap-2 px-2">
-                  <NavItems mobile onItemClick={() => setIsMobileMenuOpen(false)} />
+                  <NavItems
+                    mobile
+                    onItemClick={() => setIsMobileMenuOpen(false)}
+                  />
                 </nav>
               </div>
             </SheetContent>
@@ -131,8 +167,6 @@ export function DashboardNav() {
           </Link>
         </div>
         <div className="flex items-center gap-2">
-          
-
           {/* Notifications */}
           <Button
             variant="ghost"
@@ -197,7 +231,7 @@ export function DashboardNav() {
             </DropdownMenuContent>
           </DropdownMenu> */}
 
-         <ToggleTheme/>
+          <ToggleTheme />
 
           {/* User menu */}
           <DropdownMenu>

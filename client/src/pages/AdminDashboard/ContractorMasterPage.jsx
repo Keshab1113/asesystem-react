@@ -51,9 +51,9 @@ import {
 import useToast from "../../hooks/ToastContext";
 import { useSelector } from "react-redux";
 import ContractorDeleteButton from "../../components/AdminDashboard/AlertDialog";
-import axios from "axios";
 import { SearchableSelect } from "../../components/SearchableSelect";
 import { ConfirmationDialog } from "../../components/AdminDashboard/ConfirmationDialog";
+import api from "../../api/api";
 
 export function ContractorMasterPage() {
   const [contractors, setContractors] = useState([]);
@@ -111,10 +111,8 @@ export function ContractorMasterPage() {
     if (!selectedGroup2) return;
     const fetchTeams = async () => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/contractors/teams/${
-            selectedGroup2.id
-          }`
+        const response = await api.get(
+          `/api/contractors/teams/${selectedGroup2.id}`
         );
         console.log("response.data.data: ", response.data.data);
 
@@ -134,8 +132,8 @@ export function ContractorMasterPage() {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/auth/users/${
+        const response = await api.get(
+          `/api/auth/users/${
             selectedGroup2.id
           }/${selectedTeam}`
         );
@@ -168,8 +166,8 @@ export function ContractorMasterPage() {
 
   const fetchAttempts = async () => {
     try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/auth/role/user`
+      const res = await api.get(
+        "/api/auth/role/user"
       );
 
       if (res.data.success) {
@@ -574,8 +572,8 @@ export function ContractorMasterPage() {
   const confirmDelete = async () => {
     if (deleteDialog.userId) {
       try {
-        const response = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/auth/delete`,
+        const response = await api.post(
+          "/api/auth/delete",
           { userId: deleteDialog.userId },
           {
             headers: { Authorization: `Bearer ${token}` },
@@ -607,9 +605,9 @@ export function ContractorMasterPage() {
       try {
         setIsDownloading(true);
 
-        const response = await axios({
+        const response = await api({
           method: "GET",
-          url: `${import.meta.env.VITE_BACKEND_URL}/api/auth/download-allusers`,
+          url: "/api/auth/download-allusers",
           responseType: "blob", // Important for file download
           headers: {
             Authorization: `Bearer ${token}`, // If using authentication
@@ -665,9 +663,9 @@ export function ContractorMasterPage() {
       try {
         setIsDownloading(true);
 
-        const response = await axios({
+        const response = await api({
           method: "GET",
-          url: `${import.meta.env.VITE_BACKEND_URL}/api/auth/download-users`,
+          url: "/api/auth/download-users",
           params: {
             group_id: selectedGroup2.id,
             team_id: selectedTeam,

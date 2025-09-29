@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { Card, CardContent } from "../../components/ui/card";
 import { Download } from "lucide-react";
 import {
@@ -14,6 +13,7 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import PerfectTable from "../../components/AdminDashboard/PerfectTable";
 import useToast from "../../hooks/ToastContext";
+import api from "../../api/api";
 
 export function QuizReportDetailsPage() {
   const { id } = useParams();
@@ -32,8 +32,8 @@ export function QuizReportDetailsPage() {
   // fetch data from backend with filters
   const fetchDetails = async () => {
     try {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}/details`,
+      const res = await api.get(
+        `/api/quiz-attempts/${id}/details`,
         {
           params: {
             group: groupFilter,
@@ -85,10 +85,8 @@ export function QuizReportDetailsPage() {
   const handleDownload = async () => {
     setLoadingDownload(true);
     try {
-      const response = await axios.post(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/api/quiz-attempts/assignment/export`,
+      const response = await api.post(
+        "/api/quiz-attempts/assignment/export",
         {
           session_id: id,
           group: groupFilter,
