@@ -77,13 +77,8 @@ export default function ResultsPage() {
       if (!assignmentId) return;
 
       try {
-<<<<<<< HEAD
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/results/${assignmentId}&session_id=${quizSessionId}`,
-=======
         const res = await api.get(
-          `/api/results/${assignmentId}`,
->>>>>>> dc326916679f6ec2d60e6e7bbaf3ffb372ad8c69
+          `/api/results/${assignmentId}&session_id=${quizSessionId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log("Fetched results data:", res.data); // Debug log

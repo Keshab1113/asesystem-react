@@ -33,6 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { store } from "../../redux/store"; // ✅ named import
 import { useExam } from "../../lib/ExamContext";
 import api from "../../api/api";
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
 export default function QuestionsPage() {
   const { quizId } = useParams();
@@ -84,20 +85,18 @@ export default function QuestionsPage() {
     return currentAnswers[q.id];
   });
   useEffect(() => {
-    // Automatically request fullscreen on page load
+    // Automatically request fullscreen on page load (skip for mobile)
     const requestFullscreen = () => {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isMobile) return; // ✅ Skip on mobile
+  if (!isFullscreenActive()) {
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+    else if (el.msRequestFullscreen) el.msRequestFullscreen();
+  }
+};
 
-      if (isIOS) return; // ⛔ Skip fullscreen on iOS
-
-      if (!isFullscreenActive()) {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-        else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-        else if (el.msRequestFullscreen) el.msRequestFullscreen();
-      }
-    };
 
     // Request fullscreen after a short delay to ensure DOM is ready
     setTimeout(requestFullscreen, 100);
@@ -105,7 +104,9 @@ export default function QuestionsPage() {
     const hasAccepted = localStorage.getItem(
       `quiz_${quizId}_instructions_accepted`
     );
-    if (hasAccepted === "true" && isFullscreenActive() && !isDevToolsOpen()) {
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+    
+    if (hasAccepted === "true" && (isMobile || (isFullscreenActive() && !isDevToolsOpen()))) {
       setAcceptedInstructions(true);
       setShowInstructions(false);
       setTimerStarted(true);
@@ -320,12 +321,8 @@ export default function QuestionsPage() {
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         setWarnings((prev) => {
-          // On mobile, 1 violation = auto-submit
-          const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-          const limit = isMobile ? 1 : 2;
-
           const newWarnings = prev + 1;
-          if (newWarnings >= limit) {
+          if (newWarnings >= 2) {
             handleSubmit(
               true,
               "App/tab switch detected. Assessment auto-submitted."
@@ -396,80 +393,70 @@ export default function QuestionsPage() {
 
   // ✅ Check if DevTools is open
   const isDevToolsOpen = () => {
-    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    if (isMobile) return false;
+  if (isMobile) return false; // ✅ Skip for mobile
+  const threshold = 160;
+  return (
+    window.outerWidth - window.innerWidth > threshold ||
+    window.outerHeight - window.innerHeight > threshold
+  );
+};
 
-    const threshold = 160;
-    return (
-      window.outerWidth - window.innerWidth > threshold ||
-      window.outerHeight - window.innerHeight > threshold
-    );
- 
-  };
 
   // ✅ Check if fullscreen is active
   const isFullscreenActive = () => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if (isMobile) return true; // ✅ Always "true" on mobile
+  return (
+    document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.mozFullScreenElement ||
+    document.msFullscreenElement
+  );
+};
 
-    if (isIOS) {
-      // iOS has no fullscreen API → fallback check
-      return (
-        window.innerHeight === screen.height &&
-        window.innerWidth === screen.width
-      );
-    }
-
-    return (
-      document.fullscreenElement ||
-      document.webkitFullscreenElement ||
-      document.mozFullScreenElement ||
-      document.msFullscreenElement
-    );
-  };
 
   const handleAcceptInstructions = async () => {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-  if (!isIOS) {
-    // Desktop & Android → must have fullscreen + no DevTools
-    if (isDevToolsOpen() || !isFullscreenActive()) {
-      const reason = isDevToolsOpen()
-        ? "Developer Tools detected. Close them to start."
-        : "Fullscreen is required. Enter fullscreen to start.";
+    if (!isMobile) {
+      // Desktop devices → must have fullscreen + no DevTools
+      if (isDevToolsOpen() || !isFullscreenActive()) {
+        const reason = isDevToolsOpen()
+          ? "Developer Tools detected. Close them to start."
+          : "Fullscreen is required. Enter fullscreen to start.";
 
-      toast({
-        title: "⚠️ Cannot Start Assessment",
-        description: reason,
-        variant: "destructive",
-      });
+        toast({
+          title: "⚠️ Cannot Start Assessment",
+          description: reason,
+          variant: "destructive",
+        });
 
-      if (!isFullscreenActive()) {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-        else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-        else if (el.msRequestFullscreen) el.msRequestFullscreen();
+        if (!isFullscreenActive()) {
+          const el = document.documentElement;
+          if (el.requestFullscreen) el.requestFullscreen();
+          else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+          else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+          else if (el.msRequestFullscreen) el.msRequestFullscreen();
+        }
+        return; // ❌ Block start
       }
-      return; // ❌ Block start
+    } else {
+      // Mobile devices → just require the tab to be active
+      if (document.hidden) {
+        toast({
+          title: "⚠️ Cannot Start Assessment",
+          description: "Keep this tab active to begin.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
-  } else {
-    // iOS → just require the tab to be active, skip fullscreen/devtools checks
-    if (document.hidden) {
-      toast({
-        title: "⚠️ Cannot Start Assessment",
-        description: "Keep this tab active to begin.",
-        variant: "destructive",
-      });
-      return;
-    }
-  }
 
   // ✅ Passed checks → allow start
   setAcceptedInstructions(true);
   setShowInstructions(false);
   setTimerStarted(true);
 
-  // Orientation lock (optional, iOS supports it only in fullscreen so safe-guard)
+  // Orientation lock
   if (screen.orientation && screen.orientation.lock) {
     screen.orientation.lock("portrait").catch(() => {});
   }
@@ -735,7 +722,9 @@ export default function QuestionsPage() {
                   }
 
                   // 🔎 Perform secure checks before accepting
-                  if (isDevToolsOpen() || !isFullscreenActive()) {
+                  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+                  
+                  if (!isMobile && (isDevToolsOpen() || !isFullscreenActive())) {
                     const reason = isDevToolsOpen()
                       ? "Developer Tools detected. Close them to start."
                       : "Fullscreen is required. Enter fullscreen to start.";
@@ -777,11 +766,11 @@ export default function QuestionsPage() {
               <Button
                 onClick={handleAcceptInstructions}
                 disabled={
-                  !accepted || isDevToolsOpen() || !isFullscreenActive()
+                  !accepted || (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && (isDevToolsOpen() || !isFullscreenActive()))
                 }
                 size="lg"
                 className={`px-8 py-3 text-lg text-white ${
-                  !accepted || isDevToolsOpen() || !isFullscreenActive()
+                  !accepted || (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && (isDevToolsOpen() || !isFullscreenActive()))
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
                 }`}>
