@@ -37,6 +37,8 @@ export default function ResultsPage() {
   const [isUserPass, setIsUserPass] = useState(false);
   const [searchParams] = useSearchParams();
   const assignmentId = searchParams.get("assignmentId");
+  const quizSessionId = searchParams.get("session_id");
+   console.log("Quiz Session ID:", quizSessionId);
   const { setExamState } = useExam();
   const [loading, setLoading] = useState(true);
 
@@ -76,7 +78,7 @@ export default function ResultsPage() {
 
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/results/${assignmentId}`,
+          `${import.meta.env.VITE_BACKEND_URL}/api/results/${assignmentId}&session_id=${quizSessionId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log("Fetched results data:", res.data); // Debug log
@@ -173,7 +175,8 @@ export default function ResultsPage() {
       setIsLoadingCertificate(true);
       const checkResponse = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/certificates/get`,
-        { user_id: user.id, quiz_id: quizId },
+        { user_id: user.id, quiz_id: quizId, quiz_session_id: quizSessionId, quiz_assignment_id: assignmentId }
+,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (checkResponse.data.success && checkResponse.data.certificate) {
@@ -199,15 +202,17 @@ export default function ResultsPage() {
       // Step 2: Generate new certificate
       const certNo = await generateCertificateNumber();
       const payload = {
-        userName: user.name,
-        quizID: quizId,
-        quizTitle: foundQuizTitle?.title || "Undefined",
-        date: new Date().toLocaleDateString(),
-        certificateText: "",
-        certificateNumber: certNo,
-        generateFrom: "manual",
-        score: scorePercentage,
-      };
+  userName: user.name,
+  quizID: quizId,
+  quizSessionId,
+  assignmentId,
+  quizTitle: foundQuizTitle?.title || "Undefined",
+  date: new Date().toLocaleDateString(),
+  certificateText: "",
+  certificateNumber: certNo,
+  generateFrom: "manual",
+  score: scorePercentage,
+};
 
       const response = await axios.post(
         `${import.meta.env.VITE_BACKEND_URL}/api/certificates/generate`,

@@ -18,8 +18,11 @@ exports.generateCertificate = async (req, res) => {
       expiry_date,
       quizID,
       generateFrom,
+      quizSessionId,
+  assignmentId, 
     } = req.body;
     const user_id = req.userId;
+// console.log("📥 Certificate payload:", req.body);
 
     const frontendBaseURL = process.env.FRONTEND_URL;
     const qrLink = `${frontendBaseURL}/certificate-view?certNo=${certificateNumber}`;
@@ -50,20 +53,25 @@ exports.generateCertificate = async (req, res) => {
         const issued_date = new Date();
         const [result] = await db.execute(
           `INSERT INTO certificates
-            (user_id, quiz_id, attempt_id, certificate_number, score, issued_date, expiry_date, is_valid, certificate_url, generateFrom)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  (user_id, quiz_id, quiz_session_id, quiz_assignment_id, attempt_id, certificate_number, score, issued_date, expiry_date, is_valid, certificate_url, generateFrom)
+ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+,
           [
-            user_id,
-            quizID,
-            attemptId || null,
-            certificateNumber,
-            score || 0,
-            issued_date,
-            expiry_date || null,
-            1,
-            certUrl,
-            generateFrom || "automatic",
-          ]
+  user_id,
+  quizID,
+ 
+   quizSessionId || null,
+  assignmentId || null,
+  attemptId || null,
+  certificateNumber,
+  score || 0,
+  issued_date,
+  expiry_date || null,
+  1,
+  certUrl,
+  generateFrom || "automatic",
+]
+
         );
         res.status(200).json({
           success: true,
@@ -156,7 +164,8 @@ exports.generateCertificate = async (req, res) => {
 
 exports.getCertificate = async (req, res) => {
   try {
-    const { user_id, quiz_id } = req.body;
+    const { user_id, quiz_id, quiz_session_id, quiz_assignment_id } = req.body;
+
 
     if (!user_id || !quiz_id) {
       return res.status(400).json({
@@ -168,8 +177,13 @@ exports.getCertificate = async (req, res) => {
     const [rows] = await db.execute(
       `SELECT certificate_url, certificate_number, issued_date, expiry_date, score 
        FROM certificates 
-       WHERE user_id = ? AND quiz_id = ? AND is_valid = 1`,
-      [user_id, quiz_id]
+       WHERE user_id = ? AND quiz_id = ? 
+  AND (quiz_session_id = ? OR ? IS NULL) 
+  AND (quiz_assignment_id = ? OR ? IS NULL) 
+  AND is_valid = 1
+`,
+      [user_id, quiz_id, quiz_session_id || null, quiz_session_id || null, quiz_assignment_id || null, quiz_assignment_id || null]
+
     );
 
     if (rows.length === 0) {

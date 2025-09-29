@@ -61,6 +61,7 @@ export default function QuestionsPage() {
   const [showInstructions, setShowInstructions] = useState(true);
   const [acceptedInstructions, setAcceptedInstructions] = useState(false);
   const [timerStarted, setTimerStarted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const { user } = useSelector((state) => state.auth);
   const [accepted, setAccepted] = useState(false);
@@ -81,15 +82,15 @@ export default function QuestionsPage() {
   const allQuestionsAnswered = questions.every((q) => {
     const currentAnswers = store.getState().quiz.answers[quizId] || {};
     return currentAnswers[q.id];
-    
   });
   useEffect(() => {
     // Automatically request fullscreen on page load
     const requestFullscreen = () => {
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-      // Don't request fullscreen on iOS as it doesn't support the fullscreen API
-      if (!isIOS && !isFullscreenActive()) {
+      if (isIOS) return; // ⛔ Skip fullscreen on iOS
+
+      if (!isFullscreenActive()) {
         const el = document.documentElement;
         if (el.requestFullscreen) el.requestFullscreen();
         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
@@ -403,6 +404,7 @@ export default function QuestionsPage() {
       window.outerWidth - window.innerWidth > threshold ||
       window.outerHeight - window.innerHeight > threshold
     );
+ 
   };
 
   // ✅ Check if fullscreen is active
@@ -428,12 +430,11 @@ export default function QuestionsPage() {
   const handleAcceptInstructions = async () => {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-    // 🔎 Check secure state first
-    if (isDevToolsOpen() || (!isIOS && !isFullscreenActive())) {
+  if (!isIOS) {
+    // Desktop & Android → must have fullscreen + no DevTools
+    if (isDevToolsOpen() || !isFullscreenActive()) {
       const reason = isDevToolsOpen()
         ? "Developer Tools detected. Close them to start."
-        : isIOS
-        ? "Rotate your device to portrait and keep this tab active."
         : "Fullscreen is required. Enter fullscreen to start.";
 
       toast({
@@ -442,27 +443,37 @@ export default function QuestionsPage() {
         variant: "destructive",
       });
 
-      // Request fullscreen if needed (desktop + Android, NOT iOS)
-      if (!isIOS && !isFullscreenActive()) {
+      if (!isFullscreenActive()) {
         const el = document.documentElement;
         if (el.requestFullscreen) el.requestFullscreen();
         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
         else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
         else if (el.msRequestFullscreen) el.msRequestFullscreen();
       }
-
-      return; // block start until conditions met
+      return; // ❌ Block start
     }
-
-    // ✅ Passed checks → allow start
-    setAcceptedInstructions(true);
-    setShowInstructions(false);
-    setTimerStarted(true);
-
-    // Lock screen orientation (mobile only)
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock("portrait").catch(() => {});
+  } else {
+    // iOS → just require the tab to be active, skip fullscreen/devtools checks
+    if (document.hidden) {
+      toast({
+        title: "⚠️ Cannot Start Assessment",
+        description: "Keep this tab active to begin.",
+        variant: "destructive",
+      });
+      return;
     }
+  }
+
+  // ✅ Passed checks → allow start
+  setAcceptedInstructions(true);
+  setShowInstructions(false);
+  setTimerStarted(true);
+
+  // Orientation lock (optional, iOS supports it only in fullscreen so safe-guard)
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock("portrait").catch(() => {});
+  }
+
 
     // 🔗 Call backend to mark quiz start
     try {
@@ -498,6 +509,11 @@ export default function QuestionsPage() {
   };
 
   const handleSubmit = async (forced = false, message = null) => {
+    // Prevent multiple submissions
+    if (submitting) return;
+    
+    setSubmitting(true);
+
     // 1. Manual submit (user action)
     // 🔑 Always re-read latest Redux state
     const latestAnswers = store.getState().quiz.answers[quizId] || {};
@@ -525,6 +541,7 @@ export default function QuestionsPage() {
         });
 
         goToUnansweredQuestion();
+        setSubmitting(false);
         return;
       }
     }
@@ -566,7 +583,12 @@ export default function QuestionsPage() {
       //   description: message || "✅ Assessment submitted successfully!",
       //   variant: "success",
       // });
-      navigate(`/user-dashboard/results?assignmentId=${assignmentId}`, {
+      console.log("Navigating to ResultsPage with:", {
+        assignmentId,
+        quizSessionId,
+        url: `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
+      });
+      navigate(`/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`, {
         replace: true,
       });
     } catch (err) {
@@ -576,6 +598,7 @@ export default function QuestionsPage() {
         description: "Failed to end assessment. Try again.",
         variant: "destructive",
       });
+      setSubmitting(false);
     }
   };
 
@@ -745,8 +768,7 @@ export default function QuestionsPage() {
 
               <label
                 htmlFor="accept"
-                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none"
-              >
+                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none">
                 I have read and agree to the terms and conditions.
               </label>
             </div>
@@ -762,8 +784,7 @@ export default function QuestionsPage() {
                   !accepted || isDevToolsOpen() || !isFullscreenActive()
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
+                }`}>
                 I Accept - Launch Assessment
               </Button>
             </div>
@@ -794,8 +815,7 @@ export default function QuestionsPage() {
               </h1>
               <Badge
                 variant="outline"
-                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
-              >
+                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
                 <Monitor className="w-3 h-3" />
                 Secure Mode
               </Badge>
@@ -828,8 +848,7 @@ export default function QuestionsPage() {
                   allQuestionsAnswered
                     ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300"
                     : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                }`}
-              >
+                }`}>
                 {answeredCount}/{questions.length} Completed
               </Badge>
             </div>
@@ -842,8 +861,7 @@ export default function QuestionsPage() {
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
           <Alert
             variant="destructive"
-            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
-          >
+            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-red-800 dark:text-red-200">
               Warning
@@ -889,8 +907,7 @@ export default function QuestionsPage() {
                           getQuestionStatus(index) === "answered"
                             ? "Answered"
                             : "Not Answered"
-                        }`}
-                      >
+                        }`}>
                         {index + 1}
                         {getQuestionStatus(index) === "answered" && (
                           <CheckCircle className="absolute -top-1 -right-1 w-4 h-4 text-green-600 bg-white rounded-full" />
@@ -936,8 +953,7 @@ export default function QuestionsPage() {
                     <Button
                       onClick={goToUnansweredQuestion}
                       variant="outline"
-                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                    >
+                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20">
                       Go
                     </Button>
                   </div>
@@ -968,8 +984,7 @@ export default function QuestionsPage() {
                           onClick={handleClearAnswer}
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20"
-                        >
+                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20">
                           <RotateCcw className="md:w-4 md:h-4 h-3 w-3" />
                           <h4 className=" md:block hidden">Clear Answer</h4>
                         </Button>
@@ -980,8 +995,7 @@ export default function QuestionsPage() {
                           currentAnswer
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                        }`}
-                      >
+                        }`}>
                         {currentAnswer ? "Answered" : "Not Answered"}
                       </Badge>
                     </div>
@@ -1001,8 +1015,7 @@ export default function QuestionsPage() {
                     onValueChange={(val) =>
                       handleAnswerChange(currentQuestion.id, val)
                     }
-                    className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-1 gap-4 pb-6"
-                  >
+                    className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-1 gap-4 pb-6">
                     {currentOptions?.map((opt, i) => (
                       <div
                         key={i}
@@ -1010,8 +1023,7 @@ export default function QuestionsPage() {
                           currentAnswer === opt
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 shadow-lg scale-[1.02]"
                             : "border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:scale-[1.01]"
-                        }`}
-                      >
+                        }`}>
                         <RadioGroupItem
                           value={opt}
                           id={`${currentQuestion.id}-${i}`}
@@ -1019,15 +1031,13 @@ export default function QuestionsPage() {
                         />
                         <Label
                           htmlFor={`${currentQuestion.id}-${i}`}
-                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium"
-                        >
+                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium">
                           <span
                             className={`flex justify-center items-center w-8 h-8 min-w-8 min-h-8 md:w-10 md:h-10 md:min-w-10 md:min-h-10 rounded-full text-white text-base font-bold md:mr-4 mr-1 text-center leading-10 transition-all ${
                               currentAnswer === opt
                                 ? "bg-blue-600 shadow-md"
                                 : "bg-gray-400 group-hover:bg-gray-500"
-                            }`}
-                          >
+                            }`}>
                             {String.fromCharCode(65 + i)}
                           </span>
                           <span className="md:text-lg text-base">{opt}</span>
@@ -1041,8 +1051,7 @@ export default function QuestionsPage() {
                       disabled={currentQuestionIndex === 0}
                       variant="outline"
                       size="lg"
-                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
+                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                       <ArrowLeft className="w-4 h-4 md:mr-2" />
                       <h4 className=" md:block hidden">Previous</h4>
                     </Button>
@@ -1053,21 +1062,28 @@ export default function QuestionsPage() {
                           onClick={() => handleSubmit(false)}
                           size="lg"
                           className={`px-8 py-3 text-lg font-semibold transition-all text-white ${
-                            allQuestionsAnswered
+                            allQuestionsAnswered && !submitting
                               ? "bg-green-600 hover:bg-green-700 shadow-lg"
                               : "bg-gray-400 cursor-not-allowed"
                           }`}
-                          disabled={!allQuestionsAnswered}
-                        >
-                          <CheckCircle className="w-5 h-5 mr-2" />
-                          Submit Assessment
+                          disabled={!allQuestionsAnswered || submitting}>
+                          {submitting ? (
+                            <>
+                              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-5 h-5 mr-2" />
+                              Submit Assessment
+                            </>
+                          )}
                         </Button>
                       ) : (
                         <Button
                           onClick={handleNext}
                           size="lg"
-                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white"
-                        >
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white">
                           <h4 className=" md:block hidden">Next</h4>
                           <ArrowRight className="w-4 h-4 md:ml-2" />
                         </Button>

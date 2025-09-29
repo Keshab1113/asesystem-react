@@ -321,7 +321,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())
       await connection.commit();
 
       return res.json({
-        message: "Quiz and questions saved successfully.",
+        message: "Assessment and questions saved successfully.",
         quizId,
         questions: savedQuestions,
       });
@@ -329,7 +329,7 @@ VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())
       await connection.rollback();
       console.error("Transaction error:", error);
       return res.status(500).json({
-        message: "Failed to save quiz and questions.",
+        message: "Failed to save Assessment and questions.",
         error: error.message,
       });
     } finally {

@@ -183,39 +183,43 @@ exports.getQuizResult = async (req, res) => {
 
     // 🔹 Correct answers for this reassigned cycle
     const [correctRows] = await db.query(
-      `SELECT COUNT(*) AS correctCount
-       FROM assigned_questions
-       WHERE assignment_id = ? 
-         AND user_id = ? 
-         AND reassigned = ?
-         AND is_correct = 1`,
-      [assignmentId, user_id, reassigned]
-    );
+  `SELECT COUNT(*) AS correctCount
+   FROM assigned_questions aq
+   JOIN answers a ON a.id = aq.answer_id
+   WHERE aq.assignment_id = ? 
+     AND aq.user_id = ? 
+     AND aq.reassigned = ?
+     AND aq.is_correct = 1
+     AND a.answer IS NOT NULL
+     AND a.answer != ''`,
+  [assignmentId, user_id, reassigned]
+);
+
     const correctAnswers = correctRows[0]?.correctCount || 0;
 
     // 🔹 Wrong answers for this reassigned cycle
-    const [wrongRows] = await db.query(
-      `SELECT 
-          aq.id AS assigned_question_id,
-          aq.question_id,
-          q.question_text,
-          q.options,
-          q.correct_answer,
-          a.answer AS userAnswer
-       FROM assigned_questions aq
-       JOIN questions q ON aq.question_id = q.id
-       LEFT JOIN answers a 
-          ON a.quiz_id = aq.quiz_id 
-          AND a.assignment_id = aq.assignment_id 
-          AND a.question_id = aq.question_id 
-          AND a.user_id = aq.user_id 
-          AND a.attempt_number = aq.reassigned
-       WHERE aq.assignment_id = ? 
-         AND aq.user_id = ? 
-         AND aq.reassigned = ? 
-         AND (aq.is_correct = 0 OR aq.answer_id IS NULL)`,
-      [assignmentId, user_id, reassigned]
-    );
+   const [wrongRows] = await db.query(
+  `SELECT 
+      aq.id AS assigned_question_id,
+      aq.question_id,
+      q.question_text,
+      q.options,
+      q.correct_answer,
+      a.answer AS userAnswer
+   FROM assigned_questions aq
+   JOIN questions q ON aq.question_id = q.id
+   JOIN answers a 
+      ON a.id = aq.answer_id
+   WHERE aq.assignment_id = ? 
+     AND aq.user_id = ? 
+     AND aq.reassigned = ? 
+     AND aq.is_correct = 0
+     AND a.answer IS NOT NULL
+     AND a.answer != ''`,
+  [assignmentId, user_id, reassigned]
+);
+
+
 
     const wrongAnswers = wrongRows.map((wa) => ({
       id: wa.question_id,

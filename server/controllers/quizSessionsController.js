@@ -293,7 +293,7 @@ exports.createSession = async (req, res) => {
     );
 
     if (quizData.length === 0) {
-      return res.status(404).json({ success: false, message: "Quiz not found" });
+      return res.status(404).json({ success: false, message: "Assessment not found" });
     }
 
     const quiz = quizData[0];
@@ -316,11 +316,11 @@ exports.createSession = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Quiz session created successfully",
+      message: "Assessment session created successfully",
       session_id: result.insertId,
     });
   } catch (err) {
-    console.error("Error creating quiz session:", err);
+    console.error("Error creating Assessment session:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

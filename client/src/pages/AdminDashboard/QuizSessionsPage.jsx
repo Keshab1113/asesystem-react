@@ -63,7 +63,7 @@ export default function QuizSessionsPage() {
       console.error("Error fetching sessions:", err);
       toast({
         title: "Error",
-        description: "Failed to fetch quiz sessions",
+        description: "Failed to fetch A sessions",
         variant: "destructive",
       });
     } finally {

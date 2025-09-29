@@ -30,7 +30,7 @@ exports.getAllQuizAttempts = async (req, res) => {
       data: rows,
     });
   } catch (error) {
-    console.error("Error fetching quiz attempts:", error);
+    console.error("Error fetching Assessment attempts:", error);
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -145,7 +145,7 @@ exports.updateQuiz = async (req, res) => {
     if (!existing.length) {
       return res
         .status(404)
-        .json({ success: false, message: "Quiz not found" });
+        .json({ success: false, message: "Assessment not found" });
     }
     const currentQuiz = existing[0];
 
@@ -230,12 +230,12 @@ exports.updateQuiz = async (req, res) => {
     if (result.affectedRows === 0) {
       return res
         .status(404)
-        .json({ success: false, message: "Quiz not found" });
+        .json({ success: false, message: "Assessment not found" });
     }
 
     res
       .status(200)
-      .json({ success: true, message: "Quiz updated successfully" });
+      .json({ success: true, message: "Assessment updated successfully" });
   } catch (error) {
     console.error("Error updating quiz:", error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -326,7 +326,7 @@ exports.assignQuiz = async (req, res) => {
   if (!quiz_id || !user_ids || user_ids.length === 0) {
     return res.status(400).json({
       success: false,
-      message: "Quiz ID and users are required",
+      message: "Assessment ID and users are required",
     });
   }
 
@@ -342,7 +342,7 @@ exports.assignQuiz = async (req, res) => {
     if (!quizRows.length) {
       return res
         .status(404)
-        .json({ success: false, message: "Quiz not found" });
+        .json({ success: false, message: "Assessment not found" });
     }
 
     // ✅ Use directly (no formatDateTime needed)
@@ -457,7 +457,7 @@ exports.assignQuiz = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Quiz assigned to ${values.length} user(s) successfully`,
+      message: `Assessment assigned to ${values.length} user(s) successfully`,
     });
   } catch (error) {
     console.error("Error assigning quiz:", error);
@@ -545,7 +545,7 @@ exports.getQuizQuestions = async (req, res) => {
   if (!quizId) {
     return res
       .status(400)
-      .json({ success: false, message: "Quiz ID is required" });
+      .json({ success: false, message: "Assessment ID is required" });
   }
 
   try {
@@ -784,13 +784,13 @@ exports.deleteAssignedQuiz = async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({
         success: false,
-        message: "Assigned quiz not found or already deleted",
+        message: "Assigned not found or already deleted",
       });
     }
 
     res.status(200).json({
       success: true,
-      message: `Assigned quiz deleted successfully (id: ${id}, quiz_id: ${quiz_id}, user_id: ${user_id})`,
+      message: `Assigned deleted successfully (id: ${id}, quiz_id: ${quiz_id}, user_id: ${user_id})`,
     });
   } catch (error) {
     console.error("Error deleting assigned quiz:", error);
@@ -804,6 +804,7 @@ exports.deleteAssignedQuiz = async (req, res) => {
 exports.rescheduleAssignedQuiz = async (req, res) => {
   try {
     const { id, quiz_id, user_id } = req.body;
+    console.log("Reschedule payload:", req.body);
 
     // Validate input
     if (!id || !quiz_id || !user_id) {
@@ -850,6 +851,17 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
       WHERE assignment_id = ? AND quiz_id = ? AND user_id = ?
       `,
       [id, quiz_id, user_id]
+    );
+ // Delete certificate(s) linked to this assignment & session
+        // Delete certificate(s) linked to this assignment & session
+    await db.query(
+      `
+      DELETE FROM certificates
+      WHERE quiz_assignment_id = ? AND quiz_session_id = (
+        SELECT quiz_session_id FROM quiz_assignments WHERE id = ? AND quiz_id = ? AND user_id = ?
+      ) AND quiz_id = ? AND user_id = ?
+      `,
+      [id, id, quiz_id, user_id, quiz_id, user_id]
     );
 
 

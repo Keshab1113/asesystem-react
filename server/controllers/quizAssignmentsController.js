@@ -8,7 +8,7 @@ exports.getAllAssignments = async (req, res) => {
     );
     res.json({ success: true, data: rows });
   } catch (err) {
-    console.error("Error fetching quiz assignments:", err);
+    console.error("Error fetching  assignments:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -69,7 +69,7 @@ exports.getAssignmentById = async (req, res) => {
 
     res.json({ success: true, data: rows });
   } catch (err) {
-    console.error("Error fetching assignment with quiz details:", err);
+    console.error("Error fetching assignment with Assessment details:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
@@ -477,25 +477,28 @@ console.log(req.body);
       if (!qRows.length) continue;
 
       const correct_answer = qRows[0].correct_answer;
-      const is_correct =
-        answer && answer.trim() === correct_answer.trim() ? 1 : 0;
+      const trimmedAnswer = answer ? answer.trim() : "";
+const is_correct = trimmedAnswer === correct_answer.trim() ? 1 : 0;
+
 
       // ✅ Insert/update into answers table WITH quiz_session_id + reassigned
       await db.query(
   `INSERT INTO answers 
-     (quiz_id, question_id, user_id, assignment_id, answer, is_correct, attempt_number, answered_at) 
-   VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-   ON DUPLICATE KEY UPDATE 
-     answer = VALUES(answer),
-     is_correct = VALUES(is_correct),
-     attempt_number = VALUES(attempt_number),
-     answered_at = NOW()`,
+(quiz_id, quiz_session_id, question_id, user_id, assignment_id, answer, is_correct, attempt_number, answered_at) 
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+ON DUPLICATE KEY UPDATE 
+  answer = VALUES(answer),
+  is_correct = VALUES(is_correct),
+  attempt_number = VALUES(attempt_number),
+  answered_at = NOW()
+`,
   [
     quiz_id,
+     quiz_session_id,
     real_question_id,
     user_id,
     assignment_id,
-    answer || "",
+    answer ?? null,
     is_correct,
     reassignedCycle,
   ]
@@ -504,8 +507,10 @@ console.log(req.body);
 // ✅ Get the answer_id reliably
 const [[existingAnswer]] = await db.query(
   `SELECT id FROM answers 
-   WHERE quiz_id = ? AND question_id = ? AND user_id = ? AND assignment_id = ?`,
-  [quiz_id, real_question_id, user_id, assignment_id]
+WHERE quiz_id = ? AND quiz_session_id = ? AND question_id = ? AND user_id = ? AND assignment_id = ?
+`,
+  [quiz_id, quiz_session_id, real_question_id, user_id, assignment_id]
+
 );
 const answer_id = existingAnswer?.id || null;
 
@@ -514,26 +519,29 @@ const answer_id = existingAnswer?.id || null;
      
 
       // ✅ Update assigned_questions row with same filters
-     await db.query(
-  `UPDATE assigned_questions 
-   SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
-   WHERE id = ? 
-     AND assignment_id = ? 
-     AND user_id = ? 
-     AND quiz_session_id = ? 
-     AND reassigned = ?`,
-  [
-    answer_id,
-    is_correct,
-    correct_answer,
-    is_correct,
-    assigned_question_id,
-    assignment_id,
-    user_id,
-    quiz_session_id,
-    reassignedCycle,
-  ]
-);
+     if (trimmedAnswer !== "") {
+  await db.query(
+    `UPDATE assigned_questions 
+     SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+     WHERE id = ? 
+       AND assignment_id = ? 
+       AND user_id = ? 
+       AND quiz_session_id = ? 
+       AND reassigned = ?`,
+    [
+      answer_id,
+      is_correct,
+      correct_answer,
+      is_correct,
+      assigned_question_id,
+      assignment_id,
+      user_id,
+      quiz_session_id,
+      reassignedCycle,
+    ]
+  );
+}
+
 
 
 
@@ -554,15 +562,18 @@ const answer_id = existingAnswer?.id || null;
 
     // 🔹 Count answered
     const [answeredCountRows] = await db.query(
-      `SELECT COUNT(*) as totalAnswered 
-       FROM assigned_questions 
-       WHERE assignment_id = ? 
-         AND user_id = ? 
-         AND quiz_session_id = ? 
-         AND reassigned = ? 
-         AND answer_id IS NOT NULL`,
-      [assignment_id, user_id, quiz_session_id, reassignedCycle]
-    );
+  `SELECT COUNT(*) as totalAnswered 
+   FROM assigned_questions aq
+   JOIN answers a ON a.id = aq.answer_id
+   WHERE aq.assignment_id = ? 
+     AND aq.user_id = ? 
+     AND aq.quiz_session_id = ? 
+     AND aq.reassigned = ? 
+     AND a.answer IS NOT NULL 
+     AND a.answer != ''`,
+  [assignment_id, user_id, quiz_session_id, reassignedCycle]
+);
+
     const totalAnswered = answeredCountRows[0]?.totalAnswered || 0;
 
     let status = "terminated";
@@ -669,7 +680,7 @@ const [existingRows] = await db.query(
     if (!sessionRows.length)
       return res
         .status(404)
-        .json({ success: false, message: "Quiz session not found" });
+        .json({ success: false, message: "Assessment session not found" });
 
     const maxQuestions = sessionRows[0].max_questions || 10;
 
