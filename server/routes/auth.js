@@ -17,6 +17,7 @@ const {
   login,
   deleteUser,
   getUsersByGroupAndTeam,
+  logout,
 } = require("../controllers/authController");
 const { authenticate } = require("../middleware/authMiddleware");
 const multer = require("multer");
@@ -41,6 +42,7 @@ router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
 router.post("/login", login);
 router.post("/delete", authenticate, deleteUser);
+router.post("/logout", authenticate, logout);
 
 
 module.exports = router;

@@ -1,9 +1,9 @@
-import axios from "axios";
 import React, { useState } from "react";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 import useToast from "../../hooks/ToastContext";
 import { useDispatch } from "react-redux";
 import { resetQuiz } from "../../redux/slices/quizSlice";
+import api from "../../api/api";
 
 const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
   const dispatch = useDispatch();
@@ -102,10 +102,8 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
 
   const handleDelete = async () => {
     try {
-      const res = await axios.delete(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/api/quiz-attempts/assignment/delete`,
+      const res = await api.delete(
+        "/api/quiz-attempts/assignment/delete",
         {
           data: {
             id: deleteDialog.id,
@@ -157,10 +155,8 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
     try {
       const { id, quiz_id, user_id } = rescheduleDialog;
 
-      const res = await axios.put(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/api/quiz-attempts/assignment/reschedule`,
+      const res = await api.put(
+        "/api/quiz-attempts/assignment/reschedule",
         { id, quiz_id, user_id }
       );
 

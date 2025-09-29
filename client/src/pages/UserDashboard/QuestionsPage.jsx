@@ -30,9 +30,9 @@ import {
 } from "../../redux/slices/quizSlice";
 import useToast from "../../hooks/ToastContext";
 import { Checkbox } from "@/components/ui/checkbox";
-import axios from "axios";
 import { store } from "../../redux/store"; // ✅ named import
 import { useExam } from "../../lib/ExamContext";
+import api from "../../api/api";
 
 export default function QuestionsPage() {
   const { quizId } = useParams();
@@ -466,8 +466,8 @@ export default function QuestionsPage() {
 
     // 🔗 Call backend to mark quiz start
     try {
-      const startRes = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/start`,
+      const startRes = await api.post(
+        "/api/quiz-assignments/start",
         {
           quiz_id: quizId,
           user_id: user.id,
@@ -538,8 +538,8 @@ export default function QuestionsPage() {
     // console.log("Submitting answers:", Object.entries(latestAnswers));
 
     try {
-      await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/end`,
+      await api.post(
+        "/api/quiz-assignments/end",
         {
           quiz_id: quizId,
           user_id: user.id,

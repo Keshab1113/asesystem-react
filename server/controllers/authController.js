@@ -1,4 +1,3 @@
-
 const bcrypt = require("bcryptjs");
 const db = require("../config/database");
 const uploadToFTP = require("../config/uploadToFTP.js");
@@ -7,6 +6,7 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { sendOtpEmail } = require("../utils/mailer.js");
 const pool = require("../config/database");
+const { v4: uuidv4 } = require("uuid");
 
 const OTP_TTL_MINUTES = 10;
 const otpExpiryStore = new Map();
@@ -558,7 +558,10 @@ const login = async (req, res) => {
     }
 
     const [users] = await pool.execute(
-      "SELECT id, group_id, team_id, name, email, password_hash, role, is_active, otp, profile_pic_url, bio, position, last_login, created_at,location, phone, `group`, controlling_team, employee_id FROM users WHERE email = ?",
+      `SELECT id, name, email, phone, password_hash, role, position, employee_id, 
+              group_id, team_id, \`group\`, controlling_team, profile_pic_url, bio, 
+              otp, company_id, is_active, last_login, created_at, updated_at, location, session_token 
+       FROM users WHERE email = ?`,
       [email]
     );
 
@@ -586,14 +589,20 @@ const login = async (req, res) => {
       });
     }
 
-    await pool.execute("UPDATE users SET last_login = NOW() WHERE id = ?", [
-      user.id,
-    ]);
+    // ✅ Generate new session token
+    const sessionId = uuidv4();
 
-    const { password_hash, otp, ...userSafe } = user;
+    // ✅ Save sessionId in DB (invalidate old sessions)
+    await pool.execute(
+      "UPDATE users SET last_login = NOW(), session_token = ? WHERE id = ?",
+      [sessionId, user.id]
+    );
 
+    const { password_hash, otp, session_token, ...userSafe } = user;
+
+    // ✅ JWT contains sessionId
     const token = jwt.sign(
-      { id: user.id, role: user.role, email: user.email },
+      { id: user.id, role: user.role, email: user.email, sessionId },
       process.env.JWT_SECRET || "your-secret-key",
       { expiresIn: "1d" }
     );
@@ -611,7 +620,6 @@ const login = async (req, res) => {
     });
   }
 };
-
 // Delete user by ID (admin only)
 const deleteUser = async (req, res) => {
   try {
@@ -625,10 +633,9 @@ const deleteUser = async (req, res) => {
     }
 
     // Check if user exists
-    const [users] = await db.execute(
-      "SELECT id FROM users WHERE id = ?",
-      [userId]
-    );
+    const [users] = await db.execute("SELECT id FROM users WHERE id = ?", [
+      userId,
+    ]);
 
     if (users.length === 0) {
       return res.status(404).json({
@@ -653,6 +660,18 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  try {
+    await db.execute(
+      "UPDATE users SET session_token = NULL WHERE id = ?", 
+      [req.userId]
+    );
+    res.json({ success: true, message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ success: false, message: "Logout failed" });
+  }
+};
 
 module.exports = {
   changePassword,
@@ -666,5 +685,6 @@ module.exports = {
   resendOtp,
   login,
   deleteUser,
-  getUsersByGroupAndTeam
+  getUsersByGroupAndTeam,
+  logout,
 };

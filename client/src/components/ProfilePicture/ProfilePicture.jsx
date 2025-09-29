@@ -24,6 +24,7 @@ import { Edit, Upload } from "lucide-react";
 import useToast from "../../hooks/ToastContext";
 import { updateUser } from "../../redux/slices/authSlice";
 import { Button } from "../ui/button";
+import api from "../../api/api";
 
 function createImage(url) {
   return new Promise((resolve, reject) => {
@@ -111,8 +112,8 @@ const ProfilePicture = () => {
       });
       const formData = new FormData();
       formData.append("profilePic", croppedFile);
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/auth/upload-profile-picture`,
+      const response = await api.post(
+        "/api/auth/upload-profile-picture",
         formData,
         {
           headers: {

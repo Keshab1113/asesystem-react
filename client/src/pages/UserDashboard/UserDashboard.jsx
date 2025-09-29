@@ -32,9 +32,9 @@ import { useLanguage } from "@/lib/language-context";
 import { useSelector } from "react-redux";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import useToast from "../../hooks/ToastContext";
 import { useExam } from "../../lib/ExamContext";
+import api from "../../api/api";
 
 export default function DashboardPage() {
   const { t } = useLanguage();
@@ -194,10 +194,8 @@ export default function DashboardPage() {
       // Step 1: Mark assessment as started
 
       // Step 2: Assign random questions
-      const assignRes = await axios.post(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/api/quiz-assignments/assign-random`,
+      const assignRes = await api.post(
+        "/api/quiz-assignments/assign-random",
         {
           quizId: assessment.quiz_id,
           quizSessionId: assessment.quiz_session_id, // ✅ new field
@@ -254,10 +252,8 @@ export default function DashboardPage() {
 
     try {
       // Step 2: Assign random questions
-      const assignRes = await axios.post(
-        `${
-          import.meta.env.VITE_BACKEND_URL
-        }/api/quiz-assignments/assign-random`,
+      const assignRes = await api.post(
+        "/api/quiz-assignments/assign-random",
         {
           quizId: assessment.quiz_id,
           quizSessionId: assessment.quiz_session_id, // ✅ new field

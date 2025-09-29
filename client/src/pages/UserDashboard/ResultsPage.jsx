@@ -20,9 +20,9 @@ import {
   Loader2
 } from "lucide-react";
 import { useSelector } from "react-redux";
-import axios from "axios";
 import useToast from "../../hooks/ToastContext";
 import { useExam } from "../../lib/ExamContext";
+import api from "../../api/api";
 
 export default function ResultsPage() {
   const navigate = useNavigate();
@@ -46,8 +46,8 @@ export default function ResultsPage() {
   useEffect(() => {
     const fetchQuizTitle = async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/title`
+        const res = await api.get(
+          "/api/quiz-attempts/title"
         );
         if (res.data.success) {
           setAllQuiz(res.data.data);
@@ -75,8 +75,8 @@ export default function ResultsPage() {
       if (!assignmentId) return;
 
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/results/${assignmentId}`,
+        const res = await api.get(
+          `/api/results/${assignmentId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         console.log("Fetched results data:", res.data); // Debug log
@@ -171,8 +171,8 @@ export default function ResultsPage() {
   const handleCertificate = async () => {
     try {
       setIsLoadingCertificate(true);
-      const checkResponse = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/certificates/get`,
+      const checkResponse = await api.post(
+        "/api/certificates/get",
         { user_id: user.id, quiz_id: quizId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -184,9 +184,9 @@ export default function ResultsPage() {
         setIsLoadingCertificate(false);
 
         toast({
-          title: "Certificate Already Exists",
-          description: "You can download the existing certificate",
-          variant: "info",
+          title: "Downloaded!",
+          description: "Certificate downloaded successfully",
+          variant: "success",
         });
 
         await handleDownload(
@@ -209,8 +209,8 @@ export default function ResultsPage() {
         score: scorePercentage,
       };
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/certificates/generate`,
+      const response = await api.post(
+        "/api/certificates/generate",
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },

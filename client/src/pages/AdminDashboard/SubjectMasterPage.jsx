@@ -2,7 +2,6 @@
 
 // import { useState } from "react";
 import { useState, useEffect } from "react";
-import axios from "axios";
 
 import {
   Card,
@@ -38,6 +37,7 @@ import EditQuestionsModal from "../../components/AdminDashboard/EditQuestionModa
 import useToast from "../../hooks/ToastContext";
 import { Eye, Users, Pencil } from "lucide-react";
 import { ConfirmationDialog } from "../../components/AdminDashboard/ConfirmationDialog";
+import api from "../../api/api";
 
 export function SubjectMasterPage() {
   const [subjects, setSubjects] = useState([]);
@@ -66,8 +66,8 @@ export function SubjectMasterPage() {
   useEffect(() => {
     const fetchSubjects = async () => {
       try {
-        const response = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/list/2`
+        const response = await api.get(
+          "/api/quiz-attempts/list/2"
         );
         console.log("response.data.data2: ", response.data.data);
 
@@ -128,8 +128,8 @@ export function SubjectMasterPage() {
   );
   const handleCreateSession = async (quizId) => {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/create-session`,
+      const response = await api.post(
+        "/api/quiz-sessions/create-session",
         { quiz_id: quizId }
       );
 
@@ -154,8 +154,8 @@ export function SubjectMasterPage() {
   };
   const handleDeleteQuiz = async () => {
     try {
-      await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/assessment/${
+      await api.delete(
+        `/api/quiz-attempts/assessment/${
           deleteDialog.assessmentId
         }`
       );
@@ -179,8 +179,8 @@ export function SubjectMasterPage() {
 
   const handleToggleStatus = async (id, is_active) => {
     try {
-      await axios.put(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/${id}/status`,
+      await api.put(
+        `/api/quiz-attempts/${id}/status`,
         {
           is_active,
         }

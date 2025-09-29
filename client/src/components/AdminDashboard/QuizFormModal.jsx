@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { formatInTimeZone } from "date-fns-tz";
 import {
   Dialog,
@@ -44,6 +43,7 @@ import {
 import { Calendar } from "../../components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
+import api from "../../api/api";
 
 export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
   const { toast } = useToast();
@@ -260,22 +260,17 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
 
     try {
       if (isEditing && session?.sessionId) {
-        await axios.put(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-sessions/${
-            session.sessionId
-          }`,
-          {
-            sessionName: formData.sessionName,
-            timeLimit: formData.timeLimit,
-            passingScore: formData.passingScore,
-            maxAttempts: formData.maxAttempts,
-            maxQuestions: formData.maxQuestions,
-            scheduleStartDate: formData.scheduleStartDate,
-            scheduleStartTime: formData.scheduleStartTime,
-            scheduleEndDate: formData.scheduleEndDate,
-            scheduleEndTime: formData.scheduleEndTime,
-          }
-        );
+        await api.put(`/api/quiz-sessions/${session.sessionId}`, {
+          sessionName: formData.sessionName,
+          timeLimit: formData.timeLimit,
+          passingScore: formData.passingScore,
+          maxAttempts: formData.maxAttempts,
+          maxQuestions: formData.maxQuestions,
+          scheduleStartDate: formData.scheduleStartDate,
+          scheduleStartTime: formData.scheduleStartTime,
+          scheduleEndDate: formData.scheduleEndDate,
+          scheduleEndTime: formData.scheduleEndTime,
+        });
         if (onAssigned) {
           onAssigned();
         }
@@ -286,10 +281,7 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
         });
       } else {
         // Create new quiz
-        await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/create`,
-          quizData
-        );
+        await api.post("/api/quiz-attempts/create", quizData);
         toast({
           title: "Assessment Created",
           description: `Assessment "${formData.name}" has been created successfully.`,

@@ -18,7 +18,6 @@ import {
 import { Textarea } from "../../components/ui/textarea";
 import { Badge } from "../../components/ui/badge";
 import { Search, Award, Download, Send, PlusIcon } from "lucide-react";
-import axios from "axios";
 import useToast from "../../hooks/ToastContext";
 import {
   Dialog,
@@ -29,6 +28,7 @@ import {
   DialogTrigger,
 } from "../../components/ui/dialog";
 import { useSelector } from "react-redux";
+import api from "../../api/api";
 
 export function IssueCertificatePage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -88,8 +88,8 @@ export function IssueCertificatePage() {
         generateFrom: "manual",
       };
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/certificates/generate`,
+      const response = await api.post(
+        "/api/certificates/generate",
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -123,7 +123,7 @@ export function IssueCertificatePage() {
   useEffect(() => {
     const fetchAttempts = async () => {
       try {
-        const res = await axios.get(
+        const res = await api.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/auth/role/user`
         );
         if (res.data.success) {
@@ -135,8 +135,8 @@ export function IssueCertificatePage() {
     };
     const fetchQuizTitle = async () => {
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-attempts/title`
+        const res = await api.get(
+          "/api/quiz-attempts/title"
         );
         if (res.data.success) {
           setAllQuiz(res.data.data);
@@ -162,7 +162,7 @@ export function IssueCertificatePage() {
   const fetchAssignments = async (userID) => {
     try {
       const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${userID}`
+        `/api/quiz-assignments/${userID}`
       );
       const data = await res.json();
       return data.data;
@@ -213,8 +213,8 @@ export function IssueCertificatePage() {
         generateFrom: "manual",
       };
 
-      const response = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/certificates/generate`,
+      const response = await api.post(
+        "/api/certificates/generate",
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },
