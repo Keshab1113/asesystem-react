@@ -155,37 +155,21 @@ export default function QuestionsPage() {
   const [pendingRefreshAction, setPendingRefreshAction] = useState(false);
 
   // Replace your current beforeunload handler useEffect with this:
+  // ✅ KEEP THIS but SIMPLIFY it
   useEffect(() => {
     if (!acceptedInstructions || showInstructions) return;
 
     setBlockNavigation(true);
 
-    let isReloading = false;
-
     const handleBeforeUnload = (event) => {
-      // Only show custom dialog for reloads, not for tab closes
-      if (
-        performance.navigation.type === 1 ||
-        event.currentTarget.performance.navigation.type === 1 ||
-        event.currentTarget.performance?.getEntriesByType?.("navigation")[0]
-          ?.type === "reload"
-      ) {
-        // Prevent default browser dialog
-        event.preventDefault();
+      // Show our custom refresh warning for ALL page unloads
+      event.preventDefault();
+      setShowRefreshWarning(true);
+      setPendingRefreshAction(true);
 
-        // Show our custom refresh warning
-        setShowRefreshWarning(true);
-        setPendingRefreshAction(true);
-
-        // Don't return anything to prevent default browser dialog
-        return;
-      } else {
-        // For tab close, show default browser warning
-        event.preventDefault();
-        event.returnValue =
-          "You have unsaved changes. Are you sure you want to leave?";
-        return "You have unsaved changes. Are you sure you want to leave?";
-      }
+      // Don't show browser's default dialog
+      event.returnValue = "";
+      return "";
     };
 
     // Enhanced back button handling
@@ -211,31 +195,6 @@ export default function QuestionsPage() {
       setBlockNavigation(false);
     };
   }, [acceptedInstructions, showInstructions, navigate]);
-
-  // Add this useEffect to handle actual page reloads
-  useEffect(() => {
-    if (!timerStarted || !acceptedInstructions) return;
-
-    const handleActualReload = () => {
-      // This will trigger when the page is actually reloading
-      if (pendingRefreshAction) {
-        handleSubmit(
-          true,
-          "Page reload detected. Assessment terminated.",
-          "terminated"
-        );
-      }
-    };
-
-    window.addEventListener("beforeunload", handleActualReload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleActualReload);
-    };
-  }, [timerStarted, acceptedInstructions, pendingRefreshAction]);
-
-  // Add the custom refresh warning modal to your JSX
-  // Add this right after the existing warning alert in your JSX return statement
 
   // Enhanced back button handling for mobile (especially iOS)
   useEffect(() => {
@@ -557,60 +516,25 @@ export default function QuestionsPage() {
     }
   }, [quizSessionId]);
 
-  // Add this useEffect to handle iOS refresh detection
-  // Replace your current iOS refresh detection useEffect with this:
+  // ✅ ADD THIS - Handles actual termination when reload is confirmed
   useEffect(() => {
-    if (!timerStarted || !acceptedInstructions) return;
+    if (!pendingRefreshAction) return;
 
-    let pageHideTime = 0;
-    let isIOSRefresh = false;
-
-    const handlePageHide = () => {
-      pageHideTime = Date.now();
-      // iOS often triggers pagehide for refreshes
-      isIOSRefresh = true;
+    const handleUnload = () => {
+      // This will execute when the page is actually unloading after user clicks "Reload & Terminate"
+      handleSubmit(
+        true,
+        "Page reload detected. Assessment terminated.",
+        "terminated"
+      );
     };
 
-    const handlePageShow = () => {
-      const hiddenTime = Date.now() - pageHideTime;
-
-      // If page was hidden for a very short time (typical refresh) or we detected iOS refresh
-      if ((hiddenTime > 100 && hiddenTime < 2000) || isIOSRefresh) {
-        setWarnings((prev) => {
-          const newWarnings = prev + 1;
-          if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Page refresh detected. Assessment terminated.",
-              "terminated"
-            );
-          } else {
-            setShowWarning(true);
-            setTimeout(() => setShowWarning(false), 3000);
-
-            toast({
-              title: "⚠️ Warning",
-              description:
-                "Page refresh detected. Multiple violations will result in automatic termination.",
-              variant: "warning",
-            });
-          }
-          return newWarnings;
-        });
-      }
-
-      isIOSRefresh = false;
-    };
-
-    // iOS-specific event listeners
-    window.addEventListener("pagehide", handlePageHide);
-    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("unload", handleUnload);
 
     return () => {
-      window.removeEventListener("pagehide", handlePageHide);
-      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("unload", handleUnload);
     };
-  }, [timerStarted, acceptedInstructions]);
+  }, [pendingRefreshAction]);
 
   const handleAnswerChange = (questionId, option) => {
     // console.log(`Answer changed - Question ID: ${questionId}, Answer: ${option}, Question Text: ${currentQuestion?.question_text}`);
