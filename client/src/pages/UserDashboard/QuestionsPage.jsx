@@ -150,48 +150,66 @@ export default function QuestionsPage() {
   }, [quizId, quizSessionId, dispatch]);
 
   // Block browser back navigation and auto-submit when questions are shown
-  useEffect(() => {
-    if (!acceptedInstructions || showInstructions) return;
+  // Replace your existing beforeunload handler with this:
+useEffect(() => {
+  if (!acceptedInstructions || showInstructions) return;
 
-    // Set up navigation blocking
-    setBlockNavigation(true);
+  setBlockNavigation(true);
 
-    // Handle browser back button - only auto-submit on back button, not refresh
-    const handleBackButton = (event) => {
-      // Prevent default back navigation
+  let isReloading = false;
+
+  const handleBeforeUnload = (event) => {
+    // Check if this is a reload (not tab close)
+    if (performance.navigation.type === 1 || performance.getEntriesByType("navigation")[0]?.type === "reload") {
+      isReloading = true;
+      
+      // Auto-submit with terminated status for reload
       event.preventDefault();
-      event.returnValue = "";
-
-      // Auto-submit when back button is pressed
-      console.log("Back navigation detected - auto-submitting assessment");
-      handleSubmit(
-        true,
-        "Back navigation detected. Assessment auto-submitted."
-      );
-    };
-
-    // Handle beforeunload (page refresh/close) - don't auto-submit, just show warning
-    const handleBeforeUnload = (event) => {
-      // Only show warning for page refresh/close, don't auto-submit
+      event.returnValue = "Reloading will terminate your assessment. Are you sure?";
+      
+      // Use setTimeout to allow the dialog to show, then auto-submit
+      setTimeout(() => {
+        handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
+      }, 100);
+      
+      return "Reloading will terminate your assessment. Are you sure?";
+    } else {
+      // For tab close, just show warning
       event.preventDefault();
-      event.returnValue =
-        "You have unsaved changes. Are you sure you want to leave?";
+      event.returnValue = "You have unsaved changes. Are you sure you want to leave?";
       return "You have unsaved changes. Are you sure you want to leave?";
-    };
+    }
+  };
 
-    // Add event listeners
-    window.addEventListener("popstate", handleBackButton);
-    window.addEventListener("beforeunload", handleBeforeUnload);
+  // Enhanced back button handling
+  const handleBackButton = (event) => {
+    event.preventDefault();
+    event.returnValue = "";
+    handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
+  };
 
-    // Push a new state to prevent back navigation
-    window.history.pushState(null, "", window.location.href);
+  // Add performance navigation tracking
+  const handleNavigation = () => {
+    if (performance.navigation.type === 1) {
+      // This is a reload
+      handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
+    }
+  };
 
-    return () => {
-      window.removeEventListener("popstate", handleBackButton);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      setBlockNavigation(false);
-    };
-  }, [acceptedInstructions, showInstructions, navigate]);
+  window.addEventListener("popstate", handleBackButton);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("pagehide", handleNavigation);
+
+  // Push a new state to prevent back navigation
+  window.history.pushState(null, "", window.location.href);
+
+  return () => {
+    window.removeEventListener("popstate", handleBackButton);
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener("pagehide", handleNavigation);
+    setBlockNavigation(false);
+  };
+}, [acceptedInstructions, showInstructions, navigate]);
 
   // Enhanced back button handling for mobile (especially iOS)
   useEffect(() => {
@@ -206,10 +224,7 @@ export default function QuestionsPage() {
       console.log("Mobile back button detected - auto-submitting assessment");
 
       // Auto-submit when back button is pressed
-      handleSubmit(
-        true,
-        "Back navigation detected. Assessment auto-submitted."
-      ).finally(() => {
+      handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated").finally(() => {
         isSubmitting = false;
       });
     };
@@ -250,10 +265,7 @@ export default function QuestionsPage() {
       console.log("Popstate detected - auto-submitting assessment");
       if (isMobile) {
         console.log("Mobile back button blocked");
-        handleSubmit(
-          true,
-          "Back navigation detected. Assessment auto-submitted."
-        );
+        handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
       } else {
         console.log("Desktop back button blocked");
       }
@@ -386,10 +398,7 @@ export default function QuestionsPage() {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Multiple violations detected. Assessment auto-submitted."
-            );
+            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
           } else {
             setShowWarning(true);
             setTimeout(() => setShowWarning(false), 3000);
@@ -407,7 +416,7 @@ export default function QuestionsPage() {
         !document.mozFullScreenElement &&
         !document.msFullscreenElement
       ) {
-        handleSubmit(true, "Fullscreen exited. Assessment auto-submitted.");
+        handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
       }
     };
     // Handle window/tab blur
@@ -415,7 +424,7 @@ export default function QuestionsPage() {
       setWarnings((prev) => {
         const newWarnings = prev + 1;
         if (newWarnings >= 2) {
-          handleSubmit(true, "Window/tab switched. Assessment auto-submitted.");
+          handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
         }
         return newWarnings;
       });
@@ -427,7 +436,7 @@ export default function QuestionsPage() {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(true, "Focus lost. Assessment auto-submitted.");
+            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
           }
           return newWarnings;
         });
@@ -445,10 +454,7 @@ export default function QuestionsPage() {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "App/tab switch detected. Assessment auto-submitted."
-            );
+            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
           }
           return newWarnings;
         });
@@ -496,6 +502,55 @@ export default function QuestionsPage() {
       setCurrentQuestionIndex(Number(savedIndex));
     }
   }, [quizSessionId]);
+
+  // Add this useEffect to handle iOS refresh detection
+  useEffect(() => {
+    if (!timerStarted || !acceptedInstructions) return;
+
+    let pageHideTime = 0;
+
+    const handlePageHide = () => {
+      pageHideTime = Date.now();
+    };
+
+    const handlePageShow = () => {
+      const hiddenTime = Date.now() - pageHideTime;
+      // If page was hidden for more than 1 second, consider it a refresh/tab switch
+      if (hiddenTime > 1000) {
+        setWarnings((prev) => {
+          const newWarnings = prev + 1;
+          if (newWarnings >= 2) {
+            handleSubmit(
+              true,
+              "Page refresh detected. Assessment auto-submitted.",
+              "terminated" // Add status parameter
+            );
+          } else {
+            setShowWarning(true);
+            setTimeout(() => setShowWarning(false), 3000);
+
+            // iOS-specific toast notification
+            toast({
+              title: "⚠️ Warning",
+              description:
+                "Page refresh detected. Multiple violations will result in automatic submission.",
+              variant: "warning",
+            });
+          }
+          return newWarnings;
+        });
+      }
+    };
+
+    // iOS-specific event listeners
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }, [timerStarted, acceptedInstructions]);
 
   const handleAnswerChange = (questionId, option) => {
     // console.log(`Answer changed - Question ID: ${questionId}, Answer: ${option}, Question Text: ${currentQuestion?.question_text}`);
@@ -633,66 +688,55 @@ export default function QuestionsPage() {
     }
   };
 
-  const handleSubmit = async (forced = false, message = null) => {
+  const handleSubmit = async (
+    forced = false,
+    message = null,
+    status = "submitted"
+  ) => {
     // Prevent multiple submissions
     if (submitting) return;
 
     setSubmitting(true);
     setBlockNavigation(false);
 
-    // 1. Manual submit (user action)
-    // 🔑 Always re-read latest Redux state
+    // Get latest answers
     const latestAnswers = store.getState().quiz.answers[quizId] || {};
-    console.log("Submitting answers:", Object.entries(latestAnswers));
-    console.log("Total questions:", questions.length);
-    console.log("Answered questions:", Object.keys(latestAnswers).length);
-
-    // Debug question IDs and answers
-    questions.forEach((q, index) => {
-      // console.log(`Question ${index + 1}: ID=${q.id}, Text=${q.question_text}, Answer=${latestAnswers[q.id] || 'Not answered'}`);
-    });
 
     if (!forced) {
       const allQuestionsAnswered = questions.every((q) => latestAnswers[q.id]);
-
       if (!allQuestionsAnswered) {
         const unansweredQuestions = questions.filter(
           (q) => !latestAnswers[q.id]
         );
-
         toast({
           title: "❌ Assessment Incomplete",
           description: `You must answer all questions. ${unansweredQuestions.length} left.`,
           variant: "destructive",
         });
-
         goToUnansweredQuestion();
         setSubmitting(false);
         return;
       }
     }
 
-    // 2. If forced (cheating or time up), skip completeness check
+    // Exit fullscreen if active
     if (document.fullscreenElement) {
       document.exitFullscreen().catch((err) => {
         console.warn("Failed to exit fullscreen:", err);
       });
     }
-    // console.log("Submitting answers:", Object.entries(latestAnswers));
 
     try {
-      console.log("Calling API to end assessment...");
+      console.log("Calling API to end assessment with status:", status);
       const response = await api.post("/api/quiz-assignments/end", {
         quiz_id: quizId,
         user_id: user.id,
         assignment_id: assignmentId,
         quiz_session_id: quizSessionId,
         passing_score: passing_score,
+        status: status, // Add status to the request
         answers: questions.map((question) => {
           const answer = latestAnswers[question.id] || "";
-          console.log(
-            `Sending to backend - Question ID: ${question.id}, Answer: ${answer}`
-          );
           return {
             question_id: Number(question.id),
             answer: answer,
@@ -714,32 +758,25 @@ export default function QuestionsPage() {
         window.onbeforeunload = null;
         window.history.pushState = null;
 
-        console.log("Navigating to ResultsPage with:", {
-          assignmentId,
-          quizSessionId,
-          url: `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`,
-        });
-
-        // Use replace: true to prevent going back to questions page
-        // navigate(
-        //   `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`,
-        //   {
-        //     replace: true,
-        //   }
-        // );
-        setTimeout(() => {
-          console.log("Force redirect");
-          window.location.href = `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`;
-        }, 500);
-
-        // Show success message if not forced submission
-        if (!forced && message) {
+        // Show appropriate message based on status
+        if (status === "terminated") {
+          toast({
+            title: "Assessment Terminated",
+            description: message || "Assessment terminated due to violation.",
+            variant: "destructive",
+          });
+        } else if (!forced) {
           toast({
             title: "Assessment Submitted",
-            description: message,
+            description: message || "Assessment submitted successfully.",
             variant: "success",
           });
         }
+
+        // Redirect to results page
+        setTimeout(() => {
+          window.location.href = `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`;
+        }, 500);
       } else {
         throw new Error(response.data.message || "Failed to submit assessment");
       }
