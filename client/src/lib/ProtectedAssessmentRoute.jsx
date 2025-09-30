@@ -10,7 +10,7 @@ const ProtectedAssessmentRoute = ({ children }) => {
     if (user.role === "super_admin" || user.role === "admin") {
       return <Navigate to="/admin-dashboard" replace />;
     } else {
-      if (!examState.started || examState.completed || !examState.resultPage) {
+      if (!examState.started || (examState.completed && !examState.resultPage)) {
         return <Navigate to="/user-dashboard" replace />;
       }
     }

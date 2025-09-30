@@ -67,6 +67,7 @@ export default function QuestionsPage() {
   const { user } = useSelector((state) => state.auth);
   const [accepted, setAccepted] = useState(false);
   const { setExamState } = useExam();
+  const [blockNavigation, setBlockNavigation] = useState(false);
 
   // Calculate progress
   const answeredCount = Object.values(answers).filter(
@@ -142,6 +143,103 @@ export default function QuestionsPage() {
 
     if (quizSessionId) fetchQuestions();
   }, [quizId, quizSessionId, dispatch]);
+
+  // Block browser back navigation and auto-submit when questions are shown
+  useEffect(() => {
+    if (!acceptedInstructions || showInstructions) return;
+
+    // Set up navigation blocking
+    setBlockNavigation(true);
+
+    // Handle browser back button - only auto-submit on back button, not refresh
+    const handleBackButton = (event) => {
+      // Prevent default back navigation
+      event.preventDefault();
+      event.returnValue = '';
+      
+      // Auto-submit when back button is pressed
+      console.log("Back navigation detected - auto-submitting assessment");
+      handleSubmit(true, "Back navigation detected. Assessment auto-submitted.");
+    };
+
+    // Handle beforeunload (page refresh/close) - don't auto-submit, just show warning
+    const handleBeforeUnload = (event) => {
+      // Only show warning for page refresh/close, don't auto-submit
+      event.preventDefault();
+      event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+      return 'You have unsaved changes. Are you sure you want to leave?';
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handleBackButton);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Push a new state to prevent back navigation
+    window.history.pushState(null, '', window.location.href);
+
+    return () => {
+      window.removeEventListener('popstate', handleBackButton);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      setBlockNavigation(false);
+    };
+  }, [acceptedInstructions, showInstructions, navigate]);
+
+  // Enhanced back button handling for mobile (especially iOS)
+  useEffect(() => {
+    if (!blockNavigation || !acceptedInstructions || showInstructions) return;
+
+    let isSubmitting = false;
+
+    const handleBackButton = () => {
+      if (isSubmitting) return;
+      
+      isSubmitting = true;
+      console.log("Mobile back button detected - auto-submitting assessment");
+      
+      // Auto-submit when back button is pressed
+      handleSubmit(true, "Back navigation detected. Assessment auto-submitted.")
+        .finally(() => {
+          isSubmitting = false;
+        });
+    };
+
+    // iOS-specific back button handling
+    if (isMobile) {
+      // Add additional event listeners for mobile
+      window.addEventListener('pagehide', handleBackButton);
+      window.addEventListener('pageshow', () => {
+        // Reset submitting state when page becomes visible again
+        isSubmitting = false;
+      });
+    }
+
+    return () => {
+      if (isMobile) {
+        window.removeEventListener('pagehide', handleBackButton);
+        window.removeEventListener('pageshow', () => {});
+      }
+    };
+  }, [blockNavigation, acceptedInstructions, showInstructions, navigate]);
+
+  // Handle browser back button with history manipulation
+  useEffect(() => {
+    if (!blockNavigation) return;
+
+    const handlePopState = (event) => {
+      // Prevent back navigation and auto-submit
+      event.preventDefault();
+      console.log("Popstate detected - auto-submitting assessment");
+      handleSubmit(true, "Back navigation detected. Assessment auto-submitted.");
+    };
+
+    // Push a new state to prevent back navigation
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [blockNavigation, navigate]);
 
   useEffect(() => {
     if (!timerStarted || !acceptedInstructions) return;
@@ -455,6 +553,7 @@ export default function QuestionsPage() {
   setAcceptedInstructions(true);
   setShowInstructions(false);
   setTimerStarted(true);
+  setBlockNavigation(true);
 
   // Orientation lock
   if (screen.orientation && screen.orientation.lock) {
@@ -500,6 +599,7 @@ export default function QuestionsPage() {
     if (submitting) return;
     
     setSubmitting(true);
+    setBlockNavigation(false);
 
     // 1. Manual submit (user action)
     // 🔑 Always re-read latest Redux state
@@ -542,7 +642,8 @@ export default function QuestionsPage() {
     // console.log("Submitting answers:", Object.entries(latestAnswers));
 
     try {
-      await api.post(
+      console.log("Calling API to end assessment...");
+      const response = await api.post(
         "/api/quiz-assignments/end",
         {
           quiz_id: quizId,
@@ -562,22 +663,36 @@ export default function QuestionsPage() {
           }),
         }
       );
-      setExamState({ started: false, completed: true, resultPage: true });
-      localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
-      dispatch(resetQuiz(quizId));
-      // toast({
-      //   title: "Submitted",
-      //   description: message || "✅ Assessment submitted successfully!",
-      //   variant: "success",
-      // });
-      console.log("Navigating to ResultsPage with:", {
-        assignmentId,
-        quizSessionId,
-        url: `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
-      });
-      navigate(`/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`, {
-        replace: true,
-      });
+      
+      console.log("API response:", response.data);
+      
+      if (response.data.success) {
+        setExamState({ started: false, completed: true, resultPage: true });
+        localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
+        dispatch(resetQuiz(quizId));
+        
+        console.log("Navigating to ResultsPage with:", {
+          assignmentId,
+          quizSessionId,
+          url: `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
+        });
+        
+        // Use replace: true to prevent going back to questions page
+        navigate(`/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`, {
+          replace: true,
+        });
+        
+        // Show success message if not forced submission
+        if (!forced && message) {
+          toast({
+            title: "Assessment Submitted",
+            description: message,
+            variant: "success",
+          });
+        }
+      } else {
+        throw new Error(response.data.message || "Failed to submit assessment");
+      }
     } catch (err) {
       console.error("Error ending assessment:", err);
       toast({
@@ -664,8 +779,8 @@ export default function QuestionsPage() {
 
   if (showInstructions) {
     return (
-      <div className="flex flex-col justify-center items-center md:h-screen bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-        <Card className="w-full max-w-4xl shadow-xl py-0 overflow-hidden 2xl:gap-2 gap-0">
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <Card className="w-full max-w-4xl shadow-xl py-0 overflow-hidden 2xl:gap-2 gap-0" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
           <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4">
             <div className="flex items-center gap-3">
               <FileText className="w-8 h-8" />
@@ -792,7 +907,7 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="md:h-screen h-full md:overflow-hidden bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 select-none">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 select-none">
       {/* Header with progress and timer */}
       <div className=" bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm border-b p-4 w-full md:h-[4.5rem]">
         <div className="mx-auto">
@@ -864,7 +979,7 @@ export default function QuestionsPage() {
       )}
 
       {/* Main content container */}
-      <div className="  md:h-[calc(100vh-4.5rem)] h-full md:overflow-hidden  py-4 px-4">
+      <div className="py-4 px-4">
         <div className=" mx-auto max-w-7xl flex justify-center items-center h-full">
           {/* Main Layout with Sidebar and Content */}
           <div className="flex md:flex-row flex-col-reverse gap-8 w-full ">
