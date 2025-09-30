@@ -217,21 +217,39 @@ useEffect(() => {
   setBlockNavigation(true);
 
   const handleBeforeUnload = (event) => {
+  if (isMobile) {
+    // 🚫 Block reload completely on mobile
+    event.preventDefault();
+    event.returnValue = ""; // Suppress dialog
+    return "";
+  } else {
+    // ✅ Desktop → allow confirm dialog
     event.preventDefault();
     event.returnValue =
-      "Reloading or leaving will terminate your assessment. Are you sure?";
+      "Reloading will terminate your assessment. Do you want to reload?";
     return event.returnValue;
-  };
+  }
+};
+
 
   const handlePageHide = (event) => {
-    // Fires only if the page is actually unloading (user clicked Leave / reloaded)
-    if (event.persisted) return; // ignore bfcache restores
-    handleSubmit(
-      true,
-      "Page unload detected (reload/close/back). Assessment terminated.",
-      "terminated"
-    );
-  };
+  if (event.persisted) return; // ignore bfcache restores
+
+  if (isMobile) {
+    // 🚫 On iOS/Android → cancel reload, stay on same page
+    window.history.pushState(null, "", window.location.href);
+    return;
+  }
+
+  // ✅ On desktop → terminate normally
+  handleSubmit(
+    true,
+    "Page reload detected. Assessment terminated.",
+    "terminated"
+  );
+};
+
+
 
   const handlePopState = (event) => {
     event.preventDefault();
