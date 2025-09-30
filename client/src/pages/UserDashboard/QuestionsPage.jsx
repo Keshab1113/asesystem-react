@@ -150,53 +150,66 @@ export default function QuestionsPage() {
   }, [quizId, quizSessionId, dispatch]);
 
   // Block browser back navigation and auto-submit when questions are shown
-  // Add these states at the top with your other useState declarations
-  const [showRefreshWarning, setShowRefreshWarning] = useState(false);
-  const [pendingRefreshAction, setPendingRefreshAction] = useState(false);
+  // Replace your existing beforeunload handler with this:
+useEffect(() => {
+  if (!acceptedInstructions || showInstructions) return;
 
-  // Replace your current beforeunload handler useEffect with this:
-  // ✅ Replace your current beforeunload handler useEffect with this:
-  useEffect(() => {
-    if (!acceptedInstructions || showInstructions) return;
+  setBlockNavigation(true);
 
-    setBlockNavigation(true);
+  let isReloading = false;
 
-    const handleBeforeUnload = (event) => {
-      // Prevent the default browser dialog
+  const handleBeforeUnload = (event) => {
+    // Check if this is a reload (not tab close)
+    if (performance.navigation.type === 1 || performance.getEntriesByType("navigation")[0]?.type === "reload") {
+      isReloading = true;
+      
+      // Auto-submit with terminated status for reload
       event.preventDefault();
-
-      // Show our custom refresh warning for ALL page unloads
-      setShowRefreshWarning(true);
-      setPendingRefreshAction(true);
-
-      // Don't show browser's default dialog
-      event.returnValue = "";
-      return "";
-    };
-
-    // Enhanced back button handling
-    const handleBackButton = (event) => {
+      event.returnValue = "Reloading will terminate your assessment. Are you sure?";
+      
+      // Use setTimeout to allow the dialog to show, then auto-submit
+      setTimeout(() => {
+        handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
+      }, 100);
+      
+      return "Reloading will terminate your assessment. Are you sure?";
+    } else {
+      // For tab close, just show warning
       event.preventDefault();
-      event.returnValue = "";
-      handleSubmit(
-        true,
-        "Back navigation detected. Assessment terminated.",
-        "terminated"
-      );
-    };
+      event.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+      return "You have unsaved changes. Are you sure you want to leave?";
+    }
+  };
 
-    window.addEventListener("popstate", handleBackButton);
-    window.addEventListener("beforeunload", handleBeforeUnload);
+  // Enhanced back button handling
+  const handleBackButton = (event) => {
+    event.preventDefault();
+    event.returnValue = "";
+    handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
+  };
 
-    // Push a new state to prevent back navigation
-    window.history.pushState(null, "", window.location.href);
+  // Add performance navigation tracking
+  const handleNavigation = () => {
+    if (performance.navigation.type === 1) {
+      // This is a reload
+      handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
+    }
+  };
 
-    return () => {
-      window.removeEventListener("popstate", handleBackButton);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      setBlockNavigation(false);
-    };
-  }, [acceptedInstructions, showInstructions, navigate]);
+  window.addEventListener("popstate", handleBackButton);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("pagehide", handleNavigation);
+
+  // Push a new state to prevent back navigation
+  window.history.pushState(null, "", window.location.href);
+
+  return () => {
+    window.removeEventListener("popstate", handleBackButton);
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener("pagehide", handleNavigation);
+    setBlockNavigation(false);
+  };
+}, [acceptedInstructions, showInstructions, navigate]);
 
   // Enhanced back button handling for mobile (especially iOS)
   useEffect(() => {
@@ -211,11 +224,7 @@ export default function QuestionsPage() {
       console.log("Mobile back button detected - auto-submitting assessment");
 
       // Auto-submit when back button is pressed
-      handleSubmit(
-        true,
-        "Multiple violations detected. Assessment terminated.",
-        "terminated"
-      ).finally(() => {
+      handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated").finally(() => {
         isSubmitting = false;
       });
     };
@@ -256,11 +265,7 @@ export default function QuestionsPage() {
       console.log("Popstate detected - auto-submitting assessment");
       if (isMobile) {
         console.log("Mobile back button blocked");
-        handleSubmit(
-          true,
-          "Multiple violations detected. Assessment terminated.",
-          "terminated"
-        );
+        handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
       } else {
         console.log("Desktop back button blocked");
       }
@@ -393,11 +398,7 @@ export default function QuestionsPage() {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Multiple violations detected. Assessment terminated.",
-              "terminated"
-            );
+            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
           } else {
             setShowWarning(true);
             setTimeout(() => setShowWarning(false), 3000);
@@ -415,11 +416,7 @@ export default function QuestionsPage() {
         !document.mozFullScreenElement &&
         !document.msFullscreenElement
       ) {
-        handleSubmit(
-          true,
-          "Multiple violations detected. Assessment terminated.",
-          "terminated"
-        );
+        handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
       }
     };
     // Handle window/tab blur
@@ -427,11 +424,7 @@ export default function QuestionsPage() {
       setWarnings((prev) => {
         const newWarnings = prev + 1;
         if (newWarnings >= 2) {
-          handleSubmit(
-            true,
-            "Multiple violations detected. Assessment terminated.",
-            "terminated"
-          );
+          handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
         }
         return newWarnings;
       });
@@ -443,11 +436,7 @@ export default function QuestionsPage() {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Multiple violations detected. Assessment terminated.",
-              "terminated"
-            );
+            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
           }
           return newWarnings;
         });
@@ -465,11 +454,7 @@ export default function QuestionsPage() {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Multiple violations detected. Assessment terminated.",
-              "terminated"
-            );
+            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
           }
           return newWarnings;
         });
@@ -518,25 +503,54 @@ export default function QuestionsPage() {
     }
   }, [quizSessionId]);
 
-  // ✅ ADD THIS - Handles actual termination when reload is confirmed
+  // Add this useEffect to handle iOS refresh detection
   useEffect(() => {
-    if (!pendingRefreshAction) return;
+    if (!timerStarted || !acceptedInstructions) return;
 
-    const handleUnload = () => {
-      // This will execute when the page is actually unloading after user clicks "Reload & Terminate"
-      handleSubmit(
-        true,
-        "Page reload detected. Assessment terminated.",
-        "terminated"
-      );
+    let pageHideTime = 0;
+
+    const handlePageHide = () => {
+      pageHideTime = Date.now();
     };
 
-    window.addEventListener("unload", handleUnload);
+    const handlePageShow = () => {
+      const hiddenTime = Date.now() - pageHideTime;
+      // If page was hidden for more than 1 second, consider it a refresh/tab switch
+      if (hiddenTime > 1000) {
+        setWarnings((prev) => {
+          const newWarnings = prev + 1;
+          if (newWarnings >= 2) {
+            handleSubmit(
+              true,
+              "Page refresh detected. Assessment auto-submitted.",
+              "terminated" // Add status parameter
+            );
+          } else {
+            setShowWarning(true);
+            setTimeout(() => setShowWarning(false), 3000);
+
+            // iOS-specific toast notification
+            toast({
+              title: "⚠️ Warning",
+              description:
+                "Page refresh detected. Multiple violations will result in automatic submission.",
+              variant: "warning",
+            });
+          }
+          return newWarnings;
+        });
+      }
+    };
+
+    // iOS-specific event listeners
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
 
     return () => {
-      window.removeEventListener("unload", handleUnload);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
     };
-  }, [pendingRefreshAction]);
+  }, [timerStarted, acceptedInstructions]);
 
   const handleAnswerChange = (questionId, option) => {
     // console.log(`Answer changed - Question ID: ${questionId}, Answer: ${option}, Question Text: ${currentQuestion?.question_text}`);
@@ -684,8 +698,6 @@ export default function QuestionsPage() {
 
     setSubmitting(true);
     setBlockNavigation(false);
-    setShowRefreshWarning(false);
-    setPendingRefreshAction(false);
 
     // Get latest answers
     const latestAnswers = store.getState().quiz.answers[quizId] || {};
@@ -722,7 +734,7 @@ export default function QuestionsPage() {
         assignment_id: assignmentId,
         quiz_session_id: quizSessionId,
         passing_score: passing_score,
-        status: status,
+        status: status, // Add status to the request
         answers: questions.map((question) => {
           const answer = latestAnswers[question.id] || "";
           return {
@@ -744,6 +756,7 @@ export default function QuestionsPage() {
 
         setBlockNavigation(false);
         window.onbeforeunload = null;
+        window.history.pushState = null;
 
         // Show appropriate message based on status
         if (status === "terminated") {
@@ -1310,47 +1323,6 @@ export default function QuestionsPage() {
           </div>
         </div>
       </div>
-      {showRefreshWarning && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in duration-300">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-8 h-8 text-amber-500" />
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Refresh Warning
-              </h3>
-            </div>
-
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Refreshing the page will terminate your assessment and submit your
-              current answers. Are you sure you want to continue?
-            </p>
-
-            <div className="flex gap-3 justify-end">
-              <Button
-                onClick={() => {
-                  setShowRefreshWarning(false);
-                  setPendingRefreshAction(false);
-                }}
-                variant="outline"
-                className="px-6 py-2 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  setShowRefreshWarning(false);
-                  // Trigger the actual reload which will then call handleSubmit
-                  window.location.reload();
-                }}
-                variant="destructive"
-                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white"
-              >
-                Reload & Terminate
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
