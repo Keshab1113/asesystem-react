@@ -151,65 +151,108 @@ export default function QuestionsPage() {
 
   // Block browser back navigation and auto-submit when questions are shown
   // Replace your existing beforeunload handler with this:
+// useEffect(() => {
+//   if (!acceptedInstructions || showInstructions) return;
+
+//   setBlockNavigation(true);
+
+//   let isReloading = false;
+
+//   const handleBeforeUnload = (event) => {
+//     // Check if this is a reload (not tab close)
+//     if (performance.navigation.type === 1 || performance.getEntriesByType("navigation")[0]?.type === "reload") {
+//       isReloading = true;
+      
+//       // Auto-submit with terminated status for reload
+//       event.preventDefault();
+//       event.returnValue = "Reloading will terminate your assessment. Are you sure?";
+      
+//       // Use setTimeout to allow the dialog to show, then auto-submit
+//       setTimeout(() => {
+//         handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
+//       }, 100);
+      
+//       return "Reloading will terminate your assessment. Are you sure?";
+//     } else {
+//       // For tab close, just show warning
+//       event.preventDefault();
+//       event.returnValue = "You have unsaved changes. Are you sure you want to leave?";
+//       return "You have unsaved changes. Are you sure you want to leave?";
+//     }
+//   };
+
+//   // Enhanced back button handling
+//   const handleBackButton = (event) => {
+//     event.preventDefault();
+//     event.returnValue = "";
+//     handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
+//   };
+
+//   // Add performance navigation tracking
+//   const handleNavigation = () => {
+//     if (performance.navigation.type === 1) {
+//       // This is a reload
+//       handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
+//     }
+//   };
+
+//   window.addEventListener("popstate", handleBackButton);
+//   window.addEventListener("beforeunload", handleBeforeUnload);
+//   window.addEventListener("pagehide", handleNavigation);
+
+//   // Push a new state to prevent back navigation
+//   window.history.pushState(null, "", window.location.href);
+
+//   return () => {
+//     window.removeEventListener("popstate", handleBackButton);
+//     window.removeEventListener("beforeunload", handleBeforeUnload);
+//     window.removeEventListener("pagehide", handleNavigation);
+//     setBlockNavigation(false);
+//   };
+// }, [acceptedInstructions, showInstructions, navigate]);
+
 useEffect(() => {
   if (!acceptedInstructions || showInstructions) return;
 
   setBlockNavigation(true);
 
-  let isReloading = false;
-
   const handleBeforeUnload = (event) => {
-    // Check if this is a reload (not tab close)
-    if (performance.navigation.type === 1 || performance.getEntriesByType("navigation")[0]?.type === "reload") {
-      isReloading = true;
-      
-      // Auto-submit with terminated status for reload
-      event.preventDefault();
-      event.returnValue = "Reloading will terminate your assessment. Are you sure?";
-      
-      // Use setTimeout to allow the dialog to show, then auto-submit
-      setTimeout(() => {
-        handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
-      }, 100);
-      
-      return "Reloading will terminate your assessment. Are you sure?";
-    } else {
-      // For tab close, just show warning
-      event.preventDefault();
-      event.returnValue = "You have unsaved changes. Are you sure you want to leave?";
-      return "You have unsaved changes. Are you sure you want to leave?";
-    }
+    event.preventDefault();
+    event.returnValue =
+      "Reloading or leaving will terminate your assessment. Are you sure?";
+    return event.returnValue;
   };
 
-  // Enhanced back button handling
-  const handleBackButton = (event) => {
+  const handlePageHide = (event) => {
+    // Fires only if the page is actually unloading (user clicked Leave / reloaded)
+    if (event.persisted) return; // ignore bfcache restores
+    handleSubmit(
+      true,
+      "Page unload detected (reload/close/back). Assessment terminated.",
+      "terminated"
+    );
+  };
+
+  const handlePopState = (event) => {
     event.preventDefault();
-    event.returnValue = "";
     handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
   };
 
-  // Add performance navigation tracking
-  const handleNavigation = () => {
-    if (performance.navigation.type === 1) {
-      // This is a reload
-      handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
-    }
-  };
-
-  window.addEventListener("popstate", handleBackButton);
   window.addEventListener("beforeunload", handleBeforeUnload);
-  window.addEventListener("pagehide", handleNavigation);
+  window.addEventListener("pagehide", handlePageHide);
+  window.addEventListener("popstate", handlePopState);
 
-  // Push a new state to prevent back navigation
+  // Push dummy state to block back button
   window.history.pushState(null, "", window.location.href);
 
   return () => {
-    window.removeEventListener("popstate", handleBackButton);
     window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener("pagehide", handleNavigation);
+    window.removeEventListener("pagehide", handlePageHide);
+    window.removeEventListener("popstate", handlePopState);
     setBlockNavigation(false);
   };
 }, [acceptedInstructions, showInstructions, navigate]);
+
 
   // Enhanced back button handling for mobile (especially iOS)
   useEffect(() => {
