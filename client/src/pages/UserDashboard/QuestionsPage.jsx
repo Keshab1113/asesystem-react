@@ -88,31 +88,36 @@ export default function QuestionsPage() {
   useEffect(() => {
     // Automatically request fullscreen on page load (skip for mobile)
     const requestFullscreen = () => {
-  if (isMobile) return; // ✅ Skip on mobile
-  if (!isFullscreenActive()) {
-    const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-    else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-    else if (el.msRequestFullscreen) el.msRequestFullscreen();
-  }
-};
-
+      if (isMobile) return; // ✅ Skip on mobile
+      if (!isFullscreenActive()) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+        else if (el.msRequestFullscreen) el.msRequestFullscreen();
+      }
+    };
 
     // Request fullscreen after a short delay to ensure DOM is ready
     setTimeout(requestFullscreen, 100);
 
     const hasAccepted = localStorage.getItem(
-      `quiz_${quizId}_instructions_accepted`
+      `quiz_${quizSessionId}_instructions_accepted`
     );
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    
-    if (hasAccepted === "true" && (isMobile || (isFullscreenActive() && !isDevToolsOpen()))) {
+
+    if (
+      hasAccepted === "true" &&
+      (isMobile || (isFullscreenActive() && !isDevToolsOpen()))
+    ) {
       setAcceptedInstructions(true);
       setShowInstructions(false);
       setTimerStarted(true);
     } else {
-      localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
+      localStorage.setItem(
+        `quiz_${quizSessionId}_instructions_accepted`,
+        "false"
+      );
     }
 
     const fetchQuestions = async () => {
@@ -127,7 +132,7 @@ export default function QuestionsPage() {
 
         const data = await res.json();
         if (data.success) {
-          dispatch(setQuizQuestions({ quizId, questions: data.data }));
+          dispatch(setQuizQuestions({ quizId: quizId, questions: data.data }));
         }
         console.log("Fetched Questions:", data.data);
         // Debug question IDs
@@ -155,31 +160,35 @@ export default function QuestionsPage() {
     const handleBackButton = (event) => {
       // Prevent default back navigation
       event.preventDefault();
-      event.returnValue = '';
-      
+      event.returnValue = "";
+
       // Auto-submit when back button is pressed
       console.log("Back navigation detected - auto-submitting assessment");
-      handleSubmit(true, "Back navigation detected. Assessment auto-submitted.");
+      handleSubmit(
+        true,
+        "Back navigation detected. Assessment auto-submitted."
+      );
     };
 
     // Handle beforeunload (page refresh/close) - don't auto-submit, just show warning
     const handleBeforeUnload = (event) => {
       // Only show warning for page refresh/close, don't auto-submit
       event.preventDefault();
-      event.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
-      return 'You have unsaved changes. Are you sure you want to leave?';
+      event.returnValue =
+        "You have unsaved changes. Are you sure you want to leave?";
+      return "You have unsaved changes. Are you sure you want to leave?";
     };
 
     // Add event listeners
-    window.addEventListener('popstate', handleBackButton);
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("popstate", handleBackButton);
+    window.addEventListener("beforeunload", handleBeforeUnload);
 
     // Push a new state to prevent back navigation
-    window.history.pushState(null, '', window.location.href);
+    window.history.pushState(null, "", window.location.href);
 
     return () => {
-      window.removeEventListener('popstate', handleBackButton);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener("popstate", handleBackButton);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       setBlockNavigation(false);
     };
   }, [acceptedInstructions, showInstructions, navigate]);
@@ -192,22 +201,24 @@ export default function QuestionsPage() {
 
     const handleBackButton = () => {
       if (isSubmitting) return;
-      
+
       isSubmitting = true;
       console.log("Mobile back button detected - auto-submitting assessment");
-      
+
       // Auto-submit when back button is pressed
-      handleSubmit(true, "Back navigation detected. Assessment auto-submitted.")
-        .finally(() => {
-          isSubmitting = false;
-        });
+      handleSubmit(
+        true,
+        "Back navigation detected. Assessment auto-submitted."
+      ).finally(() => {
+        isSubmitting = false;
+      });
     };
 
     // iOS-specific back button handling
     if (isMobile) {
       // Add additional event listeners for mobile
-      window.addEventListener('pagehide', handleBackButton);
-      window.addEventListener('pageshow', () => {
+      window.addEventListener("pagehide", handleBackButton);
+      window.addEventListener("pageshow", () => {
         // Reset submitting state when page becomes visible again
         isSubmitting = false;
       });
@@ -215,8 +226,8 @@ export default function QuestionsPage() {
 
     return () => {
       if (isMobile) {
-        window.removeEventListener('pagehide', handleBackButton);
-        window.removeEventListener('pageshow', () => {});
+        window.removeEventListener("pagehide", handleBackButton);
+        window.removeEventListener("pageshow", () => {});
       }
     };
   }, [blockNavigation, acceptedInstructions, showInstructions, navigate]);
@@ -225,19 +236,32 @@ export default function QuestionsPage() {
   useEffect(() => {
     if (!blockNavigation) return;
 
+    const preventBack = () => {
+      window.history.pushState(null, "", window.location.href);
+    };
+
+    // Initial push
+    preventBack();
+
     const handlePopState = (event) => {
       // Prevent back navigation and auto-submit
       event.preventDefault();
+      preventBack();
       console.log("Popstate detected - auto-submitting assessment");
-      handleSubmit(true, "Back navigation detected. Assessment auto-submitted.");
+      if (isMobile) {
+        console.log("Mobile back button blocked");
+        handleSubmit(
+          true,
+          "Back navigation detected. Assessment auto-submitted."
+        );
+      } else {
+        console.log("Desktop back button blocked");
+      }
     };
-
-    // Push a new state to prevent back navigation
-    window.history.pushState(null, '', window.location.href);
-    window.addEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener("popstate", handlePopState);
     };
   }, [blockNavigation, navigate]);
 
@@ -455,6 +479,24 @@ export default function QuestionsPage() {
     };
   }, [timerStarted, acceptedInstructions]);
 
+  // Save question index to localStorage
+  useEffect(() => {
+    localStorage.setItem(
+      `quiz_${quizSessionId}_currentQuestion`,
+      currentQuestionIndex
+    );
+  }, [currentQuestionIndex, quizSessionId]);
+
+  // Restore on mount
+  useEffect(() => {
+    const savedIndex = localStorage.getItem(
+      `quiz_${quizSessionId}_currentQuestion`
+    );
+    if (savedIndex !== null) {
+      setCurrentQuestionIndex(Number(savedIndex));
+    }
+  }, [quizSessionId]);
+
   const handleAnswerChange = (questionId, option) => {
     // console.log(`Answer changed - Question ID: ${questionId}, Answer: ${option}, Question Text: ${currentQuestion?.question_text}`);
     // console.log(`Current question object:`, currentQuestion);
@@ -491,26 +533,24 @@ export default function QuestionsPage() {
 
   // ✅ Check if DevTools is open
   const isDevToolsOpen = () => {
-  if (isMobile) return false; // ✅ Skip for mobile
-  const threshold = 160;
-  return (
-    window.outerWidth - window.innerWidth > threshold ||
-    window.outerHeight - window.innerHeight > threshold
-  );
-};
-
+    if (isMobile) return false; // ✅ Skip for mobile
+    const threshold = 160;
+    return (
+      window.outerWidth - window.innerWidth > threshold ||
+      window.outerHeight - window.innerHeight > threshold
+    );
+  };
 
   // ✅ Check if fullscreen is active
   const isFullscreenActive = () => {
-  if (isMobile) return true; // ✅ Always "true" on mobile
-  return (
-    document.fullscreenElement ||
-    document.webkitFullscreenElement ||
-    document.mozFullScreenElement ||
-    document.msFullscreenElement
-  );
-};
-
+    if (isMobile) return true; // ✅ Always "true" on mobile
+    return (
+      document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.mozFullScreenElement ||
+      document.msFullscreenElement
+    );
+  };
 
   const handleAcceptInstructions = async () => {
     const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
@@ -549,29 +589,25 @@ export default function QuestionsPage() {
       }
     }
 
-  // ✅ Passed checks → allow start
-  setAcceptedInstructions(true);
-  setShowInstructions(false);
-  setTimerStarted(true);
-  setBlockNavigation(true);
+    // ✅ Passed checks → allow start
+    setAcceptedInstructions(true);
+    setShowInstructions(false);
+    setTimerStarted(true);
+    setBlockNavigation(true);
 
-  // Orientation lock
-  if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock("portrait").catch(() => {});
-  }
-
+    // Orientation lock
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock("portrait").catch(() => {});
+    }
 
     // 🔗 Call backend to mark quiz start
     try {
-      const startRes = await api.post(
-        "/api/quiz-assignments/start",
-        {
-          quiz_id: quizId,
-          user_id: user.id,
-          assignment_id: assignmentId,
-          quiz_session_id: quizSessionId,
-        }
-      );
+      const startRes = await api.post("/api/quiz-assignments/start", {
+        quiz_id: quizId,
+        user_id: user.id,
+        assignment_id: assignmentId,
+        quiz_session_id: quizSessionId,
+      });
 
       if (!startRes.data.success) {
         toast({
@@ -583,7 +619,10 @@ export default function QuestionsPage() {
       }
 
       // ✅ Save accepted only after backend success
-      localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "true");
+      localStorage.setItem(
+        `quiz_${quizSessionId}_instructions_accepted`,
+        "true"
+      );
     } catch (err) {
       console.error("Start assessment failed:", err);
       toast({
@@ -597,7 +636,7 @@ export default function QuestionsPage() {
   const handleSubmit = async (forced = false, message = null) => {
     // Prevent multiple submissions
     if (submitting) return;
-    
+
     setSubmitting(true);
     setBlockNavigation(false);
 
@@ -643,45 +682,56 @@ export default function QuestionsPage() {
 
     try {
       console.log("Calling API to end assessment...");
-      const response = await api.post(
-        "/api/quiz-assignments/end",
-        {
-          quiz_id: quizId,
-          user_id: user.id,
-          assignment_id: assignmentId,
-          quiz_session_id: quizSessionId,
-          passing_score: passing_score,
-          answers: questions.map((question) => {
-            const answer = latestAnswers[question.id] || "";
-            console.log(
-              `Sending to backend - Question ID: ${question.id}, Answer: ${answer}`
-            );
-            return {
-              question_id: Number(question.id),
-              answer: answer,
-            };
-          }),
-        }
-      );
-      
+      const response = await api.post("/api/quiz-assignments/end", {
+        quiz_id: quizId,
+        user_id: user.id,
+        assignment_id: assignmentId,
+        quiz_session_id: quizSessionId,
+        passing_score: passing_score,
+        answers: questions.map((question) => {
+          const answer = latestAnswers[question.id] || "";
+          console.log(
+            `Sending to backend - Question ID: ${question.id}, Answer: ${answer}`
+          );
+          return {
+            question_id: Number(question.id),
+            answer: answer,
+          };
+        }),
+      });
+
       console.log("API response:", response.data);
-      
+
       if (response.data.success) {
         setExamState({ started: false, completed: true, resultPage: true });
-        localStorage.setItem(`quiz_${quizId}_instructions_accepted`, "false");
-        dispatch(resetQuiz(quizId));
-        
+        localStorage.setItem(
+          `quiz_${quizSessionId}_instructions_accepted`,
+          "false"
+        );
+        dispatch(resetQuiz({ quizId }));
+
+        setBlockNavigation(false);
+        window.onbeforeunload = null;
+        window.history.pushState = null;
+
         console.log("Navigating to ResultsPage with:", {
           assignmentId,
           quizSessionId,
-          url: `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
+          url: `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`,
         });
-        
+
         // Use replace: true to prevent going back to questions page
-        navigate(`/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`, {
-          replace: true,
-        });
-        
+        // navigate(
+        //   `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`,
+        //   {
+        //     replace: true,
+        //   }
+        // );
+        setTimeout(() => {
+          console.log("Force redirect");
+          window.location.href = `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`;
+        }, 500);
+
         // Show success message if not forced submission
         if (!forced && message) {
           toast({
@@ -779,20 +829,23 @@ export default function QuestionsPage() {
 
   if (showInstructions) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-        <Card className="w-full max-w-4xl shadow-xl py-0 overflow-hidden 2xl:gap-2 gap-0" style={{ maxHeight: '90vh', overflowY: 'auto' }}>
+      <div className="flex flex-col h-screen md:h-full justify-center items-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+        <Card
+          className="w-full max-w-4xl shadow-xl py-0 overflow-hidden 2xl:gap-2 gap-0"
+          style={{ maxHeight: "90vh", overflowY: "auto" }}
+        >
           <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4">
             <div className="flex items-center gap-3">
               <FileText className="w-8 h-8" />
-              <CardTitle className="text-2xl">
+              <CardTitle className="md:text-2xl text-lg">
                 Assessment Instructions
               </CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="p-6 2xl:space-y-6 space-y-2">
+          <CardContent className="md:p-6 p-4 2xl:space-y-6 md:space-y-2 space-y-0.5">
             <div className="2xl:space-y-4 space-y-2">
               <h3 className="text-lg font-semibold">Before you begin:</h3>
-              <ul className="space-y-3 list-disc list-inside">
+              <ul className="space-y-3 list-disc list-inside md:text-lg text-sm">
                 <li>This assessment has a time limit of {time} minutes.</li>
                 <li>Once started, the timer cannot be paused.</li>
                 <li>You must answer all questions before submitting.</li>
@@ -815,7 +868,7 @@ export default function QuestionsPage() {
               </ul>
             </div>
 
-            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 hidden md:block">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
                 <p className="text-amber-800 dark:text-amber-200 2xl:text-base text-sm">
@@ -837,9 +890,14 @@ export default function QuestionsPage() {
                   }
 
                   // 🔎 Perform secure checks before accepting
-                  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-                  
-                  if (!isMobile && (isDevToolsOpen() || !isFullscreenActive())) {
+                  const isMobile = /Mobi|Android|iPhone|iPad/i.test(
+                    navigator.userAgent
+                  );
+
+                  if (
+                    !isMobile &&
+                    (isDevToolsOpen() || !isFullscreenActive())
+                  ) {
                     const reason = isDevToolsOpen()
                       ? "Developer Tools detected. Close them to start."
                       : "Fullscreen is required. Enter fullscreen to start.";
@@ -872,7 +930,8 @@ export default function QuestionsPage() {
 
               <label
                 htmlFor="accept"
-                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none">
+                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none"
+              >
                 I have read and agree to the terms and conditions.
               </label>
             </div>
@@ -881,14 +940,19 @@ export default function QuestionsPage() {
               <Button
                 onClick={handleAcceptInstructions}
                 disabled={
-                  !accepted || (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && (isDevToolsOpen() || !isFullscreenActive()))
+                  !accepted ||
+                  (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) &&
+                    (isDevToolsOpen() || !isFullscreenActive()))
                 }
                 size="lg"
                 className={`px-8 py-3 text-lg text-white ${
-                  !accepted || (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) && (isDevToolsOpen() || !isFullscreenActive()))
+                  !accepted ||
+                  (!/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) &&
+                    (isDevToolsOpen() || !isFullscreenActive()))
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
-                }`}>
+                }`}
+              >
                 I Accept - Launch Assessment
               </Button>
             </div>
@@ -919,7 +983,8 @@ export default function QuestionsPage() {
               </h1>
               <Badge
                 variant="outline"
-                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
+                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
+              >
                 <Monitor className="w-3 h-3" />
                 Secure Mode
               </Badge>
@@ -952,7 +1017,8 @@ export default function QuestionsPage() {
                   allQuestionsAnswered
                     ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300"
                     : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                }`}>
+                }`}
+              >
                 {answeredCount}/{questions.length} Completed
               </Badge>
             </div>
@@ -965,7 +1031,8 @@ export default function QuestionsPage() {
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
           <Alert
             variant="destructive"
-            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
+            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
+          >
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-red-800 dark:text-red-200">
               Warning
@@ -1011,7 +1078,8 @@ export default function QuestionsPage() {
                           getQuestionStatus(index) === "answered"
                             ? "Answered"
                             : "Not Answered"
-                        }`}>
+                        }`}
+                      >
                         {index + 1}
                         {getQuestionStatus(index) === "answered" && (
                           <CheckCircle className="absolute -top-1 -right-1 w-4 h-4 text-green-600 bg-white rounded-full" />
@@ -1057,7 +1125,8 @@ export default function QuestionsPage() {
                     <Button
                       onClick={goToUnansweredQuestion}
                       variant="outline"
-                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20">
+                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20"
+                    >
                       Go
                     </Button>
                   </div>
@@ -1088,7 +1157,8 @@ export default function QuestionsPage() {
                           onClick={handleClearAnswer}
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20">
+                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20"
+                        >
                           <RotateCcw className="md:w-4 md:h-4 h-3 w-3" />
                           <h4 className=" md:block hidden">Clear Answer</h4>
                         </Button>
@@ -1099,7 +1169,8 @@ export default function QuestionsPage() {
                           currentAnswer
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                        }`}>
+                        }`}
+                      >
                         {currentAnswer ? "Answered" : "Not Answered"}
                       </Badge>
                     </div>
@@ -1115,33 +1186,45 @@ export default function QuestionsPage() {
                   </div>
 
                   <RadioGroup
-                    value={currentAnswer}
-                    onValueChange={(val) =>
-                      handleAnswerChange(currentQuestion.id, val)
+                    value={
+                      currentAnswer
+                        ? `${currentQuestion.id}-${currentAnswer}`
+                        : undefined
                     }
-                    className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-1 gap-4 pb-6">
+                    onValueChange={(val) => {
+                      const pureValue = val.replace(
+                        `${currentQuestion.id}-`,
+                        ""
+                      ); // remove prefix
+                      handleAnswerChange(currentQuestion.id, pureValue);
+                    }}
+                    className="grid grid-cols-1 gap-4 pb-6  w-full"
+                  >
                     {currentOptions?.map((opt, i) => (
                       <div
                         key={i}
-                        className={`flex items-center space-x-5 p-2 px-4 2xl:p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg group ${
+                        className={`flex items-center w-full  space-x-5 p-2 px-4 2xl:p-4 rounded-xl border-2 transition-all cursor-pointer hover:shadow-lg group ${
                           currentAnswer === opt
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 shadow-lg scale-[1.02]"
                             : "border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:scale-[1.01]"
-                        }`}>
+                        }`}
+                      >
                         <RadioGroupItem
-                          value={opt}
+                          value={`${currentQuestion.id}-${opt}`}
                           id={`${currentQuestion.id}-${i}`}
                           className=" dark:border-gray-500 scale-125"
                         />
                         <Label
                           htmlFor={`${currentQuestion.id}-${i}`}
-                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium">
+                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium"
+                        >
                           <span
                             className={`flex justify-center items-center w-8 h-8 min-w-8 min-h-8 md:w-10 md:h-10 md:min-w-10 md:min-h-10 rounded-full text-white text-base font-bold md:mr-4 mr-1 text-center leading-10 transition-all ${
                               currentAnswer === opt
                                 ? "bg-blue-600 shadow-md"
                                 : "bg-gray-400 group-hover:bg-gray-500"
-                            }`}>
+                            }`}
+                          >
                             {String.fromCharCode(65 + i)}
                           </span>
                           <span className="md:text-lg text-base">{opt}</span>
@@ -1155,7 +1238,8 @@ export default function QuestionsPage() {
                       disabled={currentQuestionIndex === 0}
                       variant="outline"
                       size="lg"
-                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
                       <ArrowLeft className="w-4 h-4 md:mr-2" />
                       <h4 className=" md:block hidden">Previous</h4>
                     </Button>
@@ -1170,7 +1254,8 @@ export default function QuestionsPage() {
                               ? "bg-green-600 hover:bg-green-700 shadow-lg"
                               : "bg-gray-400 cursor-not-allowed"
                           }`}
-                          disabled={!allQuestionsAnswered || submitting}>
+                          disabled={!allQuestionsAnswered || submitting}
+                        >
                           {submitting ? (
                             <>
                               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -1187,7 +1272,8 @@ export default function QuestionsPage() {
                         <Button
                           onClick={handleNext}
                           size="lg"
-                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white">
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white"
+                        >
                           <h4 className=" md:block hidden">Next</h4>
                           <ArrowRight className="w-4 h-4 md:ml-2" />
                         </Button>

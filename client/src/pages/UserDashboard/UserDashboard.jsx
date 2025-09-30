@@ -71,7 +71,7 @@ export default function DashboardPage() {
     if (user?.id) {
       fetchAssignments();
       // 🔄 refetch every 5 minutes
-      intervalId = setInterval(fetchAssignments, 5 * 60 * 1000);
+      intervalId = setInterval(fetchAssignments, 5000);
     }
     return () => clearInterval(intervalId);
   }, [user?.id]);
@@ -194,15 +194,12 @@ export default function DashboardPage() {
       // Step 1: Mark assessment as started
 
       // Step 2: Assign random questions
-      const assignRes = await api.post(
-        "/api/quiz-assignments/assign-random",
-        {
-          quizId: assessment.quiz_id,
-          quizSessionId: assessment.quiz_session_id, // ✅ new field
-          userId: user.id,
-          assignmentId: assignmentId,
-        }
-      );
+      const assignRes = await api.post("/api/quiz-assignments/assign-random", {
+        quizId: assessment.quiz_id,
+        quizSessionId: assessment.quiz_session_id, // ✅ new field
+        userId: user.id,
+        assignmentId: assignmentId,
+      });
 
       console.log("Assign Random Response:", assignRes.data);
 
@@ -252,15 +249,12 @@ export default function DashboardPage() {
 
     try {
       // Step 2: Assign random questions
-      const assignRes = await api.post(
-        "/api/quiz-assignments/assign-random",
-        {
-          quizId: assessment.quiz_id,
-          quizSessionId: assessment.quiz_session_id, // ✅ new field
-          userId: user.id,
-          assignmentId: assignmentId,
-        }
-      );
+      const assignRes = await api.post("/api/quiz-assignments/assign-random", {
+        quizId: assessment.quiz_id,
+        quizSessionId: assessment.quiz_session_id, // ✅ new field
+        userId: user.id,
+        assignmentId: assignmentId,
+      });
 
       console.log("Assign Random Response:", assignRes.data);
 
@@ -482,7 +476,7 @@ export default function DashboardPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
-          {(assessment.status === "scheduled") &&
+          {assessment.status === "scheduled" &&
             (() => {
               // Combine date + time into a single Date object
               const now = new Date();
@@ -538,7 +532,7 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               onClick={() =>
-                navigate(`results?assignmentId=${assessment.assignment_id}`)
+                navigate(`results?assignmentId=${assessment.assignment_id}&session_id=${assessment.quiz_session_id}`)
               }
               className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
             >
