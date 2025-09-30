@@ -155,15 +155,17 @@ export default function QuestionsPage() {
   const [pendingRefreshAction, setPendingRefreshAction] = useState(false);
 
   // Replace your current beforeunload handler useEffect with this:
-  // ✅ KEEP THIS but SIMPLIFY it
+  // ✅ Replace your current beforeunload handler useEffect with this:
   useEffect(() => {
     if (!acceptedInstructions || showInstructions) return;
 
     setBlockNavigation(true);
 
     const handleBeforeUnload = (event) => {
-      // Show our custom refresh warning for ALL page unloads
+      // Prevent the default browser dialog
       event.preventDefault();
+
+      // Show our custom refresh warning for ALL page unloads
       setShowRefreshWarning(true);
       setPendingRefreshAction(true);
 
