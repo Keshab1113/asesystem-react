@@ -34,6 +34,9 @@ import { store } from "../../redux/store"; // ✅ named import
 import { useExam } from "../../lib/ExamContext";
 import api from "../../api/api";
 const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+const isIOS = () => {
+  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+};
 
 export default function QuestionsPage() {
   const { quizId } = useParams();
@@ -68,7 +71,7 @@ export default function QuestionsPage() {
   const [accepted, setAccepted] = useState(false);
   const { setExamState } = useExam();
   const [blockNavigation, setBlockNavigation] = useState(false);
-const [quizInfo, setQuizInfo] = useState(null);
+  const [quizInfo, setQuizInfo] = useState(null);
 
   // Calculate progress
   const answeredCount = Object.values(answers).filter(
@@ -89,7 +92,7 @@ const [quizInfo, setQuizInfo] = useState(null);
   useEffect(() => {
     // Automatically request fullscreen on page load (skip for mobile)
     const requestFullscreen = () => {
-      // if (isMobile) return; // ✅ Skip on mobile
+      if (isMobile) return; // ✅ Skip on mobile
       if (!isFullscreenActive()) {
         const el = document.documentElement;
         if (el.requestFullscreen) el.requestFullscreen();
@@ -150,233 +153,312 @@ const [quizInfo, setQuizInfo] = useState(null);
     if (quizSessionId) fetchQuestions();
   }, [quizId, quizSessionId, dispatch]);
 
-  // get the quiz name/details 
+  // get the quiz name/details
   useEffect(() => {
-  const fetchQuizInfo = async () => {
-    if (!user?.id) return;
+    const fetchQuizInfo = async () => {
+      if (!user?.id) return;
 
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${user.id}`
-      );
-      const data = await res.json();
-      if (data.success) {
-        // Filter for the current quiz session
-        const currentQuiz = data.data.find(
-          (assignment) =>
-            assignment.quiz_id.toString() === quizId.toString() &&
-            assignment.quiz_session_id.toString() ===
-              quizSessionId.toString()
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${user.id}`
         );
-        setQuizInfo(currentQuiz);
+        const data = await res.json();
+        if (data.success) {
+          // Filter for the current quiz session
+          const currentQuiz = data.data.find(
+            (assignment) =>
+              assignment.quiz_id.toString() === quizId.toString() &&
+              assignment.quiz_session_id.toString() === quizSessionId.toString()
+          );
+          setQuizInfo(currentQuiz);
+        }
+      } catch (err) {
+        console.error("Error fetching quiz info:", err);
       }
-    } catch (err) {
-      console.error("Error fetching quiz info:", err);
-    }
-  };
+    };
 
-  fetchQuizInfo();
-}, [user?.id, quizId, quizSessionId]);
- 
-// useEffect(() => {
-//   if (!acceptedInstructions || showInstructions) return;
+    fetchQuizInfo();
+  }, [user?.id, quizId, quizSessionId]);
 
-//   setBlockNavigation(true);
+  // useEffect(() => {
+  //   if (!acceptedInstructions || showInstructions) return;
 
-//   const handleBeforeUnload = (event) => {
-//     if (isMobile) {
-//       // 🚫 Block reload completely on mobile (iOS & Android)
-//       event.preventDefault();
-//       event.returnValue = ""; // Suppress native dialog
-//       return "";
-//     } else {
-//       // ✅ Desktop → allow confirm dialog
-//       event.preventDefault();
-//       event.returnValue =
-//         "Reloading will terminate your assessment. Do you want to reload?";
-//       return event.returnValue;
-//     }
-//   };
+  //   setBlockNavigation(true);
 
-//   const handlePageHide = (event) => {
-//     if (event.persisted) return; // ignore bfcache restores
+  //   const handleBeforeUnload = (event) => {
+  //     if (isMobile) {
+  //       // 🚫 Block reload completely on mobile (iOS & Android)
+  //       event.preventDefault();
+  //       event.returnValue = ""; // Suppress native dialog
+  //       return "";
+  //     } else {
+  //       // ✅ Desktop → allow confirm dialog
+  //       event.preventDefault();
+  //       event.returnValue =
+  //         "Reloading will terminate your assessment. Do you want to reload?";
+  //       return event.returnValue;
+  //     }
+  //   };
 
-//     if (isMobile) {
-//       // 🚫 On iOS/Android → prevent reload, stay on same page
-//       console.log("Mobile reload blocked — staying on page");
-//       window.history.pushState(null, "", window.location.href);
-//       return;
-//     }
+  //   const handlePageHide = (event) => {
+  //     if (event.persisted) return; // ignore bfcache restores
 
-//     // ✅ On desktop → terminate normally
-//     handleSubmit(
-//       true,
-//       "Page reload detected. Assessment terminated.",
-//       "terminated"
-//     );
-//   };
+  //     if (isMobile) {
+  //       // 🚫 On iOS/Android → prevent reload, stay on same page
+  //       console.log("Mobile reload blocked — staying on page");
+  //       window.history.pushState(null, "", window.location.href);
+  //       return;
+  //     }
 
-//   const handlePopState = (event) => {
-//     event.preventDefault();
-//     handleSubmit(
-//       true,
-//       "Back navigation detected. Assessment terminated.",
-//       "terminated"
-//     );
-//   };
+  //     // ✅ On desktop → terminate normally
+  //     handleSubmit(
+  //       true,
+  //       "Page reload detected. Assessment terminated.",
+  //       "terminated"
+  //     );
+  //   };
 
-//   window.addEventListener("beforeunload", handleBeforeUnload);
-//   window.addEventListener("pagehide", handlePageHide);
-//   window.addEventListener("popstate", handlePopState);
+  //   const handlePopState = (event) => {
+  //     event.preventDefault();
+  //     handleSubmit(
+  //       true,
+  //       "Back navigation detected. Assessment terminated.",
+  //       "terminated"
+  //     );
+  //   };
 
-//   // Push dummy state to block back button
-//   window.history.pushState(null, "", window.location.href);
+  //   window.addEventListener("beforeunload", handleBeforeUnload);
+  //   window.addEventListener("pagehide", handlePageHide);
+  //   window.addEventListener("popstate", handlePopState);
 
-//   return () => {
-//     window.removeEventListener("beforeunload", handleBeforeUnload);
-//     window.removeEventListener("pagehide", handlePageHide);
-//     window.removeEventListener("popstate", handlePopState);
-//     setBlockNavigation(false);
-//   };
-// }, [acceptedInstructions, showInstructions, navigate]);
+  //   // Push dummy state to block back button
+  //   window.history.pushState(null, "", window.location.href);
 
-  
-useEffect(() => {
+  //   return () => {
+  //     window.removeEventListener("beforeunload", handleBeforeUnload);
+  //     window.removeEventListener("pagehide", handlePageHide);
+  //     window.removeEventListener("popstate", handlePopState);
+  //     setBlockNavigation(false);
+  //   };
+  // }, [acceptedInstructions, showInstructions, navigate]);
+
+ useEffect(() => {
   if (!acceptedInstructions || showInstructions) return;
 
-  // Save current question & answers
   const saveQuizState = () => {
-    localStorage.setItem(
-      `quiz_${quizSessionId}_currentQuestion`,
-      currentQuestionIndex
-    );
-    localStorage.setItem(
-      `quiz_${quizSessionId}_answers`,
-      JSON.stringify(store.getState().quiz.answers[quizId] || {})
-    );
+    localStorage.setItem(`quiz_${quizSessionId}_currentQuestion`, currentQuestionIndex);
+    localStorage.setItem(`quiz_${quizSessionId}_answers`, JSON.stringify(store.getState().quiz.answers[quizId] || {}));
+    localStorage.setItem(`quiz_${quizSessionId}_timeRemaining`, timeRemaining);
   };
 
-  // Restore state after reload
   const restoreQuizState = () => {
     const savedIndex = localStorage.getItem(`quiz_${quizSessionId}_currentQuestion`);
     const savedAnswers = JSON.parse(localStorage.getItem(`quiz_${quizSessionId}_answers`) || "{}");
+    const savedTime = localStorage.getItem(`quiz_${quizSessionId}_timeRemaining`);
+    
     if (savedIndex !== null) setCurrentQuestionIndex(Number(savedIndex));
     if (savedAnswers) dispatch(setQuizAnswers({ quizId, answers: savedAnswers }));
+    if (savedTime !== null) setTimeRemaining(Number(savedTime));
   };
 
-  const handleBeforeUnload = (event) => {
-    saveQuizState();
-    // On mobile/iOS, prevent termination
-    if (isMobile) {
-      event.preventDefault();
-      event.returnValue = ""; // suppress native dialog
-      return "";
-    }
-  };
+  const iOS = isIOS();
+  const android = /Android/i.test(navigator.userAgent);
 
-  const handlePageShow = (event) => {
-    if (event.persisted || isMobile) {
-      // Restore quiz state after iOS reload or pull-to-refresh
-      restoreQuizState();
-      console.log("iOS reload detected, state restored");
-    }
-  };
-
-  const handlePopState = (event) => {
-    // Back button → stay on same page on mobile/iOS
-    if (isMobile) {
+  // iOS-SPECIFIC HANDLING
+  if (iOS) {
+    const blockNavigation = (e) => {
+      e.preventDefault();
       window.history.pushState(null, "", window.location.href);
-      restoreQuizState();
-    } else {
-      handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
-    }
+      saveQuizState();
+      
+      toast({
+        title: "⚠️ Navigation Blocked",
+        description: "Please use the submit button to exit the assessment.",
+        variant: "warning",
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        saveQuizState();
+        console.log("iOS: Page hidden, state saved");
+      } else {
+        restoreQuizState();
+        console.log("iOS: Page visible, state restored");
+      }
+    };
+
+    const handlePageShow = (e) => {
+      if (e.persisted) {
+        console.log("iOS: Page loaded from bfcache");
+        restoreQuizState();
+        window.history.pushState(null, "", window.location.href);
+      }
+    };
+
+    let startY = 0;
+    const preventPullToRefresh = (e) => {
+      const touch = e.touches[0];
+      if (touch.clientY > startY && window.scrollY === 0) {
+        e.preventDefault();
+      }
+    };
+
+    const setStartY = (e) => {
+      startY = e.touches[0].clientY;
+    };
+
+    document.addEventListener("touchstart", setStartY, { passive: false });
+    document.addEventListener("touchmove", preventPullToRefresh, { passive: false });
+    window.addEventListener("popstate", blockNavigation);
+    window.addEventListener("pageshow", handlePageShow);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.history.pushState(null, "", window.location.href);
+
+    return () => {
+      document.removeEventListener("touchstart", setStartY);
+      document.removeEventListener("touchmove", preventPullToRefresh);
+      window.removeEventListener("popstate", blockNavigation);
+      window.removeEventListener("pageshow", handlePageShow);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }
+
+  // ANDROID-SPECIFIC HANDLING
+  if (android) {
+    const handleBeforeUnload = (e) => {
+      saveQuizState();
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    const handlePopState = (e) => {
+      e.preventDefault();
+      window.history.pushState(null, "", window.location.href);
+      saveQuizState();
+      
+      toast({
+        title: "⚠️ Navigation Blocked",
+        description: "Please use the submit button to exit the assessment.",
+        variant: "warning",
+      });
+    };
+
+    const handlePageShow = (e) => {
+      if (e.persisted) {
+        restoreQuizState();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("pageshow", handlePageShow);
+    window.history.pushState(null, "", window.location.href);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
+  }
+
+  // DESKTOP HANDLING
+  const handleBeforeUnload = (e) => {
+    saveQuizState();
+    e.preventDefault();
+    e.returnValue = "";
+    return "";
+  };
+
+  const handlePopState = () => {
+    handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
   };
 
   window.addEventListener("beforeunload", handleBeforeUnload);
-  window.addEventListener("pageshow", handlePageShow);
   window.addEventListener("popstate", handlePopState);
-
-  // Push dummy state to block back button
   window.history.pushState(null, "", window.location.href);
 
   return () => {
     window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener("pageshow", handlePageShow);
     window.removeEventListener("popstate", handlePopState);
   };
-}, [acceptedInstructions, showInstructions, currentQuestionIndex]);
+}, [acceptedInstructions, showInstructions, currentQuestionIndex, timeRemaining, quizId, quizSessionId, dispatch, toast]);
 
+  // Enhanced back button handling for mobile (especially iOS)
 
+  // useEffect(() => {
+  //   if (!blockNavigation || !acceptedInstructions || showInstructions) return;
 
+  //   let isSubmitting = false;
 
+  //   const handleBackButton = () => {
+  //     if (isSubmitting) return;
 
-// Enhanced back button handling for mobile (especially iOS)
+  //     isSubmitting = true;
+  //     console.log("Mobile back button detected - auto-submitting assessment");
 
+  //     // Auto-submit when back button is pressed
+  //     handleSubmit(
+  //       true,
+  //       "Multiple violations detected. Assessment terminated.",
+  //       "terminated"
+  //     ).finally(() => {
+  //       isSubmitting = false;
+  //     });
+  //   };
 
-  useEffect(() => {
-    if (!blockNavigation || !acceptedInstructions || showInstructions) return;
+  //   // iOS-specific back button handling
+  //   if (isMobile) {
+  //     // Add additional event listeners for mobile
+  //     window.addEventListener("pagehide", handleBackButton);
+  //     window.addEventListener("pageshow", () => {
+  //       // Reset submitting state when page becomes visible again
+  //       isSubmitting = false;
+  //     });
+  //   }
 
-    let isSubmitting = false;
-
-    const handleBackButton = () => {
-      if (isSubmitting) return;
-
-      isSubmitting = true;
-      console.log("Mobile back button detected - auto-submitting assessment");
-
-      // Auto-submit when back button is pressed
-      handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated").finally(() => {
-        isSubmitting = false;
-      });
-    };
-
-    // iOS-specific back button handling
-    if (isMobile) {
-      // Add additional event listeners for mobile
-      window.addEventListener("pagehide", handleBackButton);
-      window.addEventListener("pageshow", () => {
-        // Reset submitting state when page becomes visible again
-        isSubmitting = false;
-      });
-    }
-
-    return () => {
-      if (isMobile) {
-        window.removeEventListener("pagehide", handleBackButton);
-        window.removeEventListener("pageshow", () => {});
-      }
-    };
-  }, [blockNavigation, acceptedInstructions, showInstructions, navigate]);
+  //   return () => {
+  //     if (isMobile) {
+  //       window.removeEventListener("pagehide", handleBackButton);
+  //       window.removeEventListener("pageshow", () => {});
+  //     }
+  //   };
+  // }, [blockNavigation, acceptedInstructions, showInstructions, navigate]);
 
   // Handle browser back button with history manipulation
-  useEffect(() => {
-    if (!blockNavigation) return;
+  // useEffect(() => {
+  //   if (!blockNavigation) return;
 
-    const preventBack = () => {
-      window.history.pushState(null, "", window.location.href);
-    };
+  //   const preventBack = () => {
+  //     window.history.pushState(null, "", window.location.href);
+  //   };
 
-    // Initial push
-    preventBack();
+  //   // Initial push
+  //   preventBack();
 
-    const handlePopState = (event) => {
-      // Prevent back navigation and auto-submit
-      event.preventDefault();
-      preventBack();
-      console.log("Popstate detected - auto-submitting assessment");
-      if (isMobile) {
-        console.log("Mobile back button blocked");
-        handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
-      } else {
-        console.log("Desktop back button blocked");
-      }
-    };
-    window.addEventListener("popstate", handlePopState);
+  //   const handlePopState = (event) => {
+  //     // Prevent back navigation and auto-submit
+  //     event.preventDefault();
+  //     preventBack();
+  //     console.log("Popstate detected - auto-submitting assessment");
+  //     if (isMobile) {
+  //       console.log("Mobile back button blocked");
+  //       handleSubmit(
+  //         true,
+  //         "Multiple violations detected. Assessment terminated.",
+  //         "terminated"
+  //       );
+  //     } else {
+  //       console.log("Desktop back button blocked");
+  //     }
+  //   };
+  //   window.addEventListener("popstate", handlePopState);
 
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-    };
-  }, [blockNavigation, navigate]);
+  //   return () => {
+  //     window.removeEventListener("popstate", handlePopState);
+  //   };
+  // }, [blockNavigation, navigate]);
 
   useEffect(() => {
     if (!timerStarted || !acceptedInstructions) return;
@@ -499,7 +581,11 @@ useEffect(() => {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
+            handleSubmit(
+              true,
+              "Multiple violations detected. Assessment terminated.",
+              "terminated"
+            );
           } else {
             setShowWarning(true);
             setTimeout(() => setShowWarning(false), 3000);
@@ -511,21 +597,32 @@ useEffect(() => {
 
     // Detect exit fullscreen (cross-browser)
     const exitHandler = () => {
-      if (
-        !document.fullscreenElement &&
-        !document.webkitFullscreenElement &&
-        !document.mozFullScreenElement &&
-        !document.msFullscreenElement
-      ) {
-        handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
-      }
-    };
+  // Skip on mobile devices (no fullscreen support)
+  if (isMobile) return;
+  
+  if (
+    !document.fullscreenElement &&
+    !document.webkitFullscreenElement &&
+    !document.mozFullScreenElement &&
+    !document.msFullscreenElement
+  ) {
+    handleSubmit(
+      true,
+      "Fullscreen exited. Assessment terminated.",
+      "terminated"
+    );
+  }
+};
     // Handle window/tab blur
     const handleBlur = () => {
       setWarnings((prev) => {
         const newWarnings = prev + 1;
         if (newWarnings >= 2) {
-          handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
+          handleSubmit(
+            true,
+            "Multiple violations detected. Assessment terminated.",
+            "terminated"
+          );
         }
         return newWarnings;
       });
@@ -537,7 +634,11 @@ useEffect(() => {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
+            handleSubmit(
+              true,
+              "Multiple violations detected. Assessment terminated.",
+              "terminated"
+            );
           }
           return newWarnings;
         });
@@ -555,7 +656,11 @@ useEffect(() => {
         setWarnings((prev) => {
           const newWarnings = prev + 1;
           if (newWarnings >= 2) {
-            handleSubmit(true, "Multiple violations detected. Assessment terminated.", "terminated");
+            handleSubmit(
+              true,
+              "Multiple violations detected. Assessment terminated.",
+              "terminated"
+            );
           }
           return newWarnings;
         });
@@ -699,7 +804,7 @@ useEffect(() => {
 
   // ✅ Check if fullscreen is active
   const isFullscreenActive = () => {
-    // if (isMobile) return true; // ✅ Always "true" on mobile
+    if (isMobile) return true; // Always true on mobile
     return (
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
@@ -708,11 +813,94 @@ useEffect(() => {
     );
   };
 
-  const handleAcceptInstructions = async () => {
-    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  // const handleAcceptInstructions = async () => {
+  //   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
 
-    if (!isMobile) {
-      // Desktop devices → must have fullscreen + no DevTools
+  //   if (!isMobile) {
+  //     // Desktop devices → must have fullscreen + no DevTools
+  //     if (isDevToolsOpen() || !isFullscreenActive()) {
+  //       const reason = isDevToolsOpen()
+  //         ? "Developer Tools detected. Close them to start."
+  //         : "Fullscreen is required. Enter fullscreen to start.";
+
+  //       toast({
+  //         title: "⚠️ Cannot Start Assessment",
+  //         description: reason,
+  //         variant: "destructive",
+  //       });
+
+  //       if (!isFullscreenActive()) {
+  //         const el = document.documentElement;
+  //         if (el.requestFullscreen) el.requestFullscreen();
+  //         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  //         else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+  //         else if (el.msRequestFullscreen) el.msRequestFullscreen();
+  //       }
+  //       return; // ❌ Block start
+  //     }
+  //   } else {
+  //     // Mobile devices → just require the tab to be active
+  //     if (document.hidden) {
+  //       toast({
+  //         title: "⚠️ Cannot Start Assessment",
+  //         description: "Keep this tab active to begin.",
+  //         variant: "destructive",
+  //       });
+  //       return;
+  //     }
+  //   }
+
+  //   // ✅ Passed checks → allow start
+  //   setAcceptedInstructions(true);
+  //   setShowInstructions(false);
+  //   setTimerStarted(true);
+  //   setBlockNavigation(true);
+
+  //   // Orientation lock
+  //   if (screen.orientation && screen.orientation.lock) {
+  //     screen.orientation.lock("portrait").catch(() => {});
+  //   }
+
+  //   // 🔗 Call backend to mark quiz start
+  //   try {
+  //     const startRes = await api.post("/api/quiz-assignments/start", {
+  //       quiz_id: quizId,
+  //       user_id: user.id,
+  //       assignment_id: assignmentId,
+  //       quiz_session_id: quizSessionId,
+  //     });
+
+  //     if (!startRes.data.success) {
+  //       toast({
+  //         title: "Error",
+  //         description: startRes.data.message || "Failed to start assessment",
+  //         variant: "error",
+  //       });
+  //       return;
+  //     }
+
+  //     // ✅ Save accepted only after backend success
+  //     localStorage.setItem(
+  //       `quiz_${quizSessionId}_instructions_accepted`,
+  //       "true"
+  //     );
+  //   } catch (err) {
+  //     console.error("Start assessment failed:", err);
+  //     toast({
+  //       title: "Error",
+  //       description: "Network error starting assessment",
+  //       variant: "error",
+  //     });
+  //   }
+  // };
+
+  const handleAcceptInstructions = async () => {
+    const iOS = isIOS();
+    const android = /Android/i.test(navigator.userAgent);
+    const mobile = iOS || android;
+
+    // Desktop checks
+    if (!mobile) {
       if (isDevToolsOpen() || !isFullscreenActive()) {
         const reason = isDevToolsOpen()
           ? "Developer Tools detected. Close them to start."
@@ -731,32 +919,46 @@ useEffect(() => {
           else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
           else if (el.msRequestFullscreen) el.msRequestFullscreen();
         }
-        return; // ❌ Block start
-      }
-    } else {
-      // Mobile devices → just require the tab to be active
-      if (document.hidden) {
-        toast({
-          title: "⚠️ Cannot Start Assessment",
-          description: "Keep this tab active to begin.",
-          variant: "destructive",
-        });
         return;
       }
     }
 
-    // ✅ Passed checks → allow start
+    // Mobile checks (iOS & Android)
+    if (mobile && document.hidden) {
+      toast({
+        title: "⚠️ Cannot Start Assessment",
+        description: "Keep this tab active to begin.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // iOS-specific: Lock viewport to prevent zoom
+    if (iOS) {
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute(
+          "content",
+          "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        );
+      }
+
+      // Lock scroll position
+      document.body.style.overflow = "hidden";
+      document.body.style.position = "fixed";
+      document.body.style.width = "100%";
+    }
+
     setAcceptedInstructions(true);
     setShowInstructions(false);
     setTimerStarted(true);
     setBlockNavigation(true);
 
-    // Orientation lock
+    // Orientation lock (works on Android, ignored on iOS)
     if (screen.orientation && screen.orientation.lock) {
       screen.orientation.lock("portrait").catch(() => {});
     }
 
-    // 🔗 Call backend to mark quiz start
     try {
       const startRes = await api.post("/api/quiz-assignments/start", {
         quiz_id: quizId,
@@ -774,7 +976,6 @@ useEffect(() => {
         return;
       }
 
-      // ✅ Save accepted only after backend success
       localStorage.setItem(
         `quiz_${quizSessionId}_instructions_accepted`,
         "true"
@@ -799,6 +1000,21 @@ useEffect(() => {
 
     setSubmitting(true);
     setBlockNavigation(false);
+    if (isIOS()) {
+      // Unlock iOS viewport
+      const viewport = document.querySelector('meta[name="viewport"]');
+      if (viewport) {
+        viewport.setAttribute(
+          "content",
+          "width=device-width, initial-scale=1.0"
+        );
+      }
+
+      // Unlock scroll
+      document.body.style.overflow = "";
+      document.body.style.position = "";
+      document.body.style.width = "";
+    }
 
     // Get latest answers
     const latestAnswers = store.getState().quiz.answers[quizId] || {};
@@ -878,6 +1094,12 @@ useEffect(() => {
         setTimeout(() => {
           window.location.href = `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`;
         }, 500);
+
+        // Clear all quiz localStorage
+localStorage.removeItem(`quiz_${quizSessionId}_currentQuestion`);
+localStorage.removeItem(`quiz_${quizSessionId}_answers`);
+localStorage.removeItem(`quiz_${quizSessionId}_timeRemaining`);
+localStorage.setItem(`quiz_${quizSessionId}_instructions_accepted`, "false");
       } else {
         throw new Error(response.data.message || "Failed to submit assessment");
       }
@@ -970,8 +1192,7 @@ useEffect(() => {
       <div className="flex flex-col h-screen md:h-full justify-center items-center min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
         <Card
           className="w-full max-w-4xl shadow-xl py-0 overflow-hidden 2xl:gap-2 gap-0"
-          style={{ maxHeight: "90vh", overflowY: "auto" }}
-        >
+          style={{ maxHeight: "90vh", overflowY: "auto" }}>
           <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4">
             <div className="flex items-center gap-3">
               <FileText className="w-8 h-8" />
@@ -1068,8 +1289,7 @@ useEffect(() => {
 
               <label
                 htmlFor="accept"
-                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none"
-              >
+                className="text-blue-800 dark:text-blue-200 text-sm cursor-pointer select-none">
                 I have read and agree to the terms and conditions.
               </label>
             </div>
@@ -1089,8 +1309,7 @@ useEffect(() => {
                     (isDevToolsOpen() || !isFullscreenActive()))
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-blue-600 hover:bg-blue-700"
-                }`}
-              >
+                }`}>
                 I Accept - Launch Assessment
               </Button>
             </div>
@@ -1121,8 +1340,7 @@ useEffect(() => {
               </h1>
               <Badge
                 variant="outline"
-                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300"
-              >
+                className="flex items-center gap-1 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
                 <Monitor className="w-3 h-3" />
                 Secure Mode
               </Badge>
@@ -1155,8 +1373,7 @@ useEffect(() => {
                   allQuestionsAnswered
                     ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300"
                     : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                }`}
-              >
+                }`}>
                 {answeredCount}/{questions.length} Completed
               </Badge>
             </div>
@@ -1169,8 +1386,7 @@ useEffect(() => {
         <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md">
           <Alert
             variant="destructive"
-            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800"
-          >
+            className="animate-in slide-in-from-top duration-300 bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle className="text-red-800 dark:text-red-200">
               Warning
@@ -1216,8 +1432,7 @@ useEffect(() => {
                           getQuestionStatus(index) === "answered"
                             ? "Answered"
                             : "Not Answered"
-                        }`}
-                      >
+                        }`}>
                         {index + 1}
                         {getQuestionStatus(index) === "answered" && (
                           <CheckCircle className="absolute -top-1 -right-1 w-4 h-4 text-green-600 bg-white rounded-full" />
@@ -1263,8 +1478,7 @@ useEffect(() => {
                     <Button
                       onClick={goToUnansweredQuestion}
                       variant="outline"
-                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20"
-                    >
+                      className="border-amber-300 dark:border-amber-600 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/20">
                       Go
                     </Button>
                   </div>
@@ -1295,8 +1509,7 @@ useEffect(() => {
                           onClick={handleClearAnswer}
                           variant="outline"
                           size="sm"
-                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20"
-                        >
+                          className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50 dark:text-orange-400 dark:border-orange-600 dark:hover:bg-orange-900/20">
                           <RotateCcw className="md:w-4 md:h-4 h-3 w-3" />
                           <h4 className=" md:block hidden">Clear Answer</h4>
                         </Button>
@@ -1307,8 +1520,7 @@ useEffect(() => {
                           currentAnswer
                             ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300 border-green-200 dark:border-green-800"
                             : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                        }`}
-                      >
+                        }`}>
                         {currentAnswer ? "Answered" : "Not Answered"}
                       </Badge>
                     </div>
@@ -1336,8 +1548,7 @@ useEffect(() => {
                       ); // remove prefix
                       handleAnswerChange(currentQuestion.id, pureValue);
                     }}
-                    className="grid grid-cols-1 gap-4 pb-6  w-full"
-                  >
+                    className="grid grid-cols-1 gap-4 pb-6  w-full">
                     {currentOptions?.map((opt, i) => (
                       <div
                         key={i}
@@ -1345,8 +1556,7 @@ useEffect(() => {
                           currentAnswer === opt
                             ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-400 shadow-lg scale-[1.02]"
                             : "border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-500 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:scale-[1.01]"
-                        }`}
-                      >
+                        }`}>
                         <RadioGroupItem
                           value={`${currentQuestion.id}-${opt}`}
                           id={`${currentQuestion.id}-${i}`}
@@ -1354,15 +1564,13 @@ useEffect(() => {
                         />
                         <Label
                           htmlFor={`${currentQuestion.id}-${i}`}
-                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium"
-                        >
+                          className="flex-1 leading-relaxed cursor-pointer text-gray-800 dark:text-gray-200 font-medium">
                           <span
                             className={`flex justify-center items-center w-8 h-8 min-w-8 min-h-8 md:w-10 md:h-10 md:min-w-10 md:min-h-10 rounded-full text-white text-base font-bold md:mr-4 mr-1 text-center leading-10 transition-all ${
                               currentAnswer === opt
                                 ? "bg-blue-600 shadow-md"
                                 : "bg-gray-400 group-hover:bg-gray-500"
-                            }`}
-                          >
+                            }`}>
                             {String.fromCharCode(65 + i)}
                           </span>
                           <span className="md:text-lg text-base">{opt}</span>
@@ -1376,8 +1584,7 @@ useEffect(() => {
                       disabled={currentQuestionIndex === 0}
                       variant="outline"
                       size="lg"
-                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
+                      className="px-6 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
                       <ArrowLeft className="w-4 h-4 md:mr-2" />
                       <h4 className=" md:block hidden">Previous</h4>
                     </Button>
@@ -1392,8 +1599,7 @@ useEffect(() => {
                               ? "bg-green-600 hover:bg-green-700 shadow-lg"
                               : "bg-gray-400 cursor-not-allowed"
                           }`}
-                          disabled={!allQuestionsAnswered || submitting}
-                        >
+                          disabled={!allQuestionsAnswered || submitting}>
                           {submitting ? (
                             <>
                               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
@@ -1410,8 +1616,7 @@ useEffect(() => {
                         <Button
                           onClick={handleNext}
                           size="lg"
-                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white"
-                        >
+                          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 shadow-lg text-white">
                           <h4 className=" md:block hidden">Next</h4>
                           <ArrowRight className="w-4 h-4 md:ml-2" />
                         </Button>
