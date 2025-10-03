@@ -89,7 +89,7 @@ const [quizInfo, setQuizInfo] = useState(null);
   useEffect(() => {
     // Automatically request fullscreen on page load (skip for mobile)
     const requestFullscreen = () => {
-      if (isMobile) return; // ✅ Skip on mobile
+      // if (isMobile) return; // ✅ Skip on mobile
       if (!isFullscreenActive()) {
         const el = document.documentElement;
         if (el.requestFullscreen) el.requestFullscreen();
@@ -699,7 +699,7 @@ useEffect(() => {
 
   // ✅ Check if fullscreen is active
   const isFullscreenActive = () => {
-    if (isMobile) return true; // ✅ Always "true" on mobile
+    // if (isMobile) return true; // ✅ Always "true" on mobile
     return (
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
