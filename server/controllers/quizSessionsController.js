@@ -1,6 +1,5 @@
 const db = require("../config/database");
 const nodemailer = require("nodemailer");
-const cron = require("node-cron");
 
 exports.getQuizSessions = async (req, res) => {
   const { quizId } = req.query; // optional query param
