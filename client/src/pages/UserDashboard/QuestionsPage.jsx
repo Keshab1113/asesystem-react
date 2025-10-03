@@ -149,111 +149,53 @@ export default function QuestionsPage() {
     if (quizSessionId) fetchQuestions();
   }, [quizId, quizSessionId, dispatch]);
 
-  // Block browser back navigation and auto-submit when questions are shown
-  // Replace your existing beforeunload handler with this:
-// useEffect(() => {
-//   if (!acceptedInstructions || showInstructions) return;
-
-//   setBlockNavigation(true);
-
-//   let isReloading = false;
-
-//   const handleBeforeUnload = (event) => {
-//     // Check if this is a reload (not tab close)
-//     if (performance.navigation.type === 1 || performance.getEntriesByType("navigation")[0]?.type === "reload") {
-//       isReloading = true;
-      
-//       // Auto-submit with terminated status for reload
-//       event.preventDefault();
-//       event.returnValue = "Reloading will terminate your assessment. Are you sure?";
-      
-//       // Use setTimeout to allow the dialog to show, then auto-submit
-//       setTimeout(() => {
-//         handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
-//       }, 100);
-      
-//       return "Reloading will terminate your assessment. Are you sure?";
-//     } else {
-//       // For tab close, just show warning
-//       event.preventDefault();
-//       event.returnValue = "You have unsaved changes. Are you sure you want to leave?";
-//       return "You have unsaved changes. Are you sure you want to leave?";
-//     }
-//   };
-
-//   // Enhanced back button handling
-//   const handleBackButton = (event) => {
-//     event.preventDefault();
-//     event.returnValue = "";
-//     handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
-//   };
-
-//   // Add performance navigation tracking
-//   const handleNavigation = () => {
-//     if (performance.navigation.type === 1) {
-//       // This is a reload
-//       handleSubmit(true, "Page reload detected. Assessment terminated.", "terminated");
-//     }
-//   };
-
-//   window.addEventListener("popstate", handleBackButton);
-//   window.addEventListener("beforeunload", handleBeforeUnload);
-//   window.addEventListener("pagehide", handleNavigation);
-
-//   // Push a new state to prevent back navigation
-//   window.history.pushState(null, "", window.location.href);
-
-//   return () => {
-//     window.removeEventListener("popstate", handleBackButton);
-//     window.removeEventListener("beforeunload", handleBeforeUnload);
-//     window.removeEventListener("pagehide", handleNavigation);
-//     setBlockNavigation(false);
-//   };
-// }, [acceptedInstructions, showInstructions, navigate]);
-
+  
+ 
 useEffect(() => {
   if (!acceptedInstructions || showInstructions) return;
 
   setBlockNavigation(true);
 
   const handleBeforeUnload = (event) => {
-  if (isMobile) {
-    // 🚫 Block reload completely on mobile
-    event.preventDefault();
-    event.returnValue = ""; // Suppress dialog
-    return "";
-  } else {
-    // ✅ Desktop → allow confirm dialog
-    event.preventDefault();
-    event.returnValue =
-      "Reloading will terminate your assessment. Do you want to reload?";
-    return event.returnValue;
-  }
-};
-
+    if (isMobile) {
+      // 🚫 Block reload completely on mobile (iOS & Android)
+      event.preventDefault();
+      event.returnValue = ""; // Suppress native dialog
+      return "";
+    } else {
+      // ✅ Desktop → allow confirm dialog
+      event.preventDefault();
+      event.returnValue =
+        "Reloading will terminate your assessment. Do you want to reload?";
+      return event.returnValue;
+    }
+  };
 
   const handlePageHide = (event) => {
-  if (event.persisted) return; // ignore bfcache restores
+    if (event.persisted) return; // ignore bfcache restores
 
-  if (isMobile) {
-    // 🚫 On iOS/Android → cancel reload, stay on same page
-    window.history.pushState(null, "", window.location.href);
-    return;
-  }
+    if (isMobile) {
+      // 🚫 On iOS/Android → prevent reload, stay on same page
+      console.log("Mobile reload blocked — staying on page");
+      window.history.pushState(null, "", window.location.href);
+      return;
+    }
 
-  // ✅ On desktop → terminate normally
-  handleSubmit(
-    true,
-    "Page reload detected. Assessment terminated.",
-    "terminated"
-  );
-};
-
-
+    // ✅ On desktop → terminate normally
+    handleSubmit(
+      true,
+      "Page reload detected. Assessment terminated.",
+      "terminated"
+    );
+  };
 
   const handlePopState = (event) => {
     event.preventDefault();
-    handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
+    handleSubmit(
+      true,
+      "Back navigation detected. Assessment terminated.",
+      "terminated"
+    );
   };
 
   window.addEventListener("beforeunload", handleBeforeUnload);
@@ -271,8 +213,13 @@ useEffect(() => {
   };
 }, [acceptedInstructions, showInstructions, navigate]);
 
+  
 
-  // Enhanced back button handling for mobile (especially iOS)
+
+
+// Enhanced back button handling for mobile (especially iOS)
+
+
   useEffect(() => {
     if (!blockNavigation || !acceptedInstructions || showInstructions) return;
 
