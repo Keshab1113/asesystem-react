@@ -325,43 +325,63 @@ export default function QuestionsPage() {
   }
 
   // ANDROID-SPECIFIC HANDLING
-  if (android) {
-    const handleBeforeUnload = (e) => {
-      saveQuizState();
-      e.preventDefault();
-      e.returnValue = "";
-      return "";
-    };
+  // ANDROID-SPECIFIC HANDLING
+if (android) {
+  let backPressCount = 0;
+  let backPressTimer = null;
 
-    const handlePopState = (e) => {
-      e.preventDefault();
-      window.history.pushState(null, "", window.location.href);
+  const handleBeforeUnload = (e) => {
+    saveQuizState();
+    e.preventDefault();
+    e.returnValue = "";
+    return "";
+  };
+
+  const handlePopState = (e) => {
+    e.preventDefault();
+    window.history.pushState(null, "", window.location.href);
+    
+    backPressCount++;
+    
+    if (backPressCount === 1) {
+      // First back press - show warning
       saveQuizState();
-      
       toast({
-        title: "⚠️ Navigation Blocked",
-        description: "Please use the submit button to exit the assessment.",
+        title: "⚠️ Warning #1",
+        description: "Press back again to terminate and submit the assessment.",
         variant: "warning",
       });
-    };
+      
+      // Reset counter after 3 seconds
+      if (backPressTimer) clearTimeout(backPressTimer);
+      backPressTimer = setTimeout(() => {
+        backPressCount = 0;
+      }, 3000);
+    } else if (backPressCount >= 2) {
+      // Second back press - terminate
+      if (backPressTimer) clearTimeout(backPressTimer);
+      handleSubmit(true, "Back button pressed twice. Assessment terminated.", "terminated");
+    }
+  };
 
-    const handlePageShow = (e) => {
-      if (e.persisted) {
-        restoreQuizState();
-      }
-    };
+  const handlePageShow = (e) => {
+    if (e.persisted) {
+      restoreQuizState();
+    }
+  };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
-    window.addEventListener("pageshow", handlePageShow);
-    window.history.pushState(null, "", window.location.href);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("popstate", handlePopState);
+  window.addEventListener("pageshow", handlePageShow);
+  window.history.pushState(null, "", window.location.href);
 
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener("pageshow", handlePageShow);
-    };
-  }
+  return () => {
+    if (backPressTimer) clearTimeout(backPressTimer);
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener("popstate", handlePopState);
+    window.removeEventListener("pageshow", handlePageShow);
+  };
+}
 
   // DESKTOP HANDLING
   const handleBeforeUnload = (e) => {
