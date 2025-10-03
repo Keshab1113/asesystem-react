@@ -68,6 +68,7 @@ export default function QuestionsPage() {
   const [accepted, setAccepted] = useState(false);
   const { setExamState } = useExam();
   const [blockNavigation, setBlockNavigation] = useState(false);
+const [quizInfo, setQuizInfo] = useState(null);
 
   // Calculate progress
   const answeredCount = Object.values(answers).filter(
@@ -88,7 +89,7 @@ export default function QuestionsPage() {
   useEffect(() => {
     // Automatically request fullscreen on page load (skip for mobile)
     const requestFullscreen = () => {
-      if (isMobile) return; // ✅ Skip on mobile
+      // if (isMobile) return; // ✅ Skip on mobile
       if (!isFullscreenActive()) {
         const el = document.documentElement;
         if (el.requestFullscreen) el.requestFullscreen();
@@ -149,57 +150,150 @@ export default function QuestionsPage() {
     if (quizSessionId) fetchQuestions();
   }, [quizId, quizSessionId, dispatch]);
 
-  
+  // get the quiz name/details 
+  useEffect(() => {
+  const fetchQuizInfo = async () => {
+    if (!user?.id) return;
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/${user.id}`
+      );
+      const data = await res.json();
+      if (data.success) {
+        // Filter for the current quiz session
+        const currentQuiz = data.data.find(
+          (assignment) =>
+            assignment.quiz_id.toString() === quizId.toString() &&
+            assignment.quiz_session_id.toString() ===
+              quizSessionId.toString()
+        );
+        setQuizInfo(currentQuiz);
+      }
+    } catch (err) {
+      console.error("Error fetching quiz info:", err);
+    }
+  };
+
+  fetchQuizInfo();
+}, [user?.id, quizId, quizSessionId]);
  
+// useEffect(() => {
+//   if (!acceptedInstructions || showInstructions) return;
+
+//   setBlockNavigation(true);
+
+//   const handleBeforeUnload = (event) => {
+//     if (isMobile) {
+//       // 🚫 Block reload completely on mobile (iOS & Android)
+//       event.preventDefault();
+//       event.returnValue = ""; // Suppress native dialog
+//       return "";
+//     } else {
+//       // ✅ Desktop → allow confirm dialog
+//       event.preventDefault();
+//       event.returnValue =
+//         "Reloading will terminate your assessment. Do you want to reload?";
+//       return event.returnValue;
+//     }
+//   };
+
+//   const handlePageHide = (event) => {
+//     if (event.persisted) return; // ignore bfcache restores
+
+//     if (isMobile) {
+//       // 🚫 On iOS/Android → prevent reload, stay on same page
+//       console.log("Mobile reload blocked — staying on page");
+//       window.history.pushState(null, "", window.location.href);
+//       return;
+//     }
+
+//     // ✅ On desktop → terminate normally
+//     handleSubmit(
+//       true,
+//       "Page reload detected. Assessment terminated.",
+//       "terminated"
+//     );
+//   };
+
+//   const handlePopState = (event) => {
+//     event.preventDefault();
+//     handleSubmit(
+//       true,
+//       "Back navigation detected. Assessment terminated.",
+//       "terminated"
+//     );
+//   };
+
+//   window.addEventListener("beforeunload", handleBeforeUnload);
+//   window.addEventListener("pagehide", handlePageHide);
+//   window.addEventListener("popstate", handlePopState);
+
+//   // Push dummy state to block back button
+//   window.history.pushState(null, "", window.location.href);
+
+//   return () => {
+//     window.removeEventListener("beforeunload", handleBeforeUnload);
+//     window.removeEventListener("pagehide", handlePageHide);
+//     window.removeEventListener("popstate", handlePopState);
+//     setBlockNavigation(false);
+//   };
+// }, [acceptedInstructions, showInstructions, navigate]);
+
+  
 useEffect(() => {
   if (!acceptedInstructions || showInstructions) return;
 
-  setBlockNavigation(true);
+  // Save current question & answers
+  const saveQuizState = () => {
+    localStorage.setItem(
+      `quiz_${quizSessionId}_currentQuestion`,
+      currentQuestionIndex
+    );
+    localStorage.setItem(
+      `quiz_${quizSessionId}_answers`,
+      JSON.stringify(store.getState().quiz.answers[quizId] || {})
+    );
+  };
+
+  // Restore state after reload
+  const restoreQuizState = () => {
+    const savedIndex = localStorage.getItem(`quiz_${quizSessionId}_currentQuestion`);
+    const savedAnswers = JSON.parse(localStorage.getItem(`quiz_${quizSessionId}_answers`) || "{}");
+    if (savedIndex !== null) setCurrentQuestionIndex(Number(savedIndex));
+    if (savedAnswers) dispatch(setQuizAnswers({ quizId, answers: savedAnswers }));
+  };
 
   const handleBeforeUnload = (event) => {
+    saveQuizState();
+    // On mobile/iOS, prevent termination
     if (isMobile) {
-      // 🚫 Block reload completely on mobile (iOS & Android)
       event.preventDefault();
-      event.returnValue = ""; // Suppress native dialog
+      event.returnValue = ""; // suppress native dialog
       return "";
-    } else {
-      // ✅ Desktop → allow confirm dialog
-      event.preventDefault();
-      event.returnValue =
-        "Reloading will terminate your assessment. Do you want to reload?";
-      return event.returnValue;
     }
   };
 
-  const handlePageHide = (event) => {
-    if (event.persisted) return; // ignore bfcache restores
-
-    if (isMobile) {
-      // 🚫 On iOS/Android → prevent reload, stay on same page
-      console.log("Mobile reload blocked — staying on page");
-      window.history.pushState(null, "", window.location.href);
-      return;
+  const handlePageShow = (event) => {
+    if (event.persisted || isMobile) {
+      // Restore quiz state after iOS reload or pull-to-refresh
+      restoreQuizState();
+      console.log("iOS reload detected, state restored");
     }
-
-    // ✅ On desktop → terminate normally
-    handleSubmit(
-      true,
-      "Page reload detected. Assessment terminated.",
-      "terminated"
-    );
   };
 
   const handlePopState = (event) => {
-    event.preventDefault();
-    handleSubmit(
-      true,
-      "Back navigation detected. Assessment terminated.",
-      "terminated"
-    );
+    // Back button → stay on same page on mobile/iOS
+    if (isMobile) {
+      window.history.pushState(null, "", window.location.href);
+      restoreQuizState();
+    } else {
+      handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
+    }
   };
 
   window.addEventListener("beforeunload", handleBeforeUnload);
-  window.addEventListener("pagehide", handlePageHide);
+  window.addEventListener("pageshow", handlePageShow);
   window.addEventListener("popstate", handlePopState);
 
   // Push dummy state to block back button
@@ -207,13 +301,12 @@ useEffect(() => {
 
   return () => {
     window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener("pagehide", handlePageHide);
+    window.removeEventListener("pageshow", handlePageShow);
     window.removeEventListener("popstate", handlePopState);
-    setBlockNavigation(false);
   };
-}, [acceptedInstructions, showInstructions, navigate]);
+}, [acceptedInstructions, showInstructions, currentQuestionIndex]);
 
-  
+
 
 
 
@@ -512,53 +605,53 @@ useEffect(() => {
   }, [quizSessionId]);
 
   // Add this useEffect to handle iOS refresh detection
-  useEffect(() => {
-    if (!timerStarted || !acceptedInstructions) return;
+  // useEffect(() => {
+  //   if (!timerStarted || !acceptedInstructions) return;
 
-    let pageHideTime = 0;
+  //   let pageHideTime = 0;
 
-    const handlePageHide = () => {
-      pageHideTime = Date.now();
-    };
+  //   const handlePageHide = () => {
+  //     pageHideTime = Date.now();
+  //   };
 
-    const handlePageShow = () => {
-      const hiddenTime = Date.now() - pageHideTime;
-      // If page was hidden for more than 1 second, consider it a refresh/tab switch
-      if (hiddenTime > 1000) {
-        setWarnings((prev) => {
-          const newWarnings = prev + 1;
-          if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Page refresh detected. Assessment auto-submitted.",
-              "terminated" // Add status parameter
-            );
-          } else {
-            setShowWarning(true);
-            setTimeout(() => setShowWarning(false), 3000);
+  //   const handlePageShow = () => {
+  //     const hiddenTime = Date.now() - pageHideTime;
+  //     // If page was hidden for more than 1 second, consider it a refresh/tab switch
+  //     if (hiddenTime > 1000) {
+  //       setWarnings((prev) => {
+  //         const newWarnings = prev + 1;
+  //         if (newWarnings >= 2) {
+  //           handleSubmit(
+  //             true,
+  //             "Page refresh detected. Assessment auto-submitted.",
+  //             "terminated" // Add status parameter
+  //           );
+  //         } else {
+  //           setShowWarning(true);
+  //           setTimeout(() => setShowWarning(false), 3000);
 
-            // iOS-specific toast notification
-            toast({
-              title: "⚠️ Warning",
-              description:
-                "Page refresh detected. Multiple violations will result in automatic submission.",
-              variant: "warning",
-            });
-          }
-          return newWarnings;
-        });
-      }
-    };
+  //           // iOS-specific toast notification
+  //           toast({
+  //             title: "⚠️ Warning",
+  //             description:
+  //               "Page refresh detected. Multiple violations will result in automatic submission.",
+  //             variant: "warning",
+  //           });
+  //         }
+  //         return newWarnings;
+  //       });
+  //     }
+  //   };
 
-    // iOS-specific event listeners
-    window.addEventListener("pagehide", handlePageHide);
-    window.addEventListener("pageshow", handlePageShow);
+  //   // iOS-specific event listeners
+  //   window.addEventListener("pagehide", handlePageHide);
+  //   window.addEventListener("pageshow", handlePageShow);
 
-    return () => {
-      window.removeEventListener("pagehide", handlePageHide);
-      window.removeEventListener("pageshow", handlePageShow);
-    };
-  }, [timerStarted, acceptedInstructions]);
+  //   return () => {
+  //     window.removeEventListener("pagehide", handlePageHide);
+  //     window.removeEventListener("pageshow", handlePageShow);
+  //   };
+  // }, [timerStarted, acceptedInstructions]);
 
   const handleAnswerChange = (questionId, option) => {
     // console.log(`Answer changed - Question ID: ${questionId}, Answer: ${option}, Question Text: ${currentQuestion?.question_text}`);
@@ -606,7 +699,7 @@ useEffect(() => {
 
   // ✅ Check if fullscreen is active
   const isFullscreenActive = () => {
-    if (isMobile) return true; // ✅ Always "true" on mobile
+    // if (isMobile) return true; // ✅ Always "true" on mobile
     return (
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
@@ -1024,7 +1117,7 @@ useEffect(() => {
             {/* Left: Secure Mode */}
             <div className="flex items-center justify-between gap-3 md:w-fit w-full">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                KOC HSE MS Assessment
+                {quizInfo ? quizInfo.quiz_title : "Loading Quiz..."}
               </h1>
               <Badge
                 variant="outline"
