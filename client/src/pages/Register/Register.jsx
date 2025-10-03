@@ -269,6 +269,9 @@ export default function RegisterPage() {
                   }
                   className={errors.position ? "border-destructive" : ""}
                 />
+                {errors.position && (
+                  <p className="text-destructive text-sm">{errors.position}</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -373,7 +376,6 @@ export default function RegisterPage() {
                           (c) => c.company_id === Number(formData.group_id)
                         )
                         .map((contractor) => {
-                          console.log("Hiiii: ", contractor);
                           return (
                             <SelectItem
                               key={contractor.id}
@@ -452,6 +454,9 @@ export default function RegisterPage() {
                 }
                 className={errors.email ? "border-destructive" : ""}
               />
+              {errors.email && (
+                <p className="text-destructive text-sm">{errors.email}</p>
+              )}
             </div>
 
             {/* Password */}
@@ -485,6 +490,9 @@ export default function RegisterPage() {
                   )}
                 </button>
               </div>
+              {errors.password && (
+                <p className="text-destructive text-sm">{errors.password}</p>
+              )}
             </div>
 
             {/* Submit */}

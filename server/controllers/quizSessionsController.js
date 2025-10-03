@@ -1,6 +1,7 @@
-const db = require("../config/database"); // Your MySQL connection
+const db = require("../config/database");
+const nodemailer = require("nodemailer");
+const cron = require("node-cron");
 
-// Get all quiz sessions (optionally filtered by quiz_id)
 exports.getQuizSessions = async (req, res) => {
   const { quizId } = req.query; // optional query param
 
@@ -176,7 +177,7 @@ exports.assignSession = async (req, res) => {
 
     // 2. Fetch users’ team_id & group_id
     const [userRows] = await db.query(
-      `SELECT id AS user_id, team_id, group_id 
+      `SELECT id AS user_id, team_id, group_id, email, location, name
        FROM users 
        WHERE id IN (?)`,
       [user_ids]
@@ -189,25 +190,24 @@ exports.assignSession = async (req, res) => {
     }
 
     // 3. Filter out users who already have an assignment for this session
-    // 3. Filter out users who already have an assignment for this session
-const [existingAssignments] = await db.query(
-  `SELECT qa.user_id, COUNT(qa.id) AS assignment_count
+    const [existingAssignments] = await db.query(
+      `SELECT qa.user_id, COUNT(qa.id) AS assignment_count
    FROM quiz_assignments qa
    WHERE qa.quiz_session_id = ? AND qa.user_id IN (?)
    GROUP BY qa.user_id`,
-  [quiz_session_id, user_ids]
-);
+      [quiz_session_id, user_ids]
+    );
 
-const existingMap = {};
-existingAssignments.forEach((row) => {
-  existingMap[row.user_id] = {
-    assignments: row.assignment_count,
-  };
-});
-
+    const existingMap = {};
+    existingAssignments.forEach((row) => {
+      existingMap[row.user_id] = {
+        assignments: row.assignment_count,
+      };
+    });
 
     const now = new Date();
     const values = [];
+    const emailsToNotify = [];
 
     for (const u of userRows) {
       const existing = existingMap[u.user_id];
@@ -237,6 +237,9 @@ existingAssignments.forEach((row) => {
         //   values.push([...]);
         // }
       }
+      if (u.location === "Rig Based Employee (ROE)") {
+        emailsToNotify.push(u.email);
+      }
     }
 
     if (values.length === 0) {
@@ -255,6 +258,172 @@ existingAssignments.forEach((row) => {
       [values]
     );
 
+    const [quizRows] = await db.query(
+      `SELECT id, title
+       FROM quizzes 
+       WHERE id = ?`,
+      [quiz_id]
+    );
+
+    if (!quizRows.length) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Assessment not found" });
+    }
+
+    const { title } = quizRows[0];
+
+    if (userRows.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Users not found" });
+    }
+    const transporter = nodemailer.createTransport({
+      host: process.env.MAILTRAP_HOST,
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.MAIL_USER_NOREPLY,
+        pass: process.env.MAIL_PASS,
+      },
+      tls: { rejectUnauthorized: false },
+    });
+
+    if (emailsToNotify.length > 0) {
+      const subject = `Advance Safety and Efficiency System - ${
+        title || " for a new assessment session."
+      }`;
+
+      for (const u of userRows) {
+        if (emailsToNotify.includes(u.email)) {
+          const text = `Hello ${u.name || ""},
+
+You have been assigned for ${title || "a new assessment session "}.
+
+📅 Start: ${started_at}  
+📅 End: ${ended_at}  
+
+Please log in to the system to participate.
+
+Best regards,  
+asesystem Team`;
+
+          const htmlContent = `
+  <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+      <h2 style="color: #2563eb; text-align: center; margin-bottom: 20px;">asesystem</h2>
+      <p style="font-size: 16px; color: #333;">Hello <b>${u.name || ""}</b>,</p>
+      <p style="font-size: 16px; color: #333;">
+        You have been registered for ${
+          title || "a new assessment session "
+        } by Drilling Group (N&WK) HSE Unit. Kindly attend within the scheduled time frame:
+      </p>
+
+      <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
+        <p style="margin: 5px 0; font-size: 15px; color: #333;">
+          <b>📅 Start:</b> ${started_at}
+        </p>
+        <p style="margin: 5px 0; font-size: 15px; color: #333;">
+          <b>📅 End:</b> ${ended_at}
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}"
+           style="display: inline-block; font-size: 16px; font-weight: bold; color: #fff; background: #2563eb; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
+          Go to asesystem
+        </a>
+      </div>
+
+      <p style="margin-top: 30px; font-size: 14px; color: #555;">
+        Please make sure to complete the assessment within the given time period.
+      </p>
+
+      <p style="margin-top: 20px; font-size: 14px; color: #777;">Best regards,</p>
+      <p style="font-size: 14px; font-weight: bold; color: #333;">asesystem Team</p>
+    </div>
+    <p style="text-align: center; font-size: 12px; color: #999; margin-top: 15px;">
+      © ${new Date().getFullYear()} asesystem. All rights reserved.
+    </p>
+  </div>`;
+
+          await transporter.sendMail({
+            from: `"asesystem - No Reply" <${process.env.MAIL_USER_NOREPLY_VIEW}>`,
+            to: u.email,
+            replyTo: process.env.MAIL_USER_NOREPLY_VIEW,
+            subject,
+            text,
+            html: htmlContent,
+          });
+        }
+      }
+    }
+
+    for (const u of userRows) {
+      if (emailsToNotify.includes(u.email)) {
+        const subject = `Reminder: Assessment starting soon`;
+        // 🕒 Schedule reminder 15 minutes before start
+        const reminderTime = new Date(
+          new Date(started_at).getTime() - 15 * 60 * 1000
+        );
+
+        if (reminderTime > new Date()) {
+          const delay = reminderTime.getTime() - Date.now(); // milliseconds till reminder
+
+          setTimeout(async () => {
+            const reminderSubject = `Reminder: Assessment starting soon`;
+
+            const reminderHtml = `
+      <div style="font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 20px;">
+        <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <h2 style="color: #2563eb; text-align: center; margin-bottom: 20px;">asesystem</h2>
+          <p style="font-size: 16px; color: #333;">Hello <b>${
+            u.name || ""
+          }</b>,</p>
+          <p style="font-size: 16px; color: #333;">
+            This is a friendly reminder that your assessment will start in <b>15 minutes</b>.
+          </p>
+
+          <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
+            <p><b>📅 Start:</b> ${started_at}</p>
+            <p><b>📅 End:</b> ${ended_at}</p>
+          </div>
+
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${process.env.FRONTEND_URL || "http://localhost:5173"}"
+               style="display: inline-block; font-size: 16px; font-weight: bold; color: #fff; background: #2563eb; padding: 12px 24px; border-radius: 6px; text-decoration: none;">
+              Go to asesystem
+            </a>
+          </div>
+
+          <p style="margin-top: 20px; font-size: 14px; color: #555;">
+            Please make sure to log in on time.
+          </p>
+          <p style="margin-top: 20px; font-size: 14px; color: #777;">Best regards,</p>
+          <p style="font-size: 14px; font-weight: bold; color: #333;">asesystem Team</p>
+        </div>
+        <p style="text-align: center; font-size: 12px; color: #999; margin-top: 15px;">
+          © ${new Date().getFullYear()} asesystem. All rights reserved.
+        </p>
+      </div>`;
+
+            try {
+              await transporter.sendMail({
+                from: `"asesystem - No Reply" <${process.env.MAIL_USER_NOREPLY_VIEW}>`,
+                to: u.email,
+                replyTo: process.env.MAIL_USER_NOREPLY_VIEW,
+                subject: reminderSubject,
+                html: reminderHtml,
+              });
+              console.log(`Reminder sent to ${u.email}`);
+            } catch (err) {
+              console.error(`Failed to send reminder to ${u.email}`, err);
+            }
+          }, delay);
+        }
+      }
+    }
+
     res.status(201).json({
       success: true,
       message: `Session assigned to ${values.length} user(s) successfully`,
@@ -269,7 +438,9 @@ exports.createSession = async (req, res) => {
   const { quiz_id } = req.body;
 
   if (!quiz_id) {
-    return res.status(400).json({ success: false, message: "quiz_id is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "quiz_id is required" });
   }
 
   try {
@@ -282,7 +453,8 @@ exports.createSession = async (req, res) => {
     if (existing.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "Cannot create a new session. Existing session without schedule found.",
+        message:
+          "Cannot create a new session. Existing session without schedule found.",
       });
     }
 
@@ -293,7 +465,9 @@ exports.createSession = async (req, res) => {
     );
 
     if (quizData.length === 0) {
-      return res.status(404).json({ success: false, message: "Assessment not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Assessment not found" });
     }
 
     const quiz = quizData[0];
@@ -311,7 +485,14 @@ exports.createSession = async (req, res) => {
       `INSERT INTO quiz_sessions
        (quiz_id, session_name, time_limit, passing_score, max_attempts, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [quiz_id, sessionName, quiz.time_limit, quiz.passing_score, quiz.max_attempts, 1] // 1 = admin
+      [
+        quiz_id,
+        sessionName,
+        quiz.time_limit,
+        quiz.passing_score,
+        quiz.max_attempts,
+        1,
+      ] // 1 = admin
     );
 
     res.json({

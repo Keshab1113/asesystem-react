@@ -662,10 +662,9 @@ const deleteUser = async (req, res) => {
 
 const logout = async (req, res) => {
   try {
-    await db.execute(
-      "UPDATE users SET session_token = NULL WHERE id = ?", 
-      [req.userId]
-    );
+    await db.execute("UPDATE users SET session_token = NULL WHERE id = ?", [
+      req.userId,
+    ]);
     res.json({ success: true, message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error);

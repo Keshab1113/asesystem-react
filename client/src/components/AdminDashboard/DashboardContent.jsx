@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from "react";
 import {
   Card,
@@ -7,28 +6,15 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
-import { Button } from "../../components/ui/button";
-import { Checkbox } from "../../components/ui/checkbox";
 import {
   Users,
   Activity,
   CheckCircle,
-  XCircle,
-  Eye,
-  Edit,
-  Trash2,
-  Plus,
-  Loader2,
-  Copy,
+  CalendarDays,
   Radio,
-  Zap,
+  CalendarRange,
 } from "lucide-react";
 import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
-import useToast from "../../hooks/ToastContext";
-import { ConfirmationDialog } from "./ConfirmationDialog";
-import { QuizDetailsModal } from "./QuizDetailsModal";
-import { QuizFormModal } from "./QuizFormModal";
-import { BulkActionsToolbar } from "./BulkActionsToolbar";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
 import { BorderBeam } from "../ui/border-beam";
 import api from "../../api/api";
@@ -46,71 +32,15 @@ const defaultFilters = {
 
 export function DashboardContent() {
   const [quizzes, setQuizzes] = useState([]);
+  const [overView, setOverView] = useState(null);
   const [filters, setFilters] = useState(defaultFilters);
-  const [savedPresets, setSavedPresets] = useState([
-    {
-      name: "Active Programming",
-      filters: { ...defaultFilters, status: "Active", subject: "Programming" },
-    },
-    {
-      name: "Hard Difficulty",
-      filters: { ...defaultFilters, difficulty: "hard" },
-    },
-  ]);
-  const [selectedQuizzes, setSelectedQuizzes] = useState([]);
-  const [loadingStates, setLoadingStates] = useState({});
-  const [deleteDialog, setDeleteDialog] = useState({
-    open: false,
-    quizId: null,
-  });
-  const [detailsModal, setDetailsModal] = useState({
-    open: false,
-    quiz: null,
-  });
-  const [formModal, setFormModal] = useState({
-    open: false,
-    quiz: null,
-  });
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        // First, get all quizzes
-        const quizzesRes = await api.get("/api/quiz-attempts/list");
-        const quizzes = quizzesRes.data.data;
-        console.log("Fetched quizzes:", quizzes); // Debugging
-        // Now fetch assignments summary for each quiz
-        const reportsWithSummary = await Promise.all(
-          quizzes.map(async (q) => {
-            const assignRes = await api.get(
-              `/api/quiz-attempts/${q.session_id}`
-            );
-            const { summary } = assignRes.data.data;
-            console.log(
-              "Fetched summary for quiz ID",
-              q.session_id,
-              ":",
-              summary
-            ); // Debug log
-            return {
-              id: q.session_id,
-              name: q.session_name, // for UI
-              quiz_title: q.quiz_title, // for filtering
-              session_name: q.session_name, // for filtering
-              participants: summary.total_assigned ?? 0,
-              completedCount: summary.passed_count ?? 0,
-              inProgressCount: summary.in_progress_count ?? 0,
-              failedCount: summary.failed_count ?? 0,
-              maxQuestions: summary.max_questions ?? 0,
-              averageScore: summary.avg_score ?? 0,
-              date: q.created_at ?? q.schedule_start_at, // for date filter
-              status: q.is_active === 1 ? "Active" : "Completed",
-            };
-          })
-        );
-
-        setQuizzes(reportsWithSummary);
+        const quizzesRes = await api.get("/api/assessment/list");
+        setOverView(quizzesRes.data);
+        setQuizzes(quizzesRes.data.data);
       } catch (error) {
         console.error("Error fetching reports:", error);
       }
@@ -124,9 +54,7 @@ export function DashboardContent() {
   const filteredAndSortedQuizzes = useMemo(() => {
     const filtered = quizzes.filter((quiz) => {
       const matchesSearch =
-        quiz.quiz_title
-          ?.toLowerCase()
-          .includes(debouncedSearch.toLowerCase()) ||
+        quiz.title?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         quiz.session_name
           ?.toLowerCase()
           .includes(debouncedSearch.toLowerCase());
@@ -161,8 +89,8 @@ export function DashboardContent() {
 
       switch (filters.sortBy) {
         case "name":
-          aValue = (a.quiz_title || "").toLowerCase();
-          bValue = (b.quiz_title || "").toLowerCase();
+          aValue = (a.title || "").toLowerCase();
+          bValue = (b.title || "").toLowerCase();
           break;
         case "date":
           aValue = new Date(a.created_at);
@@ -188,184 +116,8 @@ export function DashboardContent() {
     return filtered;
   }, [quizzes, debouncedSearch, filters]);
 
-  const activeQuizzes = quizzes.filter(
-    (quiz) => quiz.status === "Active"
-  ).length;
-  const totalParticipants = quizzes.reduce(
-    (sum, quiz) => sum + quiz.participants,
-    0
-  );
-  console.log("totalParticipants: ", totalParticipants);
   console.log("quizzes: ", quizzes);
-  console.log("filteredAndSortedQuizzes: ", filteredAndSortedQuizzes);
-
-  const setLoading = (id, loading) => {
-    setLoadingStates((prev) => ({ ...prev, [id]: loading }));
-  };
-
-  const handleSelectQuiz = (quizId, checked) => {
-    if (checked) {
-      setSelectedQuizzes((prev) => [...prev, quizId]);
-    } else {
-      setSelectedQuizzes((prev) => prev.filter((id) => id !== quizId));
-    }
-  };
-
-  const handleSelectAll = (checked) => {
-    if (checked) {
-      setSelectedQuizzes(filteredAndSortedQuizzes.map((quiz) => quiz.id));
-    } else {
-      setSelectedQuizzes([]);
-    }
-  };
-
-  const handleBulkAction = async (action, items) => {
-    switch (action) {
-      case "activate":
-        setQuizzes((prev) =>
-          prev.map((quiz) =>
-            items.includes(quiz.id) ? { ...quiz, status: "Active" } : quiz
-          )
-        );
-        break;
-      case "deactivate":
-        setQuizzes((prev) =>
-          prev.map((quiz) =>
-            items.includes(quiz.id) ? { ...quiz, status: "Not Active" } : quiz
-          )
-        );
-        break;
-      case "duplicate": {
-        // Added braces to create a block scope for this case
-        const duplicatedQuizzes = quizzes
-          .filter((quiz) => items.includes(quiz.id))
-          .map((quiz) => ({
-            ...quiz,
-            id: Date.now() + Math.random(),
-            name: `${quiz.name} (Copy)`,
-            participants: 0,
-            status: "Not Active",
-            createdDate: new Date().toISOString().split("T")[0],
-          }));
-        setQuizzes((prev) => [...prev, ...duplicatedQuizzes]);
-        break;
-      }
-      case "delete":
-      case "archive":
-        setQuizzes((prev) => prev.filter((quiz) => !items.includes(quiz.id)));
-        break;
-    }
-  };
-
-  const handleSavePreset = (name, filterState) => {
-    setSavedPresets((prev) => [...prev, { name, filters: filterState }]);
-    toast({
-      title: "Preset Saved",
-      description: `Filter preset "${name}" has been saved successfully.`,
-      variant: "success",
-    });
-  };
-
-  const handleLoadPreset = (filterState) => {
-    setFilters(filterState);
-    toast({
-      title: "Preset Loaded",
-      description: "Filter preset has been applied successfully.",
-      variant: "success",
-    });
-  };
-
-  const handleToggleStatus = async (id) => {
-    setLoading(id, true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setQuizzes((prev) =>
-      prev.map((quiz) =>
-        quiz.id === id
-          ? {
-              ...quiz,
-              status: quiz.status === "Active" ? "Not Active" : "Active",
-            }
-          : quiz
-      )
-    );
-    const quiz = quizzes.find((q) => q.id === id);
-    const newStatus = quiz?.status === "Active" ? "deactivated" : "activated";
-    toast({
-      title: "Quiz Updated",
-      description: `Quiz "${quiz?.name}" has been ${newStatus} successfully.`,
-      variant: "success",
-    });
-    setLoading(id, false);
-  };
-
-  const handleDeleteQuiz = async (id) => {
-    try {
-      setLoading(id, true);
-      await api.delete(`/api/quiz-attempts/${id}`);
-      setQuizzes((prev) => prev.filter((quiz) => quiz.id !== id));
-      toast({
-        title: "✅ Assessment Session Deleted",
-        description: `Assessment Session has been deleted successfully.`,
-        variant: "success",
-      });
-    } catch (error) {
-      console.error("Error deleting Assessment:", error);
-      toast({
-        title: "❌ Error",
-        description: "Failed to delete Assessment Session. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(id, false);
-    }
-  };
-
-  const handleViewQuiz = (quiz) => {
-    setDetailsModal({ open: true, quiz });
-  };
-
-  const handleEditQuiz = (quiz) => {
-    setFormModal({ open: true, quiz: quiz });
-  };
-
-  const handleDuplicateQuiz = (quiz) => {
-    const duplicatedQuiz = {
-      ...quiz,
-      id: Date.now(),
-      name: `${quiz.name} (Copy)`,
-      participants: 0,
-      status: "Not Active",
-      createdDate: new Date().toISOString().split("T")[0],
-    };
-    setQuizzes((prev) => [...prev, duplicatedQuiz]);
-    toast({
-      title: "Quiz Duplicated",
-      description: `Quiz "${quiz.name}" has been duplicated successfully.`,
-      variant: "success",
-    });
-  };
-
-  // const handleSaveQuiz = (quizData) => {
-  //   if (quizData.id && quizzes.find((q) => q.id === quizData.id)) {
-  //     // Update existing quiz
-  //     setQuizzes((prev) =>
-  //       prev.map((quiz) => (quiz.id === quizData.id ? quizData : quiz))
-  //     );
-  //   } else {
-  //     // Add new quiz
-  //     setQuizzes((prev) => [...prev, quizData]);
-  //   }
-  // };
-
-  const openDeleteDialog = (id) => {
-    setDeleteDialog({ open: true, quizId: id });
-  };
-
-  const confirmDelete = () => {
-    if (deleteDialog.quizId) {
-      handleDeleteQuiz(deleteDialog.quizId);
-    }
-  };
+  console.log("overView: ", overView);
 
   return (
     <section className=" ">
@@ -380,7 +132,7 @@ export function DashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {quizzes.length}
+              {Number(overView?.totalAssessment) || 0}
             </div>
           </CardContent>
         </Card>
@@ -394,7 +146,7 @@ export function DashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {activeQuizzes}
+              {Number(overView?.totalActiveAssessment) || 0}
             </div>
           </CardContent>
         </Card>
@@ -408,206 +160,94 @@ export function DashboardContent() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {totalParticipants}
+              {Number(overView?.totalParticipants) || 0}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="mb-6">
-        <AdvancedSearchFilters
-          filters={filters}
-          onFiltersChange={setFilters}
-          onSavePreset={handleSavePreset}
-          savedPresets={savedPresets}
-          onLoadPreset={handleLoadPreset}
-          showDateFilters={true}
-          showDifficultyFilter={true}
-        />
-      </div>
-
-      <BulkActionsToolbar
-        selectedItems={selectedQuizzes}
-        onClearSelection={() => setSelectedQuizzes([])}
-        onBulkAction={handleBulkAction}
-      />
-
       {/* Quiz list */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-foreground text-balance">
-              All Assessments ({filteredAndSortedQuizzes.length})
-              {filteredAndSortedQuizzes.length !== quizzes.length && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  of {quizzes.length} total
-                </span>
-              )}
-            </h2>
-            {filteredAndSortedQuizzes.length > 0 && (
-              <Checkbox
-                checked={
-                  selectedQuizzes.length === filteredAndSortedQuizzes.length
-                }
-                onCheckedChange={handleSelectAll}
-              />
+        <div className="flex md:items-center md:flex-row flex-col justify-between gap-4  w-full">
+          <h2 className="text-2xl font-bold text-foreground text-balance">
+            All Assessments ({filteredAndSortedQuizzes.length})
+            {filteredAndSortedQuizzes.length !== quizzes.length && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                of {Number(overView?.totalAssessment) || 0} total
+              </span>
             )}
-          </div>
-          {/* <Button onClick={() => setFormModal({ open: true, quiz: null })}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add New Quiz
-          </Button> */}
+          </h2>
+          <AdvancedSearchFilters
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
           {filteredAndSortedQuizzes.map((quiz) => (
             <Card
-              key={quiz.id}
-              className={`hover:shadow-md transition-shadow overflow-hidden relative bg-gray-200  ${
-                quiz.status === "Active"
-                  ? "dark:bg-green-900/10 bg-green-900/10"
-                  : " dark:bg-gray-900"
-              }`}
+              key={quiz.id + (quiz.title || Math.random())}
+              className={`hover:shadow-md transition-shadow overflow-hidden relative dark:bg-green-900/10 bg-green-900/10`}
             >
-              {quiz.status === "Active" && (
-                <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0">
-                  {/* Option 1: Pulsing Radio Wave Icon */}
-                  <div className="relative">
-                    <Radio className="text-red-600 w-16 h-16 animate-pulse" />
-                    <div className="absolute inset-0 animate-ping">
-                      <Radio className="text-red-500 w-16 h-16 opacity-75" />
-                    </div>
-                    <div
-                      className="absolute inset-0 animate-ping"
-                      style={{ animationDelay: "1s" }}
-                    >
-                      <Radio className="text-red-400 w-16 h-16 opacity-50" />
-                    </div>
+              <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0">
+                {/* Option 1: Pulsing Radio Wave Icon */}
+                <div className="relative">
+                  <Radio className="text-red-600 w-16 h-16 animate-pulse" />
+                  <div className="absolute inset-0 animate-ping">
+                    <Radio className="text-red-500 w-16 h-16 opacity-75" />
+                  </div>
+                  <div
+                    className="absolute inset-0 animate-ping"
+                    style={{ animationDelay: "1s" }}
+                  >
+                    <Radio className="text-red-400 w-16 h-16 opacity-50" />
                   </div>
                 </div>
-              )}
+              </div>
               <CardHeader>
                 <div className="flex items-center justify-between ">
-                  <div className="flex items-center gap-2 mt-4">
-                    <Checkbox
-                      checked={selectedQuizzes.includes(quiz.id)}
-                      onCheckedChange={(checked) =>
-                        handleSelectQuiz(quiz.id, checked)
-                      }
-                    />
-                    <CardTitle className="text-lg text-card-foreground text-balance flex flex-col">
-                      {quiz.name}
-                      <span className=" text-xs">{quiz.quiz_title}</span>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-lg leading-tight text-card-foreground flex flex-col">
+                      {quiz.title}
+                      <span className=" text-xs mt-2 text-slate-700">
+                        {quiz.description}
+                      </span>
                     </CardTitle>
                   </div>
-                  <Badge
-                    variant={quiz.status === "Active" ? "default" : "secondary"}
-                    className={
-                      quiz.status === "Active"
-                        ? "bg-green-500 text-white absolute top-2 right-2"
-                        : "bg-muted text-muted-foreground absolute top-2 right-2"
-                    }
-                  >
-                    {quiz.status === "Active" ? (
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                    ) : (
-                      <XCircle className="w-3 h-3 mr-1" />
-                    )}
-                    {quiz.status}
-                  </Badge>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 relative h-full">
-                <div className="flex items-center text-card-foreground">
-                  <Users className="w-4 h-4 mr-2" />
-                  <span className="text-sm">
-                    {quiz.participants} participants
-                  </span>
+                <div className=" grid-cols-2 grid gap-2">
+                  <div className="flex items-center text-card-foreground">
+                    <Users className="w-4 h-4 mr-2" />
+                    <span className="text-sm">
+                      {Number(quiz.total_participants) || 0} participants
+                    </span>
+                  </div>
+                  <div className="flex items-center text-card-foreground">
+                    <CalendarRange className="w-4 h-4 mr-2" />
+                    <span className="text-sm">
+                      {Number(quiz.total_sessions) || 0} Session
+                    </span>
+                  </div>
                 </div>
-                <div className="text-xs text-muted-foreground ">
-                  {/* Subject: {quiz.subject} • Difficulty: {quiz.difficulty} • */}
-                  Created: {quiz.date}
+                <div className="text-xs text-muted-foreground flex items-center">
+                  <CalendarDays className="w-4 h-4 mr-2" />
+                  Created: {quiz?.created_at}
                 </div>
-                {/* <div className="flex gap-2 pt-2 flex-wrap absolute bottom-2"> */}
-                {/* <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleViewQuiz(quiz)}
-                    disabled={loadingStates[quiz.id]}
-                  >
-                    <Eye className="h-3 w-3 mr-1" />
-                    <span className=" md:block hidden">View</span>
-                  </Button> */}
-                {/* <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditQuiz(quiz)}
-                    disabled={loadingStates[quiz.id]}
-                  >
-                    <Edit className="h-3 w-3 mr-1" />
-                    <span className=" block">Edit</span>
-                  </Button> */}
-                {/* <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDuplicateQuiz(quiz)}
-                    disabled={loadingStates[quiz.id]}
-                  >
-                    <Copy className="h-3 w-3 mr-1" />
-                    <span className=" md:block hidden">Copy</span>
-                  </Button> */}
-                {/* <Button
-                    size="sm"
-                    variant={
-                      quiz.status === "Active" ? "destructive" : "default"
-                    }
-                    onClick={() => handleToggleStatus(quiz.id)}
-                    disabled={loadingStates[quiz.id]}
-                  >
-                    {loadingStates[quiz.id] ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : quiz.status === "Active" ? (
-                      "Deactivate"
-                    ) : (
-                      "Activate"
-                    )}
-                  </Button> */}
-                {/* <Button
-                    size="sm"
-                    // variant="destructive"
-                    onClick={() => openDeleteDialog(quiz.id)}
-                    disabled={loadingStates[quiz.id]}
-                  >
-                    {loadingStates[quiz.id] ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        <span className=" block">Deleting...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="h-3 w-3" />
-                        <span className=" block ">Delete</span>
-                      </>
-                    )}
-                  </Button> */}
-                {/* </div> */}
               </CardContent>
-              {quiz.status === "Active" && (
-                <BorderBeam
-                  duration={6}
-                  size={200}
-                  borderWidth={3}
-                  className="from-transparent via-red-500 to-transparent"
-                />
-              )}
-              {quiz.status === "Active" && (
-                <BorderBeam
-                  duration={6}
-                  delay={3}
-                  size={200}
-                  borderWidth={3}
-                  className="from-transparent via-blue-500 to-transparent"
-                />
-              )}
+              <BorderBeam
+                duration={6}
+                size={200}
+                borderWidth={3}
+                className="from-transparent via-red-500 to-transparent"
+              />
+              <BorderBeam
+                duration={6}
+                delay={3}
+                size={200}
+                borderWidth={3}
+                className="from-transparent via-blue-500 to-transparent"
+              />
             </Card>
           ))}
         </div>
@@ -618,31 +258,6 @@ export function DashboardContent() {
           </div>
         )}
       </div>
-
-      <ConfirmationDialog
-        open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ open, quizId: null })}
-        title="Delete Assessment Session"
-        description="Are you sure you want to delete this assessment session? This action cannot be undone and will remove all associated data."
-        confirmText="Delete Assessment Session"
-        variant="destructive"
-        onConfirm={confirmDelete}
-      />
-
-      <QuizDetailsModal
-        quiz={detailsModal.quiz}
-        open={detailsModal.open}
-        onOpenChange={(open) => setDetailsModal({ open, quiz: null })}
-        onEdit={handleEditQuiz}
-        onDuplicate={handleDuplicateQuiz}
-      />
-
-      <QuizFormModal
-        quiz={formModal.quiz}
-        open={formModal.open}
-        onOpenChange={(open) => setFormModal({ open, quiz: null })}
-        // onSave={handleSaveQuiz}
-      />
     </section>
   );
 }

@@ -67,35 +67,6 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
     }
   };
 
-  const getPassFailBadge = (status) => {
-    const baseClasses = "px-2 py-1 rounded-full text-xs font-medium";
-    if (status === "passed") {
-      return (
-        <span
-          className={`${baseClasses} bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400`}
-        >
-          ✓ Pass
-        </span>
-      );
-    } else if (status === "failed") {
-      return (
-        <span
-          className={`${baseClasses} bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400`}
-        >
-          ✗ Fail
-        </span>
-      );
-    } else {
-      return (
-        <span
-          className={`${baseClasses} bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400`}
-        >
-          — N/A
-        </span>
-      );
-    }
-  };
-
   const handleDeleteSubject = (id, quiz_id, user_id) => {
     setDeleteDialog({ open: true, id, quiz_id, user_id });
   };
@@ -221,7 +192,6 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
                 <col className="min-w-[220px] max-w-[220px]" /> {/* Location - Increased width */}
                 <col className="min-w-[100px] max-w-[100px]" /> {/* Score */}
                 <col className="min-w-[140px] max-w-[140px]" /> {/* Status */}
-                <col className="min-w-[125px] max-w-[125px]" /> {/* Result */}
                 <col className="min-w-[285px] max-w-[285px]" /> {/* Action - Increased width */}
               </colgroup>
               <thead>
@@ -253,9 +223,7 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
                   <th className="py-4 px-3 text-center font-semibold text-gray-700 dark:text-gray-200 text-sm border-r border-slate-200 dark:border-slate-600">
                     Status
                   </th>
-                  <th className="py-4 px-3 text-center font-semibold text-gray-700 dark:text-gray-200 text-sm border-r border-slate-200 dark:border-slate-600">
-                    Result
-                  </th>
+                  
                   <th className="py-4 px-3 text-center font-semibold text-gray-700 dark:text-gray-200 text-sm">
                     Action
                   </th>
@@ -287,7 +255,6 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
               <col className="w-[160px]" /> {/* Location - Increased width */}
               <col className="w-[100px]" /> {/* Score */}
               <col className="w-[120px]" /> {/* Status */}
-              <col className="w-[120px]" /> {/* Result */}
               <col className="w-[220px]" /> {/* Action - Increased width */}
             </colgroup>
             <tbody>
@@ -376,11 +343,6 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
                   {/* Status */}
                   <td className="py-4 px-3 text-center border-r border-slate-100 dark:border-slate-700 min-w-[140px] max-w-[140px]">
                     {getStatusBadge(item.status)}
-                  </td>
-
-                  {/* Result */}
-                  <td className="py-4 px-3 text-center border-r border-slate-100 dark:border-slate-700 min-w-[125px] max-w-[125px]">
-                    {getPassFailBadge(item.status)}
                   </td>
 
                   {/* Action */}
