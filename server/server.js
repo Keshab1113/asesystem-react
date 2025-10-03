@@ -20,6 +20,7 @@ const quizAssignmentsRoutes = require("./routes/quizAssignmentsRoutes");
 const resultRoutes = require("./routes/resultRoutes");
 const userDownloadRoutes = require("./routes/userDownloadRoutes");
 const quizSessionsRoutes = require("./routes/quizSessionsRoutes");
+const assessmentDetailsRoutes = require("./routes/assessmentDetailsRoutes");
  
 // Middleware
 app.use(cors());
@@ -50,7 +51,7 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/quiz-attempts", quizRoutes);
 app.use("/api/quiz-assignments", quizAssignmentsRoutes);
 app.use("/api/results", resultRoutes);
-
+app.use("/api/assessment", assessmentDetailsRoutes);
 app.use("/api/quiz-sessions", quizSessionsRoutes);
 
 

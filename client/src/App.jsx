@@ -34,6 +34,7 @@ import ProtectedAssessmentRoute from "./lib/ProtectedAssessmentRoute";
 import ProtectedResultsRoute from "./lib/ProtectedResultsRoute";
 import PublicRoute from "./lib/PublicRoute";
 import QuizSessionsPage from "./pages/AdminDashboard/QuizSessionsPage";
+import AssessmentDetails from "./pages/AdminDashboard/AssessmentDetails";
 
 
 function App() {
@@ -74,6 +75,7 @@ function App() {
           >
             <Route index element={<DashboardContent />} />
             <Route path="assessment-report" element={<QuizReportPage />} />
+            <Route path="assessment-details" element={<AssessmentDetails />} />
             <Route
               path="assessment-report/:id"
               element={<QuizReportDetailsPage />}

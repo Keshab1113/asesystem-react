@@ -25,6 +25,7 @@ import {
   Key,
   Home,
  CalendarCheck,
+ IdCard
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -39,6 +40,7 @@ const navigationItems = [
     title: "Reports",
     icon: BarChart3,
     items: [
+      { title: "Assesment Details", icon: IdCard, page: "assessment-details" },
       { title: "Assesment Report", icon: FileText, page: "assessment-report" },
       {
         title: "Issue Manual Certificate",
