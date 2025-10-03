@@ -381,7 +381,7 @@ asesystem Team`;
             u.name || ""
           }</b>,</p>
           <p style="font-size: 16px; color: #333;">
-            This is a friendly reminder that your assessment will start in <b>15 minutes</b>.
+            This is a courteous reminder that your assessment is scheduled to begin in <b>15 minutes</b>.
           </p>
 
           <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
