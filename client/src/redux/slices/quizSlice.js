@@ -24,6 +24,10 @@ const quizSlice = createSlice({
       }
       state.answers[quizId][questionId] = answer;
     },
+    setQuizAnswers: (state, action) => {
+      const { quizId, answers } = action.payload;
+      state.answers[quizId] = answers;
+    },
     resetQuiz: (state, action) => {
       const { quizId } = action.payload;
       delete state.questionsByQuiz[quizId];
@@ -35,5 +39,5 @@ const quizSlice = createSlice({
   },
 });
 
-export const { setQuizQuestions, setAnswer, resetQuiz } = quizSlice.actions;
+export const { setQuizQuestions, setAnswer, setQuizAnswers, resetQuiz } = quizSlice.actions;
 export default quizSlice.reducer;

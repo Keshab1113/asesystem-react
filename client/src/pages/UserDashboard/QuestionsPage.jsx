@@ -27,6 +27,7 @@ import {
   setQuizQuestions,
   setAnswer,
   resetQuiz,
+  setQuizAnswers,
 } from "../../redux/slices/quizSlice";
 import useToast from "../../hooks/ToastContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -266,16 +267,41 @@ export default function QuestionsPage() {
 
   // iOS-SPECIFIC HANDLING
   if (iOS) {
-    const blockNavigation = (e) => {
+    let backPressCount = 0;
+    let backPressTimer = null;
+
+    const handleBeforeUnload = (e) => {
+      saveQuizState();
+      e.preventDefault();
+      e.returnValue = "";
+      return "";
+    };
+
+    const handlePopState = (e) => {
       e.preventDefault();
       window.history.pushState(null, "", window.location.href);
-      saveQuizState();
       
-      toast({
-        title: "⚠️ Navigation Blocked",
-        description: "Please use the submit button to exit the assessment.",
-        variant: "warning",
-      });
+      backPressCount++;
+      
+      if (backPressCount === 1) {
+        // First back press - show warning
+        saveQuizState();
+        toast({
+          title: "⚠️ Warning #1",
+          description: "Press back again to terminate and submit the assessment.",
+          variant: "warning",
+        });
+        
+        // Reset counter after 3 seconds
+        if (backPressTimer) clearTimeout(backPressTimer);
+        backPressTimer = setTimeout(() => {
+          backPressCount = 0;
+        }, 3000);
+      } else if (backPressCount >= 2) {
+        // Second back press - terminate
+        if (backPressTimer) clearTimeout(backPressTimer);
+        handleSubmit(true, "Back button pressed twice. Assessment terminated.", "terminated");
+      }
     };
 
     const handleVisibilityChange = () => {
@@ -296,6 +322,15 @@ export default function QuestionsPage() {
       }
     };
 
+    const handlePageHide = (e) => {
+      if (e.persisted) return; // ignore bfcache restores
+      
+      // On iOS → prevent reload, stay on same page
+      console.log("iOS reload blocked — staying on page");
+      saveQuizState();
+      window.history.pushState(null, "", window.location.href);
+    };
+
     let startY = 0;
     const preventPullToRefresh = (e) => {
       const touch = e.touches[0];
@@ -308,18 +343,38 @@ export default function QuestionsPage() {
       startY = e.touches[0].clientY;
     };
 
-    document.addEventListener("touchstart", setStartY, { passive: false });
-    document.addEventListener("touchmove", preventPullToRefresh, { passive: false });
-    window.addEventListener("popstate", blockNavigation);
+    // document.addEventListener("touchstart", setStartY, { passive: false });
+    // document.addEventListener("touchmove", preventPullToRefresh, { passive: false });
+   
+
+const onTouchStart = (e) => {
+  startY = e.touches[0].clientY;
+};
+const onTouchMove = (e) => {
+  if (window.scrollY <= 0 && e.touches[0].clientY > startY) {
+    e.preventDefault();
+  }
+};
+
+document.addEventListener("touchstart", onTouchStart, { passive: true });
+document.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
     window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("pagehide", handlePageHide);
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.history.pushState(null, "", window.location.href);
 
     return () => {
-      document.removeEventListener("touchstart", setStartY);
-      document.removeEventListener("touchmove", preventPullToRefresh);
-      window.removeEventListener("popstate", blockNavigation);
+      if (backPressTimer) clearTimeout(backPressTimer);
+      document.removeEventListener("touchstart", onTouchStart);
+document.removeEventListener("touchmove", onTouchMove);
+
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
       window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("pagehide", handlePageHide);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }
@@ -1116,10 +1171,10 @@ if (android) {
         }, 500);
 
         // Clear all quiz localStorage
-localStorage.removeItem(`quiz_${quizSessionId}_currentQuestion`);
-localStorage.removeItem(`quiz_${quizSessionId}_answers`);
-localStorage.removeItem(`quiz_${quizSessionId}_timeRemaining`);
-localStorage.setItem(`quiz_${quizSessionId}_instructions_accepted`, "false");
+        localStorage.removeItem(`quiz_${quizSessionId}_currentQuestion`);
+        localStorage.removeItem(`quiz_${quizSessionId}_answers`);
+        localStorage.removeItem(`quiz_${quizSessionId}_timeRemaining`);
+        localStorage.setItem(`quiz_${quizSessionId}_instructions_accepted`, "false");
       } else {
         throw new Error(response.data.message || "Failed to submit assessment");
       }
@@ -1420,8 +1475,8 @@ localStorage.setItem(`quiz_${quizSessionId}_instructions_accepted`, "false");
       )}
 
       {/* Main content container */}
-      <div className="py-4 px-4">
-        <div className=" mx-auto max-w-7xl flex justify-center items-center h-full">
+     <div className="py-4 px-4 h-[calc(100vh-5rem)]">   {/* 👈 give it a fixed height minus header */}
+  <div className="scroll-container mx-auto max-w-7xl flex justify-center items-start h-full overflow-y-auto overscroll-contain">
           {/* Main Layout with Sidebar and Content */}
           <div className="flex md:flex-row flex-col-reverse gap-8 w-full ">
             {/* Left Sidebar - Question Numbers */}
