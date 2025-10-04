@@ -1,0 +1,23 @@
+/* QuestionPage.css */
+
+.question-page {
+  height: 100dvh;          /* ensure full device height */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;        /* header fixed, only body scrolls */
+}
+
+.question-page .scroll-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
+  scroll-behavior: smooth;           /* smooth scroll on anchors */
+  overscroll-behavior-y: contain;    /* prevent weird bounce propagation */
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom)); /* safe for notches */
+}
+
+/* Add safe padding for iOS/Android devices with bottom bars */
+/* .question-page .scroll-container {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+} */

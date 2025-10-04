@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import "./QuestionPage.css";
+
 import {
   Loader2,
   Clock,
@@ -34,9 +36,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { store } from "../../redux/store"; // ✅ named import
 import { useExam } from "../../lib/ExamContext";
 import api from "../../api/api";
-const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-const isIOS = () => {
-  return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+const Device = {
+  isMobile: /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent),
+  isIOS: /iPhone|iPad|iPod/i.test(navigator.userAgent),
+  isAndroid: /Android/i.test(navigator.userAgent),
 };
 
 export default function QuestionsPage() {
@@ -90,10 +93,16 @@ export default function QuestionsPage() {
     const currentAnswers = store.getState().quiz.answers[quizId] || {};
     return currentAnswers[q.id];
   });
+
+  // ============================================================================
+  // 1. INITIAL SETUP - Fetch Questions & Auto-Fullscreen
+  // ============================================================================
+
   useEffect(() => {
-    // Automatically request fullscreen on page load (skip for mobile)
+    // Auto-request fullscreen on desktop (skip for mobile)
     const requestFullscreen = () => {
-      if (isMobile) return; // ✅ Skip on mobile
+      if (Device.isMobile) return;
+
       if (!isFullscreenActive()) {
         const el = document.documentElement;
         if (el.requestFullscreen) el.requestFullscreen();
@@ -105,25 +114,6 @@ export default function QuestionsPage() {
 
     // Request fullscreen after a short delay to ensure DOM is ready
     setTimeout(requestFullscreen, 100);
-
-    const hasAccepted = localStorage.getItem(
-      `quiz_${quizSessionId}_instructions_accepted`
-    );
-    const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-
-    if (
-      hasAccepted === "true" &&
-      (isMobile || (isFullscreenActive() && !isDevToolsOpen()))
-    ) {
-      setAcceptedInstructions(true);
-      setShowInstructions(false);
-      setTimerStarted(true);
-    } else {
-      localStorage.setItem(
-        `quiz_${quizSessionId}_instructions_accepted`,
-        "false"
-      );
-    }
 
     const fetchQuestions = async () => {
       try {
@@ -140,10 +130,6 @@ export default function QuestionsPage() {
           dispatch(setQuizQuestions({ quizId: quizId, questions: data.data }));
         }
         console.log("Fetched Questions:", data.data);
-        // Debug question IDs
-        if (data.data && Array.isArray(data.data)) {
-          data.data.forEach((q, index) => {});
-        }
       } catch (error) {
         console.error("Error fetching assigned questions:", error);
       } finally {
@@ -152,9 +138,11 @@ export default function QuestionsPage() {
     };
 
     if (quizSessionId) fetchQuestions();
-  }, [quizId, quizSessionId, dispatch]);
+  }, [quizId, quizSessionId, dispatch, user.id, assignmentId]);
 
-  // get the quiz name/details
+  // ============================================================================
+  // 2. FETCH QUIZ INFO
+  // ============================================================================
   useEffect(() => {
     const fetchQuizInfo = async () => {
       if (!user?.id) return;
@@ -165,7 +153,6 @@ export default function QuestionsPage() {
         );
         const data = await res.json();
         if (data.success) {
-          // Filter for the current quiz session
           const currentQuiz = data.data.find(
             (assignment) =>
               assignment.quiz_id.toString() === quizId.toString() &&
@@ -181,368 +168,376 @@ export default function QuestionsPage() {
     fetchQuizInfo();
   }, [user?.id, quizId, quizSessionId]);
 
-  // useEffect(() => {
-  //   if (!acceptedInstructions || showInstructions) return;
+  // ============================================================================
+  // 3. CONSOLIDATED CHEATING DETECTION & PREVENTION SYSTEM
+  // ============================================================================
+  useEffect(() => {
+    // Don't run detection until instructions are accepted
+    if (!acceptedInstructions || showInstructions) return;
 
-  //   setBlockNavigation(true);
-
-  //   const handleBeforeUnload = (event) => {
-  //     if (isMobile) {
-  //       // 🚫 Block reload completely on mobile (iOS & Android)
-  //       event.preventDefault();
-  //       event.returnValue = ""; // Suppress native dialog
-  //       return "";
-  //     } else {
-  //       // ✅ Desktop → allow confirm dialog
-  //       event.preventDefault();
-  //       event.returnValue =
-  //         "Reloading will terminate your assessment. Do you want to reload?";
-  //       return event.returnValue;
-  //     }
-  //   };
-
-  //   const handlePageHide = (event) => {
-  //     if (event.persisted) return; // ignore bfcache restores
-
-  //     if (isMobile) {
-  //       // 🚫 On iOS/Android → prevent reload, stay on same page
-  //       console.log("Mobile reload blocked — staying on page");
-  //       window.history.pushState(null, "", window.location.href);
-  //       return;
-  //     }
-
-  //     // ✅ On desktop → terminate normally
-  //     handleSubmit(
-  //       true,
-  //       "Page reload detected. Assessment terminated.",
-  //       "terminated"
-  //     );
-  //   };
-
-  //   const handlePopState = (event) => {
-  //     event.preventDefault();
-  //     handleSubmit(
-  //       true,
-  //       "Back navigation detected. Assessment terminated.",
-  //       "terminated"
-  //     );
-  //   };
-
-  //   window.addEventListener("beforeunload", handleBeforeUnload);
-  //   window.addEventListener("pagehide", handlePageHide);
-  //   window.addEventListener("popstate", handlePopState);
-
-  //   // Push dummy state to block back button
-  //   window.history.pushState(null, "", window.location.href);
-
-  //   return () => {
-  //     window.removeEventListener("beforeunload", handleBeforeUnload);
-  //     window.removeEventListener("pagehide", handlePageHide);
-  //     window.removeEventListener("popstate", handlePopState);
-  //     setBlockNavigation(false);
-  //   };
-  // }, [acceptedInstructions, showInstructions, navigate]);
-
- useEffect(() => {
-  if (!acceptedInstructions || showInstructions) return;
-
-  const saveQuizState = () => {
-    localStorage.setItem(`quiz_${quizSessionId}_currentQuestion`, currentQuestionIndex);
-    localStorage.setItem(`quiz_${quizSessionId}_answers`, JSON.stringify(store.getState().quiz.answers[quizId] || {}));
-    localStorage.setItem(`quiz_${quizSessionId}_timeRemaining`, timeRemaining);
-  };
-
-  const restoreQuizState = () => {
-    const savedIndex = localStorage.getItem(`quiz_${quizSessionId}_currentQuestion`);
-    const savedAnswers = JSON.parse(localStorage.getItem(`quiz_${quizSessionId}_answers`) || "{}");
-    const savedTime = localStorage.getItem(`quiz_${quizSessionId}_timeRemaining`);
-    
-    if (savedIndex !== null) setCurrentQuestionIndex(Number(savedIndex));
-    if (savedAnswers) dispatch(setQuizAnswers({ quizId, answers: savedAnswers }));
-    if (savedTime !== null) setTimeRemaining(Number(savedTime));
-  };
-
-  const iOS = isIOS();
-  const android = /Android/i.test(navigator.userAgent);
-
-  // iOS-SPECIFIC HANDLING
-  if (iOS) {
-    let backPressCount = 0;
-    let backPressTimer = null;
-
-    const handleBeforeUnload = (e) => {
-      saveQuizState();
-      e.preventDefault();
-      e.returnValue = "";
-      return "";
+    // -------------------------------------------------------------------------
+    // SHARED STATE MANAGEMENT
+    // -------------------------------------------------------------------------
+    const saveQuizState = () => {
+      localStorage.setItem(
+        `quiz_${quizSessionId}_currentQuestion`,
+        currentQuestionIndex
+      );
+      localStorage.setItem(
+        `quiz_${quizSessionId}_answers`,
+        JSON.stringify(store.getState().quiz.answers[quizId] || {})
+      );
+      localStorage.setItem(
+        `quiz_${quizSessionId}_timeRemaining`,
+        timeRemaining
+      );
     };
 
-    const handlePopState = (e) => {
-      e.preventDefault();
-      window.history.pushState(null, "", window.location.href);
-      
-      backPressCount++;
-      
-      if (backPressCount === 1) {
-        // First back press - show warning
+    const restoreQuizState = () => {
+      const savedIndex = localStorage.getItem(
+        `quiz_${quizSessionId}_currentQuestion`
+      );
+      const savedAnswers = JSON.parse(
+        localStorage.getItem(`quiz_${quizSessionId}_answers`) || "{}"
+      );
+      const savedTime = localStorage.getItem(
+        `quiz_${quizSessionId}_timeRemaining`
+      );
+
+      if (savedIndex !== null) setCurrentQuestionIndex(Number(savedIndex));
+      if (savedAnswers)
+        dispatch(setQuizAnswers({ quizId, answers: savedAnswers }));
+      if (savedTime !== null) setTimeRemaining(Number(savedTime));
+    };
+
+    // -------------------------------------------------------------------------
+    // iOS-SPECIFIC HANDLING
+    // -------------------------------------------------------------------------
+    if (Device.isIOS) {
+      let backPressCount = 0;
+      let backPressTimer = null;
+
+      const handleBeforeUnload = (e) => {
         saveQuizState();
-        toast({
-          title: "⚠️ Warning #1",
-          description: "Press back again to terminate and submit the assessment.",
-          variant: "warning",
-        });
-        
-        // Reset counter after 3 seconds
-        if (backPressTimer) clearTimeout(backPressTimer);
-        backPressTimer = setTimeout(() => {
-          backPressCount = 0;
-        }, 3000);
-      } else if (backPressCount >= 2) {
-        // Second back press - terminate
-        if (backPressTimer) clearTimeout(backPressTimer);
-        handleSubmit(true, "Back button pressed twice. Assessment terminated.", "terminated");
-      }
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        saveQuizState();
-        console.log("iOS: Page hidden, state saved");
-      } else {
-        restoreQuizState();
-        console.log("iOS: Page visible, state restored");
-      }
-    };
-
-    const handlePageShow = (e) => {
-      if (e.persisted) {
-        console.log("iOS: Page loaded from bfcache");
-        restoreQuizState();
-        window.history.pushState(null, "", window.location.href);
-      }
-    };
-
-    const handlePageHide = (e) => {
-      if (e.persisted) return; // ignore bfcache restores
-      
-      // On iOS → prevent reload, stay on same page
-      console.log("iOS reload blocked — staying on page");
-      saveQuizState();
-      window.history.pushState(null, "", window.location.href);
-    };
-
-    let startY = 0;
-    const preventPullToRefresh = (e) => {
-      const touch = e.touches[0];
-      if (touch.clientY > startY && window.scrollY === 0) {
         e.preventDefault();
-      }
-    };
+        e.returnValue = "";
+        return "";
+      };
 
-    const setStartY = (e) => {
-      startY = e.touches[0].clientY;
-    };
+      const handlePopState = (e) => {
+        e.preventDefault();
+        window.history.pushState(null, "", window.location.href);
 
-    // document.addEventListener("touchstart", setStartY, { passive: false });
-    // document.addEventListener("touchmove", preventPullToRefresh, { passive: false });
-   
+        backPressCount++;
 
-const onTouchStart = (e) => {
-  startY = e.touches[0].clientY;
-};
-const onTouchMove = (e) => {
-  if (window.scrollY <= 0 && e.touches[0].clientY > startY) {
-    e.preventDefault();
-  }
-};
+        if (backPressCount === 1) {
+          saveQuizState();
+          toast({
+            title: "⚠️ Warning #1",
+            description:
+              "Press back again to terminate and submit the assessment.",
+            variant: "warning",
+          });
 
-document.addEventListener("touchstart", onTouchStart, { passive: true });
-document.addEventListener("touchmove", onTouchMove, { passive: false });
+          if (backPressTimer) clearTimeout(backPressTimer);
+          backPressTimer = setTimeout(() => {
+            backPressCount = 0;
+          }, 3000);
+        } else if (backPressCount >= 2) {
+          if (backPressTimer) clearTimeout(backPressTimer);
+          handleSubmit(
+            true,
+            "Back button pressed twice. Assessment terminated.",
+            "terminated"
+          );
+        }
+      };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("popstate", handlePopState);
-    window.addEventListener("pageshow", handlePageShow);
-    window.addEventListener("pagehide", handlePageHide);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.history.pushState(null, "", window.location.href);
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          saveQuizState();
+          handleSubmit(
+            true,
+            "Tab switching detected. Assessment terminated.",
+            "terminated"
+          );
+        } else {
+          restoreQuizState();
+        }
+      };
 
-    return () => {
-      if (backPressTimer) clearTimeout(backPressTimer);
-      document.removeEventListener("touchstart", onTouchStart);
-document.removeEventListener("touchmove", onTouchMove);
+      const handlePageShow = (e) => {
+        if (e.persisted) {
+          restoreQuizState();
+          window.history.pushState(null, "", window.location.href);
+        }
+      };
 
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("popstate", handlePopState);
-      window.removeEventListener("pageshow", handlePageShow);
-      window.removeEventListener("pagehide", handlePageHide);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }
+      const handlePageHide = (e) => {
+        saveQuizState();
+        window.history.pushState(null, "", window.location.href);
+      };
 
-  // ANDROID-SPECIFIC HANDLING
-  // ANDROID-SPECIFIC HANDLING
-if (android) {
-  let backPressCount = 0;
-  let backPressTimer = null;
+      // Prevent pull-to-refresh
+      let startY = 0;
+      const onTouchStart = (e) => {
+        startY = e.touches[0].clientY;
+      };
+      const onTouchMove = (e) => {
+        if (window.scrollY <= 0 && e.touches[0].clientY > startY) {
+          e.preventDefault();
+        }
+      };
 
-  const handleBeforeUnload = (e) => {
-    saveQuizState();
-    e.preventDefault();
-    e.returnValue = "";
-    return "";
-  };
+      document.addEventListener("touchstart", onTouchStart, { passive: true });
+      document.addEventListener("touchmove", onTouchMove, { passive: false });
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      window.addEventListener("popstate", handlePopState);
+      window.addEventListener("pageshow", handlePageShow);
+      window.addEventListener("pagehide", handlePageHide);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.history.pushState(null, "", window.location.href);
 
-  const handlePopState = (e) => {
-    e.preventDefault();
-    window.history.pushState(null, "", window.location.href);
-    
-    backPressCount++;
-    
-    if (backPressCount === 1) {
-      // First back press - show warning
-      saveQuizState();
-      toast({
-        title: "⚠️ Warning #1",
-        description: "Press back again to terminate and submit the assessment.",
-        variant: "warning",
-      });
-      
-      // Reset counter after 3 seconds
-      if (backPressTimer) clearTimeout(backPressTimer);
-      backPressTimer = setTimeout(() => {
-        backPressCount = 0;
-      }, 3000);
-    } else if (backPressCount >= 2) {
-      // Second back press - terminate
-      if (backPressTimer) clearTimeout(backPressTimer);
-      handleSubmit(true, "Back button pressed twice. Assessment terminated.", "terminated");
+      return () => {
+        if (backPressTimer) clearTimeout(backPressTimer);
+        document.removeEventListener("touchstart", onTouchStart);
+        document.removeEventListener("touchmove", onTouchMove);
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+        window.removeEventListener("popstate", handlePopState);
+        window.removeEventListener("pageshow", handlePageShow);
+        window.removeEventListener("pagehide", handlePageHide);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+      };
     }
-  };
 
-  const handlePageShow = (e) => {
-    if (e.persisted) {
-      restoreQuizState();
+    // -------------------------------------------------------------------------
+    // ANDROID-SPECIFIC HANDLING
+    // -------------------------------------------------------------------------
+    if (Device.isAndroid) {
+      let backPressCount = 0;
+      let backPressTimer = null;
+
+      // const handleBeforeUnload = (e) => {
+      //   saveQuizState();
+      //   e.preventDefault();
+      //   e.returnValue = "";
+      //   return "";
+      // };
+
+      const handlePopState = (e) => {
+        e.preventDefault();
+        window.history.pushState(null, "", window.location.href);
+
+        backPressCount++;
+
+        if (backPressCount === 1) {
+          saveQuizState();
+          toast({
+            title: "⚠️ Warning #1",
+            description:
+              "Press back again to terminate and submit the assessment.",
+            variant: "warning",
+          });
+
+          if (backPressTimer) clearTimeout(backPressTimer);
+          backPressTimer = setTimeout(() => {
+            backPressCount = 0;
+          }, 3000);
+        } else if (backPressCount >= 2) {
+          if (backPressTimer) clearTimeout(backPressTimer);
+          handleSubmit(
+            true,
+            "Back button pressed twice. Assessment terminated.",
+            "terminated"
+          );
+        }
+      };
+
+      const handlePageShow = (e) => {
+        if (e.persisted) {
+          restoreQuizState();
+        }
+      };
+
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          saveQuizState();
+          handleSubmit(
+            true,
+            "Tab switching detected. Assessment terminated.",
+            "terminated"
+          );
+        }
+      };
+
+      // window.addEventListener("beforeunload", handleBeforeUnload);
+      window.addEventListener("popstate", handlePopState);
+      window.addEventListener("pageshow", handlePageShow);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.history.pushState(null, "", window.location.href);
+
+      return () => {
+        if (backPressTimer) clearTimeout(backPressTimer);
+        // window.removeEventListener("beforeunload", handleBeforeUnload);
+        window.removeEventListener("popstate", handlePopState);
+        window.removeEventListener("pageshow", handlePageShow);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+      };
     }
-  };
 
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  window.addEventListener("popstate", handlePopState);
-  window.addEventListener("pageshow", handlePageShow);
-  window.history.pushState(null, "", window.location.href);
+    // -------------------------------------------------------------------------
+    // DESKTOP-SPECIFIC HANDLING
+    // -------------------------------------------------------------------------
+    if (!Device.isMobile) {
+      let wakeLock = null;
 
-  return () => {
-    if (backPressTimer) clearTimeout(backPressTimer);
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener("popstate", handlePopState);
-    window.removeEventListener("pageshow", handlePageShow);
-  };
-}
+      const requestWakeLock = async () => {
+        try {
+          wakeLock = await navigator.wakeLock.request("screen");
+        } catch (err) {
+          console.warn("Wake Lock not supported:", err);
+        }
+      };
+      requestWakeLock();
 
-  // DESKTOP HANDLING
-  const handleBeforeUnload = (e) => {
-    saveQuizState();
-    e.preventDefault();
-    e.returnValue = "";
-    return "";
-  };
+      const disableRightClick = (e) => {
+        e.preventDefault();
+        setShowWarning(true);
+        setTimeout(() => setShowWarning(false), 3000);
+      };
 
-  const handlePopState = () => {
-    handleSubmit(true, "Back navigation detected. Assessment terminated.", "terminated");
-  };
+      const disableKeys = (e) => {
+        const key = e.key.toUpperCase();
+        if (
+          key === "F12" ||
+          (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(key)) ||
+          (e.ctrlKey && key === "U")
+        ) {
+          e.preventDefault();
+          setShowWarning(true);
+          setTimeout(() => setShowWarning(false), 3000);
+        }
+      };
 
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  window.addEventListener("popstate", handlePopState);
-  window.history.pushState(null, "", window.location.href);
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          handleSubmit(
+            true,
+            "Tab switching detected. Assessment terminated.",
+            "terminated"
+          );
+        }
+      };
 
-  return () => {
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-    window.removeEventListener("popstate", handlePopState);
-  };
-}, [acceptedInstructions, showInstructions, currentQuestionIndex, timeRemaining, quizId, quizSessionId, dispatch, toast]);
+      const exitHandler = () => {
+        if (
+          !document.fullscreenElement &&
+          !document.webkitFullscreenElement &&
+          !document.mozFullScreenElement &&
+          !document.msFullscreenElement
+        ) {
+          handleSubmit(
+            true,
+            "Fullscreen exited. Assessment terminated.",
+            "terminated"
+          );
+        }
+      };
 
-  // Enhanced back button handling for mobile (especially iOS)
+      const handleBlur = () => {
+        handleSubmit(
+          true,
+          "Window focus lost. Assessment terminated.",
+          "terminated"
+        );
+      };
 
-  // useEffect(() => {
-  //   if (!blockNavigation || !acceptedInstructions || showInstructions) return;
+      const handleMouseLeave = () => {
+        if (!document.hidden) {
+          handleSubmit(
+            true,
+            "Mouse left window. Assessment terminated.",
+            "terminated"
+          );
+        }
+      };
 
-  //   let isSubmitting = false;
+      const handleBeforeUnload = (e) => {
+        saveQuizState();
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      };
 
-  //   const handleBackButton = () => {
-  //     if (isSubmitting) return;
+      const handlePopState = () => {
+        handleSubmit(
+          true,
+          "Back navigation detected. Assessment terminated.",
+          "terminated"
+        );
+      };
 
-  //     isSubmitting = true;
-  //     console.log("Mobile back button detected - auto-submitting assessment");
+      document.addEventListener("contextmenu", disableRightClick);
+      document.addEventListener("keydown", disableKeys);
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      document.addEventListener("fullscreenchange", exitHandler);
+      document.addEventListener("webkitfullscreenchange", exitHandler);
+      document.addEventListener("mozfullscreenchange", exitHandler);
+      document.addEventListener("MSFullscreenChange", exitHandler);
+      window.addEventListener("blur", handleBlur);
+      window.addEventListener("mouseleave", handleMouseLeave);
+      window.addEventListener("beforeunload", handleBeforeUnload);
+      window.addEventListener("popstate", handlePopState);
+      window.history.pushState(null, "", window.location.href);
 
-  //     // Auto-submit when back button is pressed
-  //     handleSubmit(
-  //       true,
-  //       "Multiple violations detected. Assessment terminated.",
-  //       "terminated"
-  //     ).finally(() => {
-  //       isSubmitting = false;
-  //     });
-  //   };
+      return () => {
+        document.removeEventListener("contextmenu", disableRightClick);
+        document.removeEventListener("keydown", disableKeys);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+        document.removeEventListener("fullscreenchange", exitHandler);
+        document.removeEventListener("webkitfullscreenchange", exitHandler);
+        document.removeEventListener("mozfullscreenchange", exitHandler);
+        document.removeEventListener("MSFullscreenChange", exitHandler);
+        window.removeEventListener("blur", handleBlur);
+        window.removeEventListener("mouseleave", handleMouseLeave);
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+        window.removeEventListener("popstate", handlePopState);
 
-  //   // iOS-specific back button handling
-  //   if (isMobile) {
-  //     // Add additional event listeners for mobile
-  //     window.addEventListener("pagehide", handleBackButton);
-  //     window.addEventListener("pageshow", () => {
-  //       // Reset submitting state when page becomes visible again
-  //       isSubmitting = false;
-  //     });
-  //   }
+        if (wakeLock) {
+          wakeLock.release().catch(() => {});
+          wakeLock = null;
+        }
+      };
+    }
+  }, [
+    acceptedInstructions,
+    showInstructions,
+    currentQuestionIndex,
+    timeRemaining,
+    quizId,
+    quizSessionId,
+    dispatch,
+    toast,
+  ]);
 
-  //   return () => {
-  //     if (isMobile) {
-  //       window.removeEventListener("pagehide", handleBackButton);
-  //       window.removeEventListener("pageshow", () => {});
-  //     }
-  //   };
-  // }, [blockNavigation, acceptedInstructions, showInstructions, navigate]);
-
-  // Handle browser back button with history manipulation
-  // useEffect(() => {
-  //   if (!blockNavigation) return;
-
-  //   const preventBack = () => {
-  //     window.history.pushState(null, "", window.location.href);
-  //   };
-
-  //   // Initial push
-  //   preventBack();
-
-  //   const handlePopState = (event) => {
-  //     // Prevent back navigation and auto-submit
-  //     event.preventDefault();
-  //     preventBack();
-  //     console.log("Popstate detected - auto-submitting assessment");
-  //     if (isMobile) {
-  //       console.log("Mobile back button blocked");
-  //       handleSubmit(
-  //         true,
-  //         "Multiple violations detected. Assessment terminated.",
-  //         "terminated"
-  //       );
-  //     } else {
-  //       console.log("Desktop back button blocked");
-  //     }
-  //   };
-  //   window.addEventListener("popstate", handlePopState);
-
-  //   return () => {
-  //     window.removeEventListener("popstate", handlePopState);
-  //   };
-  // }, [blockNavigation, navigate]);
-
+  // ============================================================================
+  // 4. TIMER COUNTDOWN
+  // ============================================================================
   useEffect(() => {
     if (!timerStarted || !acceptedInstructions) return;
 
     const timer = setInterval(() => {
       setTimeRemaining((prev) => {
-        // console.log("timeRemaining: ", prev);
-
-        // ⚠️ 2-minute warning
+        // 2-minute warning
         if (prev === 121) {
           try {
             const audio = new Audio("/Images/alert.mp3");
@@ -559,12 +554,13 @@ if (android) {
           });
         }
 
-        // ⏰ Time up
+        // Time up
         if (prev <= 1) {
           clearInterval(timer);
           handleSubmit(
             true,
-            "Time's up! Your Assessment has been automatically submitted."
+            "Time's up! Your Assessment has been automatically submitted.",
+            "submitted"
           );
           return 0;
         }
@@ -576,7 +572,9 @@ if (android) {
     return () => clearInterval(timer);
   }, [timerStarted, acceptedInstructions]);
 
-  // Monitor fullscreen changes and uncheck the checkbox when fullscreen is exited
+  // ============================================================================
+  // 5. FULLSCREEN CHECKBOX MONITOR (Instructions Page)
+  // ============================================================================
   useEffect(() => {
     if (showInstructions && accepted) {
       const handleFullscreenChange = () => {
@@ -614,159 +612,9 @@ if (android) {
     }
   }, [showInstructions, accepted]);
 
-  useEffect(() => {
-    if (!timerStarted || !acceptedInstructions) return;
-
-    // Keep screen awake on mobile
-    let wakeLock = null;
-    const requestWakeLock = async () => {
-      try {
-        wakeLock = await navigator.wakeLock.request("screen");
-      } catch (err) {
-        console.warn("Wake Lock not supported:", err);
-      }
-    };
-    requestWakeLock();
-
-    // Disable right-click (desktop only)
-    const disableRightClick = (e) => {
-      e.preventDefault();
-      setShowWarning(true);
-      setTimeout(() => setShowWarning(false), 3000);
-    };
-
-    // Disable developer tools shortcuts
-    const disableKeys = (e) => {
-      const key = e.key.toUpperCase();
-
-      if (
-        key === "F12" ||
-        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(key)) ||
-        (e.ctrlKey && key === "U")
-      ) {
-        e.preventDefault();
-        setShowWarning(true);
-        setTimeout(() => setShowWarning(false), 3000);
-      }
-    };
-
-    // Track focus/blur (works better than blur on window in some browsers)
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        setWarnings((prev) => {
-          const newWarnings = prev + 1;
-          if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Multiple violations detected. Assessment terminated.",
-              "terminated"
-            );
-          } else {
-            setShowWarning(true);
-            setTimeout(() => setShowWarning(false), 3000);
-          }
-          return newWarnings;
-        });
-      }
-    };
-
-    // Detect exit fullscreen (cross-browser)
-    const exitHandler = () => {
-  // Skip on mobile devices (no fullscreen support)
-  if (isMobile) return;
-  
-  if (
-    !document.fullscreenElement &&
-    !document.webkitFullscreenElement &&
-    !document.mozFullScreenElement &&
-    !document.msFullscreenElement
-  ) {
-    handleSubmit(
-      true,
-      "Fullscreen exited. Assessment terminated.",
-      "terminated"
-    );
-  }
-};
-    // Handle window/tab blur
-    const handleBlur = () => {
-      setWarnings((prev) => {
-        const newWarnings = prev + 1;
-        if (newWarnings >= 2) {
-          handleSubmit(
-            true,
-            "Multiple violations detected. Assessment terminated.",
-            "terminated"
-          );
-        }
-        return newWarnings;
-      });
-    };
-
-    // Handle mouse leaving viewport (often alt-tab)
-    const handleMouseLeave = () => {
-      if (!document.hidden) {
-        setWarnings((prev) => {
-          const newWarnings = prev + 1;
-          if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Multiple violations detected. Assessment terminated.",
-              "terminated"
-            );
-          }
-          return newWarnings;
-        });
-      }
-    };
-
-    window.addEventListener("blur", handleBlur);
-    window.addEventListener("mouseleave", handleMouseLeave);
-
-    // Register events
-    document.addEventListener("contextmenu", disableRightClick);
-    document.addEventListener("keydown", disableKeys);
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        setWarnings((prev) => {
-          const newWarnings = prev + 1;
-          if (newWarnings >= 2) {
-            handleSubmit(
-              true,
-              "Multiple violations detected. Assessment terminated.",
-              "terminated"
-            );
-          }
-          return newWarnings;
-        });
-      }
-    });
-
-    document.addEventListener("fullscreenchange", exitHandler);
-    document.addEventListener("webkitfullscreenchange", exitHandler);
-    document.addEventListener("mozfullscreenchange", exitHandler);
-    document.addEventListener("MSFullscreenChange", exitHandler);
-
-    return () => {
-      document.removeEventListener("contextmenu", disableRightClick);
-      document.removeEventListener("keydown", disableKeys);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      document.removeEventListener("fullscreenchange", exitHandler);
-      document.removeEventListener("webkitfullscreenchange", exitHandler);
-      document.removeEventListener("mozfullscreenchange", exitHandler);
-      document.removeEventListener("MSFullscreenChange", exitHandler);
-
-      window.removeEventListener("blur", handleBlur);
-      window.removeEventListener("mouseleave", handleMouseLeave);
-      // Release wake lock if active
-      if (wakeLock) {
-        wakeLock.release().catch(() => {});
-        wakeLock = null;
-      }
-    };
-  }, [timerStarted, acceptedInstructions]);
-
-  // Save question index to localStorage
+  // ============================================================================
+  // 6. PERSIST CURRENT QUESTION INDEX
+  // ============================================================================
   useEffect(() => {
     localStorage.setItem(
       `quiz_${quizSessionId}_currentQuestion`,
@@ -774,7 +622,9 @@ if (android) {
     );
   }, [currentQuestionIndex, quizSessionId]);
 
-  // Restore on mount
+  // ============================================================================
+  // 7. RESTORE CURRENT QUESTION INDEX ON MOUNT
+  // ============================================================================
   useEffect(() => {
     const savedIndex = localStorage.getItem(
       `quiz_${quizSessionId}_currentQuestion`
@@ -783,55 +633,6 @@ if (android) {
       setCurrentQuestionIndex(Number(savedIndex));
     }
   }, [quizSessionId]);
-
-  // Add this useEffect to handle iOS refresh detection
-  // useEffect(() => {
-  //   if (!timerStarted || !acceptedInstructions) return;
-
-  //   let pageHideTime = 0;
-
-  //   const handlePageHide = () => {
-  //     pageHideTime = Date.now();
-  //   };
-
-  //   const handlePageShow = () => {
-  //     const hiddenTime = Date.now() - pageHideTime;
-  //     // If page was hidden for more than 1 second, consider it a refresh/tab switch
-  //     if (hiddenTime > 1000) {
-  //       setWarnings((prev) => {
-  //         const newWarnings = prev + 1;
-  //         if (newWarnings >= 2) {
-  //           handleSubmit(
-  //             true,
-  //             "Page refresh detected. Assessment auto-submitted.",
-  //             "terminated" // Add status parameter
-  //           );
-  //         } else {
-  //           setShowWarning(true);
-  //           setTimeout(() => setShowWarning(false), 3000);
-
-  //           // iOS-specific toast notification
-  //           toast({
-  //             title: "⚠️ Warning",
-  //             description:
-  //               "Page refresh detected. Multiple violations will result in automatic submission.",
-  //             variant: "warning",
-  //           });
-  //         }
-  //         return newWarnings;
-  //       });
-  //     }
-  //   };
-
-  //   // iOS-specific event listeners
-  //   window.addEventListener("pagehide", handlePageHide);
-  //   window.addEventListener("pageshow", handlePageShow);
-
-  //   return () => {
-  //     window.removeEventListener("pagehide", handlePageHide);
-  //     window.removeEventListener("pageshow", handlePageShow);
-  //   };
-  // }, [timerStarted, acceptedInstructions]);
 
   const handleAnswerChange = (questionId, option) => {
     // console.log(`Answer changed - Question ID: ${questionId}, Answer: ${option}, Question Text: ${currentQuestion?.question_text}`);
@@ -869,7 +670,7 @@ if (android) {
 
   // ✅ Check if DevTools is open
   const isDevToolsOpen = () => {
-    if (isMobile) return false; // ✅ Skip for mobile
+    if (Device.isMobile) return false; // ✅ Skip for mobile
     const threshold = 160;
     return (
       window.outerWidth - window.innerWidth > threshold ||
@@ -879,7 +680,7 @@ if (android) {
 
   // ✅ Check if fullscreen is active
   const isFullscreenActive = () => {
-    if (isMobile) return true; // Always true on mobile
+    if (Device.isMobile) return true; // Always true on mobile
     return (
       document.fullscreenElement ||
       document.webkitFullscreenElement ||
@@ -888,94 +689,13 @@ if (android) {
     );
   };
 
-  // const handleAcceptInstructions = async () => {
-  //   const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-
-  //   if (!isMobile) {
-  //     // Desktop devices → must have fullscreen + no DevTools
-  //     if (isDevToolsOpen() || !isFullscreenActive()) {
-  //       const reason = isDevToolsOpen()
-  //         ? "Developer Tools detected. Close them to start."
-  //         : "Fullscreen is required. Enter fullscreen to start.";
-
-  //       toast({
-  //         title: "⚠️ Cannot Start Assessment",
-  //         description: reason,
-  //         variant: "destructive",
-  //       });
-
-  //       if (!isFullscreenActive()) {
-  //         const el = document.documentElement;
-  //         if (el.requestFullscreen) el.requestFullscreen();
-  //         else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  //         else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-  //         else if (el.msRequestFullscreen) el.msRequestFullscreen();
-  //       }
-  //       return; // ❌ Block start
-  //     }
-  //   } else {
-  //     // Mobile devices → just require the tab to be active
-  //     if (document.hidden) {
-  //       toast({
-  //         title: "⚠️ Cannot Start Assessment",
-  //         description: "Keep this tab active to begin.",
-  //         variant: "destructive",
-  //       });
-  //       return;
-  //     }
-  //   }
-
-  //   // ✅ Passed checks → allow start
-  //   setAcceptedInstructions(true);
-  //   setShowInstructions(false);
-  //   setTimerStarted(true);
-  //   setBlockNavigation(true);
-
-  //   // Orientation lock
-  //   if (screen.orientation && screen.orientation.lock) {
-  //     screen.orientation.lock("portrait").catch(() => {});
-  //   }
-
-  //   // 🔗 Call backend to mark quiz start
-  //   try {
-  //     const startRes = await api.post("/api/quiz-assignments/start", {
-  //       quiz_id: quizId,
-  //       user_id: user.id,
-  //       assignment_id: assignmentId,
-  //       quiz_session_id: quizSessionId,
-  //     });
-
-  //     if (!startRes.data.success) {
-  //       toast({
-  //         title: "Error",
-  //         description: startRes.data.message || "Failed to start assessment",
-  //         variant: "error",
-  //       });
-  //       return;
-  //     }
-
-  //     // ✅ Save accepted only after backend success
-  //     localStorage.setItem(
-  //       `quiz_${quizSessionId}_instructions_accepted`,
-  //       "true"
-  //     );
-  //   } catch (err) {
-  //     console.error("Start assessment failed:", err);
-  //     toast({
-  //       title: "Error",
-  //       description: "Network error starting assessment",
-  //       variant: "error",
-  //     });
-  //   }
-  // };
-
   const handleAcceptInstructions = async () => {
-    const iOS = isIOS();
-    const android = /Android/i.test(navigator.userAgent);
-    const mobile = iOS || android;
+    const iOS = Device.isIOS;
+    const android = Device.isAndroid;
+    const mobile = Device.isIOS || Device.isAndroid;
 
     // Desktop checks
-    if (!mobile) {
+    if (!Device.isMobile) {
       if (isDevToolsOpen() || !isFullscreenActive()) {
         const reason = isDevToolsOpen()
           ? "Developer Tools detected. Close them to start."
@@ -1064,19 +784,25 @@ if (android) {
       });
     }
   };
-
+  // ============================================================================
   const handleSubmit = async (
     forced = false,
     message = null,
     status = "submitted"
   ) => {
     // Prevent multiple submissions
-    if (submitting) return;
+    if (submitting) {
+      console.log("Already submitting, skipping duplicate submission");
+      return;
+    }
+
+    console.log(`handleSubmit called - Forced: ${forced}, Status: ${status}`);
 
     setSubmitting(true);
     setBlockNavigation(false);
-    if (isIOS()) {
-      // Unlock iOS viewport
+
+    // Cleanup iOS viewport locks
+    if (Device.isIOS) {
       const viewport = document.querySelector('meta[name="viewport"]');
       if (viewport) {
         viewport.setAttribute(
@@ -1084,17 +810,16 @@ if (android) {
           "width=device-width, initial-scale=1.0"
         );
       }
-
-      // Unlock scroll
       document.body.style.overflow = "";
       document.body.style.position = "";
       document.body.style.width = "";
     }
 
-    // Get latest answers
+    // Get latest answers from Redux
     const latestAnswers = store.getState().quiz.answers[quizId] || {};
 
-    if (!forced) {
+    // Validation: Check if all questions are answered (only for normal submissions)
+    if (!forced && status === "submitted") {
       const allQuestionsAnswered = questions.every((q) => latestAnswers[q.id]);
       if (!allQuestionsAnswered) {
         const unansweredQuestions = questions.filter(
@@ -1111,81 +836,106 @@ if (android) {
       }
     }
 
-    // Exit fullscreen if active
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch((err) => {
+    // Exit fullscreen if active (desktop only)
+    if (!Device.isMobile && document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch (err) {
         console.warn("Failed to exit fullscreen:", err);
-      });
+      }
     }
 
     try {
       console.log("Calling API to end assessment with status:", status);
+
       const response = await api.post("/api/quiz-assignments/end", {
         quiz_id: quizId,
         user_id: user.id,
         assignment_id: assignmentId,
         quiz_session_id: quizSessionId,
         passing_score: passing_score,
-        status: status, // Add status to the request
-        answers: questions.map((question) => {
-          const answer = latestAnswers[question.id] || "";
-          return {
-            question_id: Number(question.id),
-            answer: answer,
-          };
-        }),
+        status: status,
+        answers: questions.map((question) => ({
+          question_id: Number(question.id),
+          answer: latestAnswers[question.id] || "",
+        })),
       });
 
       console.log("API response:", response.data);
 
       if (response.data.success) {
+        // Update exam state
         setExamState({ started: false, completed: true, resultPage: true });
+
+        // Clear localStorage
+        localStorage.removeItem(`quiz_${quizSessionId}_currentQuestion`);
+        localStorage.removeItem(`quiz_${quizSessionId}_answers`);
+        localStorage.removeItem(`quiz_${quizSessionId}_timeRemaining`);
         localStorage.setItem(
           `quiz_${quizSessionId}_instructions_accepted`,
           "false"
         );
+
+        // Reset Redux state
         dispatch(resetQuiz({ quizId }));
 
+        // Disable navigation prevention
         setBlockNavigation(false);
         window.onbeforeunload = null;
-        window.history.pushState = null;
 
-        // Show appropriate message based on status
+        // Show appropriate toast message
         if (status === "terminated") {
           toast({
-            title: "Assessment Terminated",
+            title: "⚠️ Assessment Terminated",
             description: message || "Assessment terminated due to violation.",
             variant: "destructive",
           });
-        } else if (!forced) {
+        } else if (forced) {
           toast({
-            title: "Assessment Submitted",
-            description: message || "Assessment submitted successfully.",
+            title: "⏰ Time's Up",
+            description: message || "Assessment submitted automatically.",
+            variant: "warning",
+          });
+        } else {
+          toast({
+            title: "✅ Assessment Submitted",
+            description: "Your answers have been recorded successfully.",
             variant: "success",
           });
         }
 
-        // Redirect to results page
+        // Force navigation to results page
+        console.log("Navigating to results page...");
         setTimeout(() => {
-          window.location.href = `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`;
-        }, 500);
-
-        // Clear all quiz localStorage
-        localStorage.removeItem(`quiz_${quizSessionId}_currentQuestion`);
-        localStorage.removeItem(`quiz_${quizSessionId}_answers`);
-        localStorage.removeItem(`quiz_${quizSessionId}_timeRemaining`);
-        localStorage.setItem(`quiz_${quizSessionId}_instructions_accepted`, "false");
+          window.location.replace(
+            `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
+          );
+        }, 1000);
       } else {
         throw new Error(response.data.message || "Failed to submit assessment");
       }
     } catch (err) {
       console.error("Error ending assessment:", err);
+
+      // Show error toast
       toast({
-        title: "Error",
-        description: "Failed to end assessment. Try again.",
+        title: "❌ Submission Error",
+        description:
+          err.message || "Failed to end assessment. Please try again.",
         variant: "destructive",
       });
-      setSubmitting(false);
+
+      // Reset submitting state to allow retry (only for non-termination cases)
+      if (status !== "terminated") {
+        setSubmitting(false);
+      } else {
+        // For terminations, still try to navigate even if API fails
+        setTimeout(() => {
+          window.location.replace(
+            `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
+          );
+        }, 2000);
+      }
     }
   };
 
@@ -1323,13 +1073,8 @@ if (android) {
                     return;
                   }
 
-                  // 🔎 Perform secure checks before accepting
-                  const isMobile = /Mobi|Android|iPhone|iPad/i.test(
-                    navigator.userAgent
-                  );
-
                   if (
-                    !isMobile &&
+                    !Device.isMobile &&
                     (isDevToolsOpen() || !isFullscreenActive())
                   ) {
                     const reason = isDevToolsOpen()
@@ -1403,7 +1148,7 @@ if (android) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 select-none">
+    <div className="question-page bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 select-none">
       {/* Header with progress and timer */}
       <div className=" bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm border-b p-4 w-full md:h-[4.5rem]">
         <div className="mx-auto">
@@ -1475,8 +1220,8 @@ if (android) {
       )}
 
       {/* Main content container */}
-     <div className="py-4 px-4 h-[calc(100vh-5rem)]">   {/* 👈 give it a fixed height minus header */}
-  <div className="scroll-container mx-auto max-w-7xl flex justify-center items-start h-full overflow-y-auto overscroll-contain">
+      <div className="scroll-container pt-4 pb-10 px-4">
+        <div className="mx-auto max-w-7xl flex justify-center items-start h-full">
           {/* Main Layout with Sidebar and Content */}
           <div className="flex md:flex-row flex-col-reverse gap-8 w-full ">
             {/* Left Sidebar - Question Numbers */}
