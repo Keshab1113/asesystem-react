@@ -35,6 +35,12 @@ import { useNavigate } from "react-router-dom";
 import useToast from "../../hooks/ToastContext";
 import { useExam } from "../../lib/ExamContext";
 import api from "../../api/api";
+const Device = {
+  isAndroid: /Android/i.test(navigator.userAgent),
+  isIOS: /iPhone|iPad|iPod/i.test(navigator.userAgent),
+  isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+};
+
 
 export default function DashboardPage() {
   const { t } = useLanguage();
@@ -191,8 +197,22 @@ export default function DashboardPage() {
     }
 
     try {
-      // Step 1: Mark assessment as started
-
+        // FOR ANDROID: Request fullscreen BEFORE navigation
+    if (Device.isAndroid) {
+      const el = document.documentElement;
+      try {
+        if (el.requestFullscreen) {
+          await el.requestFullscreen();
+        } else if (el.webkitRequestFullscreen) {
+          await el.webkitRequestFullscreen();
+        } else if (el.mozRequestFullScreen) {
+          await el.mozRequestFullScreen();
+        }
+      } catch (err) {
+        console.warn("Fullscreen request failed:", err);
+        // Continue anyway - fullscreen will be enforced on questions page
+      }
+    }
       // Step 2: Assign random questions
       const assignRes = await api.post("/api/quiz-assignments/assign-random", {
         quizId: assessment.quiz_id,

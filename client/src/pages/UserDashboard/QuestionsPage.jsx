@@ -77,6 +77,7 @@ export default function QuestionsPage() {
   const [blockNavigation, setBlockNavigation] = useState(false);
   const [quizInfo, setQuizInfo] = useState(null);
 
+const [isSubmitting, setIsSubmitting] = useState(false);
   // Calculate progress
   const answeredCount = Object.values(answers).filter(
     (val) => val !== ""
@@ -94,51 +95,95 @@ export default function QuestionsPage() {
     return currentAnswers[q.id];
   });
 
+
+ // ============================================================================
+// FIX MOBILE SCROLL IN FULLSCREEN - MOBILE ONLY
+// ============================================================================
+useEffect(() => {
+  // ONLY run on mobile devices
+  if (!Device.isMobile) return;
+
+  // Fix viewport height for mobile fullscreen
+  const setViewportHeight = () => {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  };
+
+  setViewportHeight();
+
+  window.addEventListener('resize', setViewportHeight);
+  window.addEventListener('orientationchange', setViewportHeight);
+  
+  // Prevent body scroll on mobile only
+  document.body.style.overscrollBehavior = 'none';
+  document.body.style.overflow = 'hidden';
+  document.body.style.position = 'fixed';
+  document.body.style.width = '100%';
+  document.body.style.height = '100%';
+
+  return () => {
+    window.removeEventListener('resize', setViewportHeight);
+    window.removeEventListener('orientationchange', setViewportHeight);
+    document.body.style.overscrollBehavior = '';
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.height = '';
+  };
+}, []);
   // ============================================================================
   // 1. INITIAL SETUP - Fetch Questions & Auto-Fullscreen
   // ============================================================================
 
-  useEffect(() => {
-    // Auto-request fullscreen on desktop (skip for mobile)
-    const requestFullscreen = () => {
-      if (Device.isMobile) return;
+useEffect(() => {
+  // Auto-request fullscreen function
+  const requestFullscreen = () => {
+    // Skip fullscreen ONLY for iOS (Desktop and Android should work)
+    if (Device.isIOS) return;
 
-      if (!isFullscreenActive()) {
-        const el = document.documentElement;
-        if (el.requestFullscreen) el.requestFullscreen();
-        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-        else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
-        else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    if (!isFullscreenActive()) {
+      const el = document.documentElement;
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(err => {
+          console.warn("Fullscreen request failed:", err);
+        });
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.mozRequestFullScreen) {
+        el.mozRequestFullScreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
       }
-    };
+    }
+  };
 
-    // Request fullscreen after a short delay to ensure DOM is ready
-    setTimeout(requestFullscreen, 100);
+  // Request fullscreen after a short delay to ensure DOM is ready
+  setTimeout(requestFullscreen, 100);
 
-    const fetchQuestions = async () => {
-      try {
-        const res = await fetch(
-          `${
-            import.meta.env.VITE_BACKEND_URL
-          }/api/quiz-assignments/${quizId}/fetch-assigned-questions?userId=${
-            user.id
-          }&quizSessionId=${quizSessionId}&assignmentId=${assignmentId}`
-        );
+  const fetchQuestions = async () => {
+    try {
+      const res = await fetch(
+        `${
+          import.meta.env.VITE_BACKEND_URL
+        }/api/quiz-assignments/${quizId}/fetch-assigned-questions?userId=${
+          user.id
+        }&quizSessionId=${quizSessionId}&assignmentId=${assignmentId}`
+      );
 
-        const data = await res.json();
-        if (data.success) {
-          dispatch(setQuizQuestions({ quizId: quizId, questions: data.data }));
-        }
-        console.log("Fetched Questions:", data.data);
-      } catch (error) {
-        console.error("Error fetching assigned questions:", error);
-      } finally {
-        setLoading(false);
+      const data = await res.json();
+      if (data.success) {
+        dispatch(setQuizQuestions({ quizId: quizId, questions: data.data }));
       }
-    };
+      console.log("Fetched Questions:", data.data);
+    } catch (error) {
+      console.error("Error fetching assigned questions:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (quizSessionId) fetchQuestions();
-  }, [quizId, quizSessionId, dispatch, user.id, assignmentId]);
+  if (quizSessionId) fetchQuestions();
+}, [quizId, quizSessionId, dispatch, user.id, assignmentId]);
 
   // ============================================================================
   // 2. FETCH QUIZ INFO
@@ -316,208 +361,237 @@ export default function QuestionsPage() {
     // -------------------------------------------------------------------------
     // ANDROID-SPECIFIC HANDLING
     // -------------------------------------------------------------------------
-    if (Device.isAndroid) {
-      let backPressCount = 0;
-      let backPressTimer = null;
+   if (Device.isAndroid) {
+  let backPressCount = 0;
+  let backPressTimer = null;
 
-      // const handleBeforeUnload = (e) => {
-      //   saveQuizState();
-      //   e.preventDefault();
-      //   e.returnValue = "";
-      //   return "";
-      // };
+  const handlePopState = (e) => {
+    e.preventDefault();
+    window.history.pushState(null, "", window.location.href);
 
-      const handlePopState = (e) => {
-        e.preventDefault();
-        window.history.pushState(null, "", window.location.href);
+    backPressCount++;
 
-        backPressCount++;
+    if (backPressCount === 1) {
+      saveQuizState();
+      toast({
+        title: "⚠️ Warning #1",
+        description:
+          "Press back again to terminate and submit the assessment.",
+        variant: "warning",
+      });
 
-        if (backPressCount === 1) {
-          saveQuizState();
-          toast({
-            title: "⚠️ Warning #1",
-            description:
-              "Press back again to terminate and submit the assessment.",
-            variant: "warning",
-          });
-
-          if (backPressTimer) clearTimeout(backPressTimer);
-          backPressTimer = setTimeout(() => {
-            backPressCount = 0;
-          }, 3000);
-        } else if (backPressCount >= 2) {
-          if (backPressTimer) clearTimeout(backPressTimer);
-          handleSubmit(
-            true,
-            "Back button pressed twice. Assessment terminated.",
-            "terminated"
-          );
-        }
-      };
-
-      const handlePageShow = (e) => {
-        if (e.persisted) {
-          restoreQuizState();
-        }
-      };
-
-      const handleVisibilityChange = () => {
-        if (document.hidden) {
-          saveQuizState();
-          handleSubmit(
-            true,
-            "Tab switching detected. Assessment terminated.",
-            "terminated"
-          );
-        }
-      };
-
-      // window.addEventListener("beforeunload", handleBeforeUnload);
-      window.addEventListener("popstate", handlePopState);
-      window.addEventListener("pageshow", handlePageShow);
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-      window.history.pushState(null, "", window.location.href);
-
-      return () => {
-        if (backPressTimer) clearTimeout(backPressTimer);
-        // window.removeEventListener("beforeunload", handleBeforeUnload);
-        window.removeEventListener("popstate", handlePopState);
-        window.removeEventListener("pageshow", handlePageShow);
-        document.removeEventListener(
-          "visibilitychange",
-          handleVisibilityChange
-        );
-      };
+      if (backPressTimer) clearTimeout(backPressTimer);
+      backPressTimer = setTimeout(() => {
+        backPressCount = 0;
+      }, 3000);
+    } else if (backPressCount >= 2) {
+      if (backPressTimer) clearTimeout(backPressTimer);
+      handleSubmit(
+        true,
+        "Back button pressed twice. Assessment terminated.",
+        "terminated"
+      );
     }
+  };
 
+  const handlePageShow = (e) => {
+    if (e.persisted) {
+      restoreQuizState();
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      saveQuizState();
+      handleSubmit(
+        true,
+        "Tab switching detected. Assessment terminated.",
+        "terminated"
+      );
+    }
+  };
+
+  // Fullscreen exit detection for Android
+  const exitHandler = () => {
+    if (
+      !document.fullscreenElement &&
+      !document.webkitFullscreenElement &&
+      !document.mozFullScreenElement &&
+      !document.msFullscreenElement
+    ) {
+      handleSubmit(
+        true,
+        "Fullscreen exited. Assessment terminated.",
+        "terminated"
+      );
+    }
+  };
+
+  // Prevent pull-to-refresh on Android
+  let startY = 0;
+  const onTouchStart = (e) => {
+    startY = e.touches[0].clientY;
+  };
+  const onTouchMove = (e) => {
+    if (window.scrollY <= 0 && e.touches[0].clientY > startY) {
+      e.preventDefault();
+    }
+  };
+
+  document.addEventListener("touchstart", onTouchStart, { passive: true });
+  document.addEventListener("touchmove", onTouchMove, { passive: false });
+  window.addEventListener("popstate", handlePopState);
+  window.addEventListener("pageshow", handlePageShow);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  document.addEventListener("fullscreenchange", exitHandler);
+  document.addEventListener("webkitfullscreenchange", exitHandler);
+  document.addEventListener("mozfullscreenchange", exitHandler);
+  document.addEventListener("MSFullscreenChange", exitHandler);
+  window.history.pushState(null, "", window.location.href);
+
+  return () => {
+    if (backPressTimer) clearTimeout(backPressTimer);
+    document.removeEventListener("touchstart", onTouchStart);
+    document.removeEventListener("touchmove", onTouchMove);
+    window.removeEventListener("popstate", handlePopState);
+    window.removeEventListener("pageshow", handlePageShow);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    document.removeEventListener("fullscreenchange", exitHandler);
+    document.removeEventListener("webkitfullscreenchange", exitHandler);
+    document.removeEventListener("mozfullscreenchange", exitHandler);
+    document.removeEventListener("MSFullscreenChange", exitHandler);
+  };
+}
     // -------------------------------------------------------------------------
     // DESKTOP-SPECIFIC HANDLING
     // -------------------------------------------------------------------------
-    if (!Device.isMobile) {
-      let wakeLock = null;
+   if (!Device.isMobile) {
+  let wakeLock = null;
 
-      const requestWakeLock = async () => {
-        try {
-          wakeLock = await navigator.wakeLock.request("screen");
-        } catch (err) {
-          console.warn("Wake Lock not supported:", err);
-        }
-      };
-      requestWakeLock();
-
-      const disableRightClick = (e) => {
-        e.preventDefault();
-        setShowWarning(true);
-        setTimeout(() => setShowWarning(false), 3000);
-      };
-
-      const disableKeys = (e) => {
-        const key = e.key.toUpperCase();
-        if (
-          key === "F12" ||
-          (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(key)) ||
-          (e.ctrlKey && key === "U")
-        ) {
-          e.preventDefault();
-          setShowWarning(true);
-          setTimeout(() => setShowWarning(false), 3000);
-        }
-      };
-
-      const handleVisibilityChange = () => {
-        if (document.hidden) {
-          handleSubmit(
-            true,
-            "Tab switching detected. Assessment terminated.",
-            "terminated"
-          );
-        }
-      };
-
-      const exitHandler = () => {
-        if (
-          !document.fullscreenElement &&
-          !document.webkitFullscreenElement &&
-          !document.mozFullScreenElement &&
-          !document.msFullscreenElement
-        ) {
-          handleSubmit(
-            true,
-            "Fullscreen exited. Assessment terminated.",
-            "terminated"
-          );
-        }
-      };
-
-      const handleBlur = () => {
-        handleSubmit(
-          true,
-          "Window focus lost. Assessment terminated.",
-          "terminated"
-        );
-      };
-
-      const handleMouseLeave = () => {
-        if (!document.hidden) {
-          handleSubmit(
-            true,
-            "Mouse left window. Assessment terminated.",
-            "terminated"
-          );
-        }
-      };
-
-      const handleBeforeUnload = (e) => {
-        saveQuizState();
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      };
-
-      const handlePopState = () => {
-        handleSubmit(
-          true,
-          "Back navigation detected. Assessment terminated.",
-          "terminated"
-        );
-      };
-
-      document.addEventListener("contextmenu", disableRightClick);
-      document.addEventListener("keydown", disableKeys);
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-      document.addEventListener("fullscreenchange", exitHandler);
-      document.addEventListener("webkitfullscreenchange", exitHandler);
-      document.addEventListener("mozfullscreenchange", exitHandler);
-      document.addEventListener("MSFullscreenChange", exitHandler);
-      window.addEventListener("blur", handleBlur);
-      window.addEventListener("mouseleave", handleMouseLeave);
-      window.addEventListener("beforeunload", handleBeforeUnload);
-      window.addEventListener("popstate", handlePopState);
-      window.history.pushState(null, "", window.location.href);
-
-      return () => {
-        document.removeEventListener("contextmenu", disableRightClick);
-        document.removeEventListener("keydown", disableKeys);
-        document.removeEventListener(
-          "visibilitychange",
-          handleVisibilityChange
-        );
-        document.removeEventListener("fullscreenchange", exitHandler);
-        document.removeEventListener("webkitfullscreenchange", exitHandler);
-        document.removeEventListener("mozfullscreenchange", exitHandler);
-        document.removeEventListener("MSFullscreenChange", exitHandler);
-        window.removeEventListener("blur", handleBlur);
-        window.removeEventListener("mouseleave", handleMouseLeave);
-        window.removeEventListener("beforeunload", handleBeforeUnload);
-        window.removeEventListener("popstate", handlePopState);
-
-        if (wakeLock) {
-          wakeLock.release().catch(() => {});
-          wakeLock = null;
-        }
-      };
+  const requestWakeLock = async () => {
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+    } catch (err) {
+      console.warn("Wake Lock not supported:", err);
     }
+  };
+  requestWakeLock();
+
+  const disableRightClick = (e) => {
+    e.preventDefault();
+    setShowWarning(true);
+    setTimeout(() => setShowWarning(false), 3000);
+  };
+
+  const disableKeys = (e) => {
+    const key = e.key.toUpperCase();
+    if (
+      key === "F12" ||
+      (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(key)) ||
+      (e.ctrlKey && key === "U")
+    ) {
+      e.preventDefault();
+      setShowWarning(true);
+      setTimeout(() => setShowWarning(false), 3000);
+    }
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden && !isSubmitting) { // Check if not submitting
+      handleSubmit(
+        true,
+        "Tab switching detected. Assessment terminated.",
+        "terminated"
+      );
+    }
+  };
+
+  const exitHandler = () => {
+    // CRITICAL: Only terminate if user didn't click submit
+    if (
+      !document.fullscreenElement &&
+      !document.webkitFullscreenElement &&
+      !document.mozFullScreenElement &&
+      !document.msFullscreenElement &&
+      !isSubmitting // Don't trigger if user is submitting
+    ) {
+      handleSubmit(
+        true,
+        "Fullscreen exited. Assessment terminated.",
+        "terminated"
+      );
+    }
+  };
+
+  const handleBlur = () => {
+    if (!isSubmitting) { // Check if not submitting
+      handleSubmit(
+        true,
+        "Window focus lost. Assessment terminated.",
+        "terminated"
+      );
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (!document.hidden && !isSubmitting) { // Check if not submitting
+      handleSubmit(
+        true,
+        "Mouse left window. Assessment terminated.",
+        "terminated"
+      );
+    }
+  };
+
+  const handleBeforeUnload = (e) => {
+    saveQuizState();
+    e.preventDefault();
+    e.returnValue = "";
+    return "";
+  };
+
+  const handlePopState = () => {
+    if (!isSubmitting) { // Check if not submitting
+      handleSubmit(
+        true,
+        "Back navigation detected. Assessment terminated.",
+        "terminated"
+      );
+    }
+  };
+
+  document.addEventListener("contextmenu", disableRightClick);
+  document.addEventListener("keydown", disableKeys);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  document.addEventListener("fullscreenchange", exitHandler);
+  document.addEventListener("webkitfullscreenchange", exitHandler);
+  document.addEventListener("mozfullscreenchange", exitHandler);
+  document.addEventListener("MSFullscreenChange", exitHandler);
+  window.addEventListener("blur", handleBlur);
+  window.addEventListener("mouseleave", handleMouseLeave);
+  window.addEventListener("beforeunload", handleBeforeUnload);
+  window.addEventListener("popstate", handlePopState);
+  window.history.pushState(null, "", window.location.href);
+
+  return () => {
+    document.removeEventListener("contextmenu", disableRightClick);
+    document.removeEventListener("keydown", disableKeys);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
+    document.removeEventListener("fullscreenchange", exitHandler);
+    document.removeEventListener("webkitfullscreenchange", exitHandler);
+    document.removeEventListener("mozfullscreenchange", exitHandler);
+    document.removeEventListener("MSFullscreenChange", exitHandler);
+    window.removeEventListener("blur", handleBlur);
+    window.removeEventListener("mouseleave", handleMouseLeave);
+    window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.removeEventListener("popstate", handlePopState);
+
+    if (wakeLock) {
+      wakeLock.release().catch(() => {});
+      wakeLock = null;
+    }
+  };
+}
   }, [
     acceptedInstructions,
     showInstructions,
@@ -527,6 +601,7 @@ export default function QuestionsPage() {
     quizSessionId,
     dispatch,
     toast,
+      isSubmitting,
   ]);
 
   // ============================================================================
@@ -785,160 +860,163 @@ export default function QuestionsPage() {
     }
   };
   // ============================================================================
-  const handleSubmit = async (
-    forced = false,
-    message = null,
-    status = "submitted"
-  ) => {
-    // Prevent multiple submissions
-    if (submitting) {
-      console.log("Already submitting, skipping duplicate submission");
-      return;
+ const handleSubmit = async (
+  forced = false,
+  message = null,
+  status = "submitted"
+) => {
+  // Prevent multiple submissions
+  if (submitting) {
+    console.log("Already submitting, skipping duplicate submission");
+    return;
+  }
+
+  console.log(`handleSubmit called - Forced: ${forced}, Status: ${status}`);
+
+  // SET FLAG IMMEDIATELY to prevent fullscreen exit handler from triggering
+  setIsSubmitting(true);
+  setSubmitting(true);
+  setBlockNavigation(false);
+
+  // Cleanup iOS viewport locks
+  if (Device.isIOS) {
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+      viewport.setAttribute(
+        "content",
+        "width=device-width, initial-scale=1.0"
+      );
     }
+    document.body.style.overflow = "";
+    document.body.style.position = "";
+    document.body.style.width = "";
+  }
 
-    console.log(`handleSubmit called - Forced: ${forced}, Status: ${status}`);
+  // Get latest answers from Redux
+  const latestAnswers = store.getState().quiz.answers[quizId] || {};
 
-    setSubmitting(true);
-    setBlockNavigation(false);
-
-    // Cleanup iOS viewport locks
-    if (Device.isIOS) {
-      const viewport = document.querySelector('meta[name="viewport"]');
-      if (viewport) {
-        viewport.setAttribute(
-          "content",
-          "width=device-width, initial-scale=1.0"
-        );
-      }
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-    }
-
-    // Get latest answers from Redux
-    const latestAnswers = store.getState().quiz.answers[quizId] || {};
-
-    // Validation: Check if all questions are answered (only for normal submissions)
-    if (!forced && status === "submitted") {
-      const allQuestionsAnswered = questions.every((q) => latestAnswers[q.id]);
-      if (!allQuestionsAnswered) {
-        const unansweredQuestions = questions.filter(
-          (q) => !latestAnswers[q.id]
-        );
-        toast({
-          title: "❌ Assessment Incomplete",
-          description: `You must answer all questions. ${unansweredQuestions.length} left.`,
-          variant: "destructive",
-        });
-        goToUnansweredQuestion();
-        setSubmitting(false);
-        return;
-      }
-    }
-
-    // Exit fullscreen if active (desktop only)
-    if (!Device.isMobile && document.fullscreenElement) {
-      try {
-        await document.exitFullscreen();
-      } catch (err) {
-        console.warn("Failed to exit fullscreen:", err);
-      }
-    }
-
-    try {
-      console.log("Calling API to end assessment with status:", status);
-
-      const response = await api.post("/api/quiz-assignments/end", {
-        quiz_id: quizId,
-        user_id: user.id,
-        assignment_id: assignmentId,
-        quiz_session_id: quizSessionId,
-        passing_score: passing_score,
-        status: status,
-        answers: questions.map((question) => ({
-          question_id: Number(question.id),
-          answer: latestAnswers[question.id] || "",
-        })),
-      });
-
-      console.log("API response:", response.data);
-
-      if (response.data.success) {
-        // Update exam state
-        setExamState({ started: false, completed: true, resultPage: true });
-
-        // Clear localStorage
-        localStorage.removeItem(`quiz_${quizSessionId}_currentQuestion`);
-        localStorage.removeItem(`quiz_${quizSessionId}_answers`);
-        localStorage.removeItem(`quiz_${quizSessionId}_timeRemaining`);
-        localStorage.setItem(
-          `quiz_${quizSessionId}_instructions_accepted`,
-          "false"
-        );
-
-        // Reset Redux state
-        dispatch(resetQuiz({ quizId }));
-
-        // Disable navigation prevention
-        setBlockNavigation(false);
-        window.onbeforeunload = null;
-
-        // Show appropriate toast message
-        if (status === "terminated") {
-          toast({
-            title: "⚠️ Assessment Terminated",
-            description: message || "Assessment terminated due to violation.",
-            variant: "destructive",
-          });
-        } else if (forced) {
-          toast({
-            title: "⏰ Time's Up",
-            description: message || "Assessment submitted automatically.",
-            variant: "warning",
-          });
-        } else {
-          toast({
-            title: "✅ Assessment Submitted",
-            description: "Your answers have been recorded successfully.",
-            variant: "success",
-          });
-        }
-
-        // Force navigation to results page
-        console.log("Navigating to results page...");
-        setTimeout(() => {
-          window.location.replace(
-            `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
-          );
-        }, 1000);
-      } else {
-        throw new Error(response.data.message || "Failed to submit assessment");
-      }
-    } catch (err) {
-      console.error("Error ending assessment:", err);
-
-      // Show error toast
+  // Validation: Check if all questions are answered (only for normal submissions)
+  if (!forced && status === "submitted") {
+    const allQuestionsAnswered = questions.every((q) => latestAnswers[q.id]);
+    if (!allQuestionsAnswered) {
+      const unansweredQuestions = questions.filter(
+        (q) => !latestAnswers[q.id]
+      );
       toast({
-        title: "❌ Submission Error",
-        description:
-          err.message || "Failed to end assessment. Please try again.",
+        title: "Assessment Incomplete",
+        description: `You must answer all questions. ${unansweredQuestions.length} left.`,
         variant: "destructive",
       });
-
-      // Reset submitting state to allow retry (only for non-termination cases)
-      if (status !== "terminated") {
-        setSubmitting(false);
-      } else {
-        // For terminations, still try to navigate even if API fails
-        setTimeout(() => {
-          window.location.replace(
-            `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
-          );
-        }, 2000);
-      }
+      goToUnansweredQuestion();
+      setSubmitting(false);
+      setIsSubmitting(false); // Reset flag
+      return;
     }
-  };
+  }
 
+  // Exit fullscreen if active (desktop only) - NOW SAFE because isSubmitting is true
+  if (!Device.isMobile && document.fullscreenElement) {
+    try {
+      await document.exitFullscreen();
+    } catch (err) {
+      console.warn("Failed to exit fullscreen:", err);
+    }
+  }
+
+  try {
+    console.log("Calling API to end assessment with status:", status);
+
+    const response = await api.post("/api/quiz-assignments/end", {
+      quiz_id: quizId,
+      user_id: user.id,
+      assignment_id: assignmentId,
+      quiz_session_id: quizSessionId,
+      passing_score: passing_score,
+      status: status,
+      answers: questions.map((question) => ({
+        question_id: Number(question.id),
+        answer: latestAnswers[question.id] || "",
+      })),
+    });
+
+    console.log("API response:", response.data);
+
+    if (response.data.success) {
+      // Update exam state
+      setExamState({ started: false, completed: true, resultPage: true });
+
+      // Clear localStorage
+      localStorage.removeItem(`quiz_${quizSessionId}_currentQuestion`);
+      localStorage.removeItem(`quiz_${quizSessionId}_answers`);
+      localStorage.removeItem(`quiz_${quizSessionId}_timeRemaining`);
+      localStorage.setItem(
+        `quiz_${quizSessionId}_instructions_accepted`,
+        "false"
+      );
+
+      // Reset Redux state
+      dispatch(resetQuiz({ quizId }));
+
+      // Disable navigation prevention
+      setBlockNavigation(false);
+      window.onbeforeunload = null;
+
+      // Show appropriate toast message
+      if (status === "terminated") {
+        toast({
+          title: "Assessment Terminated",
+          description: message || "Assessment terminated due to violation.",
+          variant: "destructive",
+        });
+      } else if (forced) {
+        toast({
+          title: "Time's Up",
+          description: message || "Assessment submitted automatically.",
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "Assessment Submitted",
+          description: "Your answers have been recorded successfully.",
+          variant: "success",
+        });
+      }
+
+      // Force navigation to results page
+      console.log("Navigating to results page...");
+      setTimeout(() => {
+        window.location.replace(
+          `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
+        );
+      }, 1000);
+    } else {
+      throw new Error(response.data.message || "Failed to submit assessment");
+    }
+  } catch (err) {
+    console.error("Error ending assessment:", err);
+
+    // Show error toast
+    toast({
+      title: "Submission Error",
+      description:
+        err.message || "Failed to end assessment. Please try again.",
+      variant: "destructive",
+    });
+
+    // Reset submitting state to allow retry (only for non-termination cases)
+    if (status !== "terminated") {
+      setSubmitting(false);
+      setIsSubmitting(false); // Reset flag
+    } else {
+      // For terminations, still try to navigate even if API fails
+      setTimeout(() => {
+        window.location.replace(
+          `/user-dashboard/results?assignmentId=${assignmentId}&session_id=${quizSessionId}`
+        );
+      }, 2000);
+    }
+  }
+};
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -1148,9 +1226,9 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="question-page bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 select-none">
+      <div className="question-page bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-900 dark:to-gray-800 select-none">
       {/* Header with progress and timer */}
-      <div className=" bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm border-b p-4 w-full md:h-[4.5rem]">
+     <div className="question-header  bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-sm border-b p-4 w-full md:h-[4.5rem]">
         <div className="mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center md:gap-6 gap-2">
             {/* Left: Secure Mode */}

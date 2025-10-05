@@ -1,23 +1,311 @@
-/* QuestionPage.css */
+/* QuestionPage.css - Fixed mobile scroll with sticky header */
 
+/* Desktop styles (default) */
 .question-page {
-  height: 100dvh;          /* ensure full device height */
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;        /* header fixed, only body scrolls */
+  overflow: hidden;
+}
+
+/* Header should be sticky and stay at top */
+.question-page .question-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
 }
 
 .question-page .scroll-container {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* iOS smooth scrolling */
-  scroll-behavior: smooth;           /* smooth scroll on anchors */
-  overscroll-behavior-y: contain;    /* prevent weird bounce propagation */
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom)); /* safe for notches */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 }
 
-/* Add safe padding for iOS/Android devices with bottom bars */
-/* .question-page .scroll-container {
+/* Mobile-only fixes */
+@media (max-width: 768px) {
+  .question-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
+
+  /* Ensure header stays at top on mobile */
+  .question-page .question-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    /* Prevent header from being pushed by keyboard */
+    flex-shrink: 0;
+  }
+
+  .question-page .scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Smooth scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* GPU acceleration for better performance */
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+    
+    /* Safe area padding */
+    padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Ensure content inside scroll-container doesn't cause issues */
+  .question-page .scroll-container > * {
+    min-height: 0;
+    flex-shrink: 0;
+  }
+
+  /* Fix interactive elements on mobile */
+  .question-page input[type="radio"],
+  .question-page button,
+  .question-page label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve touch targets - iOS recommendation */
+  .question-page button:not(.w-12) {
+    min-height: 44px;
+  }
+  
+  .question-page button.w-12 {
+    min-height: 3rem;
+  }
+
+  /* Better label touch area */
+  .question-page label {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Prevent text selection during scroll (improves performance) */
+  .question-page * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow selection for readable content only */
+  .question-page p,
+  .question-page label span {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Fix radio button containers for better touch */
+  .question-page [role="radiogroup"] > div {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve card scroll performance */
+  .question-page .scroll-container .flex {
+    contain: layout style paint;
+  }
+}/* QuestionPage.css - Fixed mobile scroll with sticky header */
+
+/* Desktop styles (default) */
+.question-page {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header should be sticky */
+.question-page > div:first-child {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  flex-shrink: 0;
+}
+
+.question-page .scroll-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
   padding-bottom: calc(1rem + env(safe-area-inset-bottom));
-} */
+}
+
+/* Mobile-only fixes */
+@media (max-width: 768px) {
+  .question-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100);
+  }
+
+  /* Ensure header stays at top */
+  .question-page > div:first-child {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .question-page .scroll-container {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Smooth scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
+    /* GPU acceleration */
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
+    /* Better scrolling performance */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    perspective: 1000px;
+    -webkit-perspective: 1000px;
+    
+    padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Ensure content doesn't overflow */
+  .question-page .scroll-container > * {
+    min-height: 0;
+  }
+
+  /* Fix interactive elements on mobile */
+  .question-page input[type="radio"],
+  .question-page button,
+  .question-page label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve touch targets */
+  .question-page button:not(.w-12) {
+    min-height: 44px;
+  }
+  
+  .question-page button.w-12 {
+    min-height: 3rem;
+  }
+
+  /* Better label touch area */
+  .question-page label {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Prevent text selection during scroll */
+  .question-page * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow selection for readable content */
+  .question-page p,
+  .question-page label span {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  /* Fix radio button containers */
+  .question-page [role="radiogroup"] > div {
+    -webkit-tap-highlight-color: transparent;
+  }
+}/* QuestionPage.css - Desktop unchanged, Mobile fullscreen fixed */
+
+/* Desktop styles (default) */
+.question-page {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.question-page .scroll-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+/* Mobile-only fixes */
+@media (max-width: 768px) {
+  .question-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    height: calc(var(--vh, 1vh) * 100); /* Dynamic vh for mobile */
+  }
+
+  .question-page .scroll-container {
+    overflow-x: hidden;
+    transform: translateZ(0); /* GPU acceleration */
+    will-change: scroll-position;
+    padding-bottom: max(2.5rem, env(safe-area-inset-bottom));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Fix interactive elements on mobile */
+  .question-page input[type="radio"],
+  .question-page button,
+  .question-page label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Improve touch targets */
+  .question-page button:not(.w-12),
+  .question-page label {
+    min-height: 44px;
+  }
+  
+  .question-page button.w-12 {
+    min-height: 3rem;
+  }
+
+  /* Prevent text selection during scroll */
+  .question-page * {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow selection for readable content */
+  .question-page p,
+  .question-page label span {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
