@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatDateTime } from "../../utils/formatDateTime";
+
 import {
   FileText,
   CircleGauge,
@@ -38,9 +40,10 @@ import api from "../../api/api";
 const Device = {
   isAndroid: /Android/i.test(navigator.userAgent),
   isIOS: /iPhone|iPad|iPod/i.test(navigator.userAgent),
-  isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  isMobile: /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  ),
 };
-
 
 export default function DashboardPage() {
   const { t } = useLanguage();
@@ -85,10 +88,10 @@ export default function DashboardPage() {
   const getStatusBadge = (assessment) => {
     const now = new Date();
     const startDateTime = assessment.schedule_start_at
-      ? new Date(assessment.schedule_start_at)
+      ? formatDateTime(assessment.schedule_start_at)
       : null;
     const endDateTime = assessment.schedule_end_at
-      ? new Date(assessment.schedule_end_at)
+      ? formatDateTime(assessment.schedule_end_at)
       : null;
     const isNotStartedYet = startDateTime ? now < startDateTime : false;
     const isExpired = endDateTime ? now > endDateTime : false;
@@ -197,22 +200,22 @@ export default function DashboardPage() {
     }
 
     try {
-        // FOR ANDROID: Request fullscreen BEFORE navigation
-    if (Device.isAndroid) {
-      const el = document.documentElement;
-      try {
-        if (el.requestFullscreen) {
-          await el.requestFullscreen();
-        } else if (el.webkitRequestFullscreen) {
-          await el.webkitRequestFullscreen();
-        } else if (el.mozRequestFullScreen) {
-          await el.mozRequestFullScreen();
+      // FOR ANDROID: Request fullscreen BEFORE navigation
+      if (Device.isAndroid) {
+        const el = document.documentElement;
+        try {
+          if (el.requestFullscreen) {
+            await el.requestFullscreen();
+          } else if (el.webkitRequestFullscreen) {
+            await el.webkitRequestFullscreen();
+          } else if (el.mozRequestFullScreen) {
+            await el.mozRequestFullScreen();
+          }
+        } catch (err) {
+          console.warn("Fullscreen request failed:", err);
+          // Continue anyway - fullscreen will be enforced on questions page
         }
-      } catch (err) {
-        console.warn("Fullscreen request failed:", err);
-        // Continue anyway - fullscreen will be enforced on questions page
       }
-    }
       // Step 2: Assign random questions
       const assignRes = await api.post("/api/quiz-assignments/assign-random", {
         quizId: assessment.quiz_id,
@@ -373,8 +376,7 @@ export default function DashboardPage() {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-red-600 dark:text-red-400"
                   : "text-slate-400 dark:text-slate-500"
-              }`}
-            >
+              }`}>
               {assessment?.score ? `${assessment.score}%` : "—"}
             </p>
           </div>
@@ -399,18 +401,7 @@ export default function DashboardPage() {
                 Started at:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {assessment.user_started_at
-                  ? new Date(assessment.user_started_at).toLocaleString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )
-                  : "Null"}
+                {formatDateTime(assessment.user_started_at)}
               </span>
             </div>
           ) : (
@@ -419,18 +410,7 @@ export default function DashboardPage() {
                 Assessment Start Date:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {assessment.schedule_start_at
-                  ? new Date(assessment.schedule_start_at).toLocaleString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )
-                  : "Null"}
+                {formatDateTime(assessment.schedule_start_at)}
               </span>
             </div>
           )}
@@ -443,15 +423,7 @@ export default function DashboardPage() {
                 Ended at:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {assessment.user_ended_at
-                  ? new Date(assessment.user_ended_at).toLocaleString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "Null"}
+                {formatDateTime(assessment.user_ended_at)}
               </span>
             </div>
           ) : (
@@ -460,18 +432,7 @@ export default function DashboardPage() {
                 Assessment End Date:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {assessment.schedule_end_at
-                  ? new Date(assessment.schedule_end_at).toLocaleString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )
-                  : "Null"}
+                {formatDateTime(assessment.schedule_end_at)}
               </span>
             </div>
           )}
@@ -482,13 +443,7 @@ export default function DashboardPage() {
                 Scheduled:
               </span>
               <span className="font-medium text-slate-700 dark:text-slate-300">
-                {new Date(assessment.scheduled_for).toLocaleString("en-US", {
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatDateTime(assessment.scheduled_for)}
               </span>
             </div>
           )}
@@ -498,15 +453,14 @@ export default function DashboardPage() {
         <div className="flex gap-3 pt-2">
           {assessment.status === "scheduled" &&
             (() => {
-              // Combine date + time into a single Date object
-              const now = new Date();
 
-              // Convert schedule_start_at and schedule_end_at to Date objects
+               const now = new Date();
+              // Parse UTC dates to user-local Date objects for comparison
               const startDateTime = assessment.schedule_start_at
-                ? new Date(assessment.schedule_start_at)
+                ? new Date(assessment.schedule_start_at + "Z")
                 : null;
               const endDateTime = assessment.schedule_end_at
-                ? new Date(assessment.schedule_end_at)
+                ? new Date(assessment.schedule_end_at + "Z")
                 : null;
 
               // Disable if current time is before start or after end
@@ -519,8 +473,7 @@ export default function DashboardPage() {
                 <Button
                   onClick={() => handleStartAssessment(assessment)}
                   disabled={isNotStartedYet || isExpired} // disable outside start-end range
-                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                   <Play className="w-4 h-4 mr-2" />
                   {isNotStartedYet
                     ? "Scheduled - Not Started"
@@ -537,8 +490,7 @@ export default function DashboardPage() {
               return (
                 <Button
                   onClick={handleContinueAssessment(assessment)}
-                  className="flex-1 text-white dark:text-slate-900 shadow-sm"
-                >
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm">
                   <Play className="w-4 h-4 mr-2" />
                   Continue Assessment
                   <ChevronRight className="w-4 h-4 ml-auto" />
@@ -552,10 +504,11 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               onClick={() =>
-                navigate(`results?assignmentId=${assessment.assignment_id}&session_id=${assessment.quiz_session_id}`)
+                navigate(
+                  `results?assignmentId=${assessment.assignment_id}&session_id=${assessment.quiz_session_id}`
+                )
               }
-              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
-            >
+              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800">
               <Eye className="w-4 h-4 mr-2" />
               View Results
               <ChevronRight className="w-4 h-4 ml-auto" />
@@ -583,14 +536,14 @@ export default function DashboardPage() {
       if (a.status !== "scheduled") return false;
 
       if (a.schedule_end_at) {
-        const endDateTime = new Date(a.schedule_end_at);
+        const endDateTime = formatDateTime(a.schedule_end_at);
         return now <= endDateTime;
       }
 
       return true;
     })
     .sort(
-      (a, b) => new Date(b.schedule_start_at) - new Date(a.schedule_start_at)
+      (a, b) => formatDateTime(b.schedule_start_at) - formatDateTime(a.schedule_start_at)
     );
 
   const completed = assignments
@@ -640,8 +593,7 @@ export default function DashboardPage() {
           </h2>
           <Badge
             variant="outline"
-            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-          >
+            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
             {scheduled.length}
           </Badge>
         </div>

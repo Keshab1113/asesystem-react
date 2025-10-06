@@ -62,10 +62,9 @@ exports.updateQuizSession = async (req, res) => {
     if (!date || !time) return null;
     const local = new Date(`${date}T${time}:00`);
     if (isNaN(local.getTime())) return null;
-    return new Date(local.getTime() - local.getTimezoneOffset() * 60000)
-      .toISOString()
-      .slice(0, 19)
-      .replace("T", " ");
+    return local.toISOString().slice(0, 19).replace("T", " ");
+
+      
   };
 
   try {
@@ -102,13 +101,13 @@ exports.updateQuizSession = async (req, res) => {
       values.push(maxQuestions);
     }
 
-    const startUTC = toUTC(scheduleStartDate, scheduleStartTime);
+    const startUTC = req.body.startISO || toUTC(scheduleStartDate, scheduleStartTime);
     if (startUTC) {
       updates.push("schedule_start_at=?");
       values.push(startUTC);
     }
 
-    const endUTC = toUTC(scheduleEndDate, scheduleEndTime);
+    const endUTC = req.body.endISO || toUTC(scheduleEndDate, scheduleEndTime);
     if (endUTC) {
       updates.push("schedule_end_at=?");
       values.push(endUTC);

@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import { formatDateTime } from "../../utils/formatDateTime";
 import {
   Tabs,
   TabsContent,
@@ -50,6 +51,20 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
   // const isEditing = !!quiz;
   const isEditing = !!session;
   const [loading, setLoading] = useState(false);
+function formatDate(dateString) {
+  if (!dateString) return "";
+  return new Date(dateString + "Z").toLocaleDateString("en-CA"); 
+  // "en-CA" gives YYYY-MM-DD format, perfect for <input type="date">
+}
+
+function formatTime(dateString) {
+  if (!dateString) return "";
+  return new Date(dateString + "Z").toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false, // 24h format so input[type="time"] works
+  });
+}
 
   const [formData, setFormData] = useState({
     sessionName: session?.session_name || "",
@@ -57,75 +72,14 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
     passingScore: session?.passing_score || 70,
     maxAttempts: session?.max_attempts || 3,
     maxQuestions: session?.max_questions || 0,
-    scheduleStartDate: session?.schedule_start_at
-      ? new Date(session.schedule_start_at).toLocaleDateString("en-CA")
-      : "",
-    scheduleStartTime: session?.schedule_start_at
-      ? new Date(session.schedule_start_at).toTimeString().slice(0, 5)
-      : "",
-    scheduleEndDate: session?.schedule_end_at
-      ? new Date(session.schedule_end_at).toLocaleDateString("en-CA")
-      : "",
-    scheduleEndTime: session?.schedule_end_at
-      ? new Date(session.schedule_end_at).toTimeString().slice(0, 5)
-      : "",
+   scheduleStartDate: session?.schedule_start_at ? formatDate(session.schedule_start_at) : "",
+scheduleStartTime: session?.schedule_start_at ? formatTime(session.schedule_start_at) : "",
+scheduleEndDate: session?.schedule_end_at ? formatDate(session.schedule_end_at) : "",
+scheduleEndTime: session?.schedule_end_at ? formatTime(session.schedule_end_at) : "",
+
   });
 
-  // console.log("Hi keshab, I am on QuizFormModal: ", quiz);
-
-  // Reset form data when quiz prop changes
-  // useEffect(() => {
-  //   if (quiz) {
-  //     setFormData({
-  //       name: quiz.name || "",
-  //       description: quiz.description || "",
-  //       subject: quiz.subject || "",
-  //       difficulty: quiz.difficulty || "medium",
-  //       timeLimit: quiz.timeLimit || "30",
-  //       passingScore: quiz.passingScore || "70",
-  //       maxAttempts: quiz.maxAttempts || 3,
-  //       maxQuestions: quiz.maxQuestions || 0,
-  //       randomizeQuestions: quiz.randomizeQuestions ?? true,
-  //       showResults: quiz.showResults ?? true,
-  //       allowReview: quiz.allowReview ?? true,
-  //       isPublic: quiz.isPublic ?? false,
-  //       tags: quiz.tags || [],
-  //       scheduleStartDate: quiz.schedule_start_at
-  //         ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
-  //         : "",
-  //       scheduleStartTime: quiz.schedule_start_at
-  //         ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
-  //         : "",
-  //       scheduleEndDate: quiz.schedule_end_at
-  //         ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
-  //         : "",
-  //       scheduleEndTime: quiz.schedule_end_at
-  //         ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
-  //         : "",
-  //     });
-  //   } else {
-  //     // Reset to default values for new quiz
-  //     setFormData({
-  //       name: "",
-  //       description: "",
-  //       subject: "",
-  //       difficulty: "medium",
-  //       timeLimit: "30",
-  //       passingScore: "70",
-  //       maxAttempts: "3",
-  //       maxQuestions: 0,
-  //       randomizeQuestions: true,
-  //       showResults: true,
-  //       allowReview: true,
-  //       isPublic: false,
-  //       tags: [],
-  //       scheduleStartDate: "",
-  //       scheduleStartTime: "",
-  //       scheduleEndDate: "",
-  //       scheduleEndTime: "",
-  //     });
-  //   }
-  // }, [quiz]);
+   
   useEffect(() => {
     if (session) {
       setFormData({
@@ -134,18 +88,12 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
         passingScore: session.passing_score || 70,
         maxAttempts: session.max_attempts || 3,
         maxQuestions: session.max_questions || 0,
-        scheduleStartDate: session.schedule_start_at
-          ? new Date(session.schedule_start_at).toLocaleDateString("en-CA")
-          : "",
-        scheduleStartTime: session.schedule_start_at
-          ? new Date(session.schedule_start_at).toTimeString().slice(0, 5)
-          : "",
-        scheduleEndDate: session.schedule_end_at
-          ? new Date(session.schedule_end_at).toLocaleDateString("en-CA")
-          : "",
-        scheduleEndTime: session.schedule_end_at
-          ? new Date(session.schedule_end_at).toTimeString().slice(0, 5)
-          : "",
+       scheduleStartDate: session?.schedule_start_at ? formatDate(session.schedule_start_at) : "",
+scheduleStartTime: session?.schedule_start_at ? formatTime(session.schedule_start_at) : "",
+scheduleEndDate: session?.schedule_end_at ? formatDate(session.schedule_end_at) : "",
+scheduleEndTime: session?.schedule_end_at ? formatTime(session.schedule_end_at) : "",
+
+
       });
     } else {
       setFormData({
@@ -162,73 +110,20 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
     }
   }, [session]);
 
-  // Reset form when modal closes
-  // useEffect(() => {
-  //   if (!open) {
-  //     // Reset form to default values when modal closes
-  //     if (quiz) {
-  //       setFormData({
-  //         name: quiz.name || "",
-  //         description: quiz.description || "",
-  //         subject: quiz.subject || "",
-  //         difficulty: quiz.difficulty || "medium",
-  //         timeLimit: quiz.timeLimit || "30",
-  //         passingScore: quiz.passingScore || "70",
-  //         maxAttempts: quiz.maxAttempts || "3",
-  //         maxQuestions: quiz.questionCount || 0,
-  //         randomizeQuestions: quiz.randomizeQuestions ?? true,
-  //         showResults: quiz.showResults ?? true,
-  //         allowReview: quiz.allowReview ?? true,
-  //         isPublic: quiz.isPublic ?? false,
-  //         tags: quiz.tags || [],
-  //         scheduleStartDate: quiz.schedule_start_at
-  //           ? new Date(quiz.schedule_start_at).toLocaleDateString("en-CA")
-  //           : "",
-  //         scheduleStartTime: quiz.schedule_start_at
-  //           ? new Date(quiz.schedule_start_at).toTimeString().slice(0, 5)
-  //           : "",
-  //         scheduleEndDate: quiz.schedule_end_at
-  //           ? new Date(quiz.schedule_end_at).toLocaleDateString("en-CA")
-  //           : "",
-  //         scheduleEndTime: quiz.schedule_end_at
-  //           ? new Date(quiz.schedule_end_at).toTimeString().slice(0, 5)
-  //           : "",
-  //       });
-  //     } else {
-  //       setFormData({
-  //         name: "",
-  //         description: "",
-  //         subject: "",
-  //         difficulty: "medium",
-  //         timeLimit: "30",
-  //         passingScore: "70",
-  //         maxAttempts: "3",
-  //         maxQuestions: 0,
-  //         randomizeQuestions: true,
-  //         showResults: true,
-  //         allowReview: true,
-  //         isPublic: false,
-  //         tags: [],
-  //         scheduleStartDate: "",
-  //         scheduleStartTime: "",
-  //         scheduleEndDate: "",
-  //         scheduleEndTime: "",
-  //       });
-  //     }
-  //   }
-  // }, [open, quiz]);
+   
 
   const [newTag, setNewTag] = useState("");
 
   const handleSave = async () => {
     setLoading(true);
 
-    const normalizeDate = (dateStr) => {
-      if (!dateStr) return null;
-      const d = new Date(dateStr);
-      if (isNaN(d)) return null;
-      return d.toLocaleDateString("en-CA"); // always YYYY-MM-DD
-    };
+    
+
+    const makeLocalISO = (dateStr, timeStr) => {
+  if (!dateStr || !timeStr) return null;
+  const local = new Date(`${dateStr}T${timeStr}:00`);
+  return local.toISOString(); // sends UTC automatically
+};
 
     const quizData = {
       name: formData.name,
@@ -239,23 +134,10 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
       passingScore: formData.passingScore,
       maxAttempts: formData.maxAttempts,
       maxQuestions: formData.maxQuestions || 0,
-      scheduleStartDate: normalizeDate(formData.scheduleStartDate),
-      scheduleStartTime: formData.scheduleStartTime || null,
-      scheduleEndDate: normalizeDate(formData.scheduleEndDate),
-      scheduleEndTime: formData.scheduleEndTime || null,
+    
       // send combined datetime fields
-      schedule_start_at:
-        formData.scheduleStartDate && formData.scheduleStartTime
-          ? `${normalizeDate(formData.scheduleStartDate)} ${
-              formData.scheduleStartTime
-            }`
-          : null,
-      schedule_end_at:
-        formData.scheduleEndDate && formData.scheduleEndTime
-          ? `${normalizeDate(formData.scheduleEndDate)} ${
-              formData.scheduleEndTime
-            }`
-          : null,
+      schedule_start_at: makeLocalISO(formData.scheduleStartDate, formData.scheduleStartTime),
+  schedule_end_at: makeLocalISO(formData.scheduleEndDate, formData.scheduleEndTime),
     };
 
     try {
@@ -266,10 +148,8 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
           passingScore: formData.passingScore,
           maxAttempts: formData.maxAttempts,
           maxQuestions: formData.maxQuestions,
-          scheduleStartDate: formData.scheduleStartDate,
-          scheduleStartTime: formData.scheduleStartTime,
-          scheduleEndDate: formData.scheduleEndDate,
-          scheduleEndTime: formData.scheduleEndTime,
+          startISO: makeLocalISO(formData.scheduleStartDate, formData.scheduleStartTime),
+  endISO: makeLocalISO(formData.scheduleEndDate, formData.scheduleEndTime),
         });
         if (onAssigned) {
           onAssigned();
@@ -289,14 +169,7 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
         });
       }
 
-      // Call onSave callback to update frontend state if needed
-      // onSave({
-      //   ...quizData,
-      //   id: quiz?.id,
-      //   isActive: quiz?.isActive ?? true, // preserve active state
-      //   questionCount: quiz?.questionCount || 0, // preserve question count
-      // });
-
+       
       onOpenChange(false);
     } catch (error) {
       console.error("Error saving quiz:", error);
@@ -559,9 +432,7 @@ export function QuizFormModal({ session, open, onOpenChange, onAssigned }) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="1">1 attempt</SelectItem>
-                      {/* <SelectItem value="3">3 attempts</SelectItem> */}
-                      {/* <SelectItem value="5">5 attempts</SelectItem> */}
-                      {/* <SelectItem value="unlimited">Unlimited</SelectItem> */}
+                      
                     </SelectContent>
                   </Select>
                 </div>

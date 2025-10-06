@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { formatDateTime } from "../../utils/formatDateTime";
 import { Badge } from "../../components/ui/badge";
 import { Search, Download, Eye, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -81,6 +82,7 @@ export function QuizReportPage() {
     };
 
     fetchReports();
+    
   }, []);
 
   // const handleDownloadReport = (id) => {
@@ -157,7 +159,7 @@ export function QuizReportPage() {
                   <span className="text-muted-foreground">Assigned Date:</span>
                   <div className="font-semibold flex items-center">
                     <Calendar className="h-3 w-3 mr-1" />
-                    {report.date}
+                     {formatDateTime(report.date, true)} 
                   </div>
                 </div>
               </div>
@@ -170,13 +172,7 @@ export function QuizReportPage() {
                   <Eye className="h-3 w-3 mr-1" />
                   View Details
                 </Button>
-                {/* <Button
-                  size="sm"
-                  onClick={() => handleDownloadReport(report.id)}
-                >
-                  <Download className="h-3 w-3 mr-1" />
-                  Download
-                </Button> */}
+              
               </div>
             </CardContent>
           </Card>

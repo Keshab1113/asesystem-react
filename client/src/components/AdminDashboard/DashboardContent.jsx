@@ -14,6 +14,7 @@ import {
   Radio,
   CalendarRange,
 } from "lucide-react";
+import { formatDateTime } from "../../utils/formatDateTime";
 import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
 import { BorderBeam } from "../ui/border-beam";
@@ -232,7 +233,7 @@ export function DashboardContent() {
                 </div>
                 <div className="text-xs text-muted-foreground flex items-center">
                   <CalendarDays className="w-4 h-4 mr-2" />
-                  Created: {quiz?.created_at}
+                  Created: {formatDateTime(quiz?.created_at,true)}
                 </div>
               </CardContent>
               <BorderBeam

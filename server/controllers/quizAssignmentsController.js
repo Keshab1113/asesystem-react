@@ -75,7 +75,7 @@ exports.getAssignmentById = async (req, res) => {
 
 exports.startAssessment = async (req, res) => {
   try {
-    const { quiz_id, user_id, assignment_id, quiz_session_id } = req.body;
+    const { quiz_id, user_id, assignment_id, quiz_session_id,user_started_at, user_timezone } = req.body;
     console.log(req.body);
 
     if (!quiz_id || !user_id || !assignment_id || !quiz_session_id) {
@@ -86,15 +86,16 @@ exports.startAssessment = async (req, res) => {
       });
     }
 
-    const startedAt = new Date(); // current date & time
-
+const utcDate = new Date(user_started_at); 
+ 
     // Update the quiz_assignments table
     await db.query(
       `UPDATE quiz_assignments 
-   SET user_started_at = ?, status = ? 
+   SET user_started_at = ?,user_timezone = ?,status = ? 
    WHERE id = ? AND quiz_id = ? AND quiz_session_id = ? AND user_id = ?`,
       [
-        new Date(),
+        utcDate.toISOString().slice(0, 19).replace("T", " "),
+        user_timezone || 'UTC',
         "in_progress",
         assignment_id,
         quiz_id,
@@ -106,7 +107,7 @@ exports.startAssessment = async (req, res) => {
     return res.json({
       success: true,
       message: "Assessment started",
-      user_started_at: startedAt,
+      user_started_at: utcDate.toISOString(),
     });
   } catch (error) {
     console.error("Error in startAssessment:", error);
@@ -123,6 +124,7 @@ exports.endAssessment = async (req, res) => {
       passing_score,
       answers,
       quiz_session_id,
+       user_ended_at, 
     } = req.body;
 console.log(req.body);
     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
@@ -131,6 +133,8 @@ console.log(req.body);
         message: "quiz_id, user_id, assignment_id, and answers required",
       });
     }
+  // 🔹 Convert frontend local time to UTC
+    const utcEndDate = new Date(user_ended_at);
 
     // 🔹 Get current reassigned cycle
     const [qaRows] = await db.query(
@@ -285,7 +289,7 @@ const answer_id = existingAnswer?.id || null;
       `UPDATE quiz_assignments 
        SET user_ended_at = ?, status = ?, score = ? 
        WHERE id = ? AND quiz_session_id = ? AND user_id = ?`,
-      [new Date(), status, percentage, assignment_id, quiz_session_id, user_id]
+      [utcEndDate.toISOString().slice(0, 19).replace("T", " "), status, percentage, assignment_id, quiz_session_id, user_id]
     );
 
     // 🔹 Fetch wrong/unanswered (filtered by reassigned + session)
@@ -321,6 +325,7 @@ const answer_id = existingAnswer?.id || null;
       percentage,
       status,
       wrongAnswers,
+        user_ended_at: utcEndDate.toISOString(),
     });
 
   } catch (error) {

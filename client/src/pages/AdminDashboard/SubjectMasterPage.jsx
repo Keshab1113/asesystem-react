@@ -29,6 +29,7 @@ import {
   MoreVertical,
   Power,
 } from "lucide-react";
+import { formatDateTime } from "../../utils/formatDateTime";
 import { useNavigate } from "react-router-dom";
 import { QuizFormModal } from "../../components/AdminDashboard/QuizFormModal";
 import AssignQuizModal from "../../components/AdminDashboard/AssignQuizModal";
@@ -78,7 +79,8 @@ export function SubjectMasterPage() {
           description: q.description || "",
           questionCount: q.question_count ?? 0,
           isActive: q.is_active === 1,
-          createdDate: new Date(q.created_at).toLocaleDateString(),
+         createdDate: q.created_at,
+
 
           // extra columns
           subjectId: q.subject_id,
@@ -306,7 +308,7 @@ export function SubjectMasterPage() {
                       </p> */}
 
                       <p className="text-xs text-muted-foreground">
-                        Created: {subject.createdDate}
+                        Created: {formatDateTime(subject.createdDate,true)}
                       </p>
                     </div>
                     <div className="flex gap-2">
