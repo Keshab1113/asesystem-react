@@ -7,12 +7,18 @@ import {
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "../../components/ui/popover";
+import {
   Users,
   Activity,
   CheckCircle,
   CalendarDays,
   Radio,
   CalendarRange,
+  UserSearch,
 } from "lucide-react";
 import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
@@ -183,73 +189,138 @@ export function DashboardContent() {
           />
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
-          {filteredAndSortedQuizzes.map((quiz) => (
-            <Card
-              key={quiz.id + (quiz.title || Math.random())}
-              className={`hover:shadow-md transition-shadow overflow-hidden relative dark:bg-green-900/10 bg-green-900/10`}
-            >
-              <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0">
-                {/* Option 1: Pulsing Radio Wave Icon */}
-                <div className="relative">
-                  <Radio className="text-red-600 w-16 h-16 animate-pulse" />
-                  <div className="absolute inset-0 animate-ping">
-                    <Radio className="text-red-500 w-16 h-16 opacity-75" />
-                  </div>
-                  <div
-                    className="absolute inset-0 animate-ping"
-                    style={{ animationDelay: "1s" }}
-                  >
-                    <Radio className="text-red-400 w-16 h-16 opacity-50" />
+          {filteredAndSortedQuizzes.map((quiz) => {
+            let sessions = [];
+            try {
+              sessions =
+                typeof quiz.sessions === "string"
+                  ? JSON.parse(quiz.sessions)
+                  : quiz.sessions;
+            } catch (err) {
+              console.error("Invalid session data:", err);
+            }
+
+            return (
+              <Card
+                key={quiz.quiz_id || quiz.id || Math.random()}
+                className="hover:shadow-md transition-shadow overflow-hidden relative dark:bg-green-900/10 bg-green-900/10"
+              >
+                <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0">
+                  <div className="relative">
+                    <Radio className="text-red-600 w-16 h-16 animate-pulse" />
+                    <div className="absolute inset-0 animate-ping">
+                      <Radio className="text-red-500 w-16 h-16 opacity-75" />
+                    </div>
+                    <div
+                      className="absolute inset-0 animate-ping"
+                      style={{ animationDelay: "1s" }}
+                    >
+                      <Radio className="text-red-400 w-16 h-16 opacity-50" />
+                    </div>
                   </div>
                 </div>
-              </div>
-              <CardHeader>
-                <div className="flex items-center justify-between ">
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg leading-tight text-card-foreground flex flex-col">
-                      {quiz.title}
-                      <span className=" text-xs mt-2 text-slate-700">
-                        {quiz.description}
+
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg leading-tight text-card-foreground flex flex-col">
+                        {quiz.title}
+                        <span className="text-xs mt-2 text-slate-700">
+                          {quiz.description}
+                        </span>
+                      </CardTitle>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4 relative h-full">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center text-card-foreground">
+                      <Users className="w-4 h-4 mr-2" />
+                      <span className="text-sm">
+                        {Number(quiz.total_participants) || 0} Participants
                       </span>
-                    </CardTitle>
+                    </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <div className="flex items-center text-card-foreground cursor-pointer group">
+                          <CalendarRange className="w-4 h-4 mr-2" />
+                          <span className="text-sm group-hover:underline">
+                            {Array.isArray(sessions) ? sessions.length : 0}{" "}
+                            Session
+                          </span>
+                        </div>
+                      </PopoverTrigger>
+
+                      <PopoverContent
+                        side="top"
+                        align="center"
+                        className="w-64 px-3 py-2 text-sm" // fixed width
+                      >
+                        {Array.isArray(sessions) && sessions.length > 0 ? (
+                          <ul className="space-y-1">
+                            {sessions.map((session) => (
+                              <li
+                                key={session.session_id}
+                                className="text-foreground"
+                              >
+                                <div className="font-medium">
+                                  {session.session_name} - {Number(session.participants) || 0} Participants
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {session.schedule_start_at
+                                    ? new Date(
+                                        session.schedule_start_at
+                                      ).toLocaleString()
+                                    : "No start date"}{" "}
+                                  -{" "}
+                                  {session.schedule_end_at
+                                    ? new Date(
+                                        session.schedule_end_at
+                                      ).toLocaleString()
+                                    : "No end date"}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-muted-foreground">
+                            No sessions available
+                          </p>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+
+                    <div className="flex items-center text-card-foreground">
+                      <UserSearch className="w-4 h-4 mr-2" />
+                      <span className="text-sm">
+                        {Number(quiz.total_attended) || 0} Attended
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4 relative h-full">
-                <div className=" grid-cols-2 grid gap-2">
-                  <div className="flex items-center text-card-foreground">
-                    <Users className="w-4 h-4 mr-2" />
-                    <span className="text-sm">
-                      {Number(quiz.total_participants) || 0} participants
-                    </span>
+
+                  <div className="text-xs text-muted-foreground flex items-center">
+                    <CalendarDays className="w-4 h-4 mr-2" />
+                    Created: {quiz.created_at}
                   </div>
-                  <div className="flex items-center text-card-foreground">
-                    <CalendarRange className="w-4 h-4 mr-2" />
-                    <span className="text-sm">
-                      {Number(quiz.total_sessions) || 0} Session
-                    </span>
-                  </div>
-                </div>
-                <div className="text-xs text-muted-foreground flex items-center">
-                  <CalendarDays className="w-4 h-4 mr-2" />
-                  Created: {quiz?.created_at}
-                </div>
-              </CardContent>
-              <BorderBeam
-                duration={6}
-                size={200}
-                borderWidth={3}
-                className="from-transparent via-red-500 to-transparent"
-              />
-              <BorderBeam
-                duration={6}
-                delay={3}
-                size={200}
-                borderWidth={3}
-                className="from-transparent via-blue-500 to-transparent"
-              />
-            </Card>
-          ))}
+                </CardContent>
+
+                <BorderBeam
+                  duration={6}
+                  size={200}
+                  borderWidth={3}
+                  className="from-transparent via-red-500 to-transparent"
+                />
+                <BorderBeam
+                  duration={6}
+                  delay={3}
+                  size={200}
+                  borderWidth={3}
+                  className="from-transparent via-blue-500 to-transparent"
+                />
+              </Card>
+            );
+          })}
         </div>
         {filteredAndSortedQuizzes.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">

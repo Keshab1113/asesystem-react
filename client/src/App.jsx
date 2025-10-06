@@ -75,7 +75,7 @@ function App() {
           >
             <Route index element={<DashboardContent />} />
             <Route path="assessment-report" element={<QuizReportPage />} />
-            <Route path="assessment-details" element={<AssessmentDetails />} />
+            <Route path="assessment-matrix" element={<AssessmentDetails />} />
             <Route
               path="assessment-report/:id"
               element={<QuizReportDetailsPage />}

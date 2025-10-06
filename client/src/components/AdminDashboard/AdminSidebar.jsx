@@ -40,8 +40,8 @@ const navigationItems = [
     title: "Reports",
     icon: BarChart3,
     items: [
-      { title: "Assesment Details", icon: IdCard, page: "assessment-details" },
       { title: "Assesment Report", icon: FileText, page: "assessment-report" },
+      { title: "Assessment Matrix", icon: IdCard, page: "assessment-matrix" },
       {
         title: "Issue Manual Certificate",
         icon: Award,

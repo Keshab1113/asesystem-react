@@ -285,3 +285,17 @@
 .animate-pulse-slow {
   animation: pulse-slow 3s ease-in-out infinite;
 }
+
+.MuiDataGrid-columnHeaderTitle {
+  white-space: normal !important;
+  line-height: 1.2 !important;
+  text-align: center;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+.MuiDataGrid-columnHeader {
+  height: auto !important;
+  align-items: center !important;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}

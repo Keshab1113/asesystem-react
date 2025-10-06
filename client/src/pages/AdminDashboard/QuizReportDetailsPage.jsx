@@ -14,6 +14,7 @@ import { Button } from "../../components/ui/button";
 import PerfectTable from "../../components/AdminDashboard/PerfectTable";
 import useToast from "../../hooks/ToastContext";
 import api from "../../api/api";
+import DataTable from "../../components/Table/Table";
 
 export function QuizReportDetailsPage() {
   const { id } = useParams();
@@ -28,23 +29,24 @@ export function QuizReportDetailsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [locationFilter, setLocationFilter] = useState("all");
   const [scoreFilter, setScoreFilter] = useState("");
+  const [assessmentName, setAssessmentName] = useState("");
+  const [sessionName, setSessionName] = useState("");
 
   // fetch data from backend with filters
   const fetchDetails = async () => {
     try {
-      const res = await api.get(
-        `/api/quiz-attempts/${id}/details`,
-        {
-          params: {
-            group: groupFilter,
-            team: teamFilter,
-            status: statusFilter,
-            location: locationFilter,
-            minScore: scoreFilter || undefined,
-          },
-        }
-      );
+      const res = await api.get(`/api/quiz-attempts/${id}/details`, {
+        params: {
+          group: groupFilter,
+          team: teamFilter,
+          status: statusFilter,
+          location: locationFilter,
+          minScore: scoreFilter || undefined,
+        },
+      });
       setAssignments(res.data.data || []);
+      setAssessmentName(res.data.assessmentName);
+      setSessionName(res.data.sessionName);
     } catch (err) {
       console.error("Error fetching report details:", err);
     }
@@ -101,7 +103,10 @@ export function QuizReportDetailsPage() {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `Assessment_Report_${id}_${Date.now()}.xlsx`);
+      link.setAttribute(
+        "download",
+        `Assessment_Report_${id}_${Date.now()}.xlsx`
+      );
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -122,6 +127,7 @@ export function QuizReportDetailsPage() {
       setLoadingDownload(false);
     }
   };
+  
 
   return (
     <div className="min-h-screen mx-auto overflow-hidden lg:max-w-[75vw]">
@@ -132,6 +138,7 @@ export function QuizReportDetailsPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-white">
               Assessment Report Details
             </h1>
+            <h2 className="text-xs sm:text-base font-bold text-slate-800 dark:text-white md:max-w-[70%] mt-2">{assessmentName} — {sessionName}</h2>
             <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
               Showing {assignments.length} results
             </p>
@@ -258,8 +265,16 @@ export function QuizReportDetailsPage() {
           </CardContent>
         </Card>
 
-        {/* Table */}
-        <Card className="shadow-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800 overflow-hidden py-0">
+        {assignments.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="text-slate-400 dark:text-slate-500 text-lg">
+              No results found
+            </div>
+            <div className="text-slate-500 dark:text-slate-400 text-sm mt-2">
+              Try adjusting your filters
+            </div>
+          </div>
+        ) : (
           <PerfectTable
             filtered={assignments}
             onDelete={(deletedId) =>
@@ -277,18 +292,7 @@ export function QuizReportDetailsPage() {
               )
             }
           />
-
-          {assignments.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-slate-400 dark:text-slate-500 text-lg">
-                No results found
-              </div>
-              <div className="text-slate-500 dark:text-slate-400 text-sm mt-2">
-                Try adjusting your filters
-              </div>
-            </div>
-          )}
-        </Card>
+        )}
       </div>
     </div>
   );

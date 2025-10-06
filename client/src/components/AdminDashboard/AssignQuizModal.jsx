@@ -30,6 +30,7 @@ const AssignQuizModal = ({
   const [selectedTeam, setSelectedTeam] = useState("all");
   const [selectedLocation, setSelectedLocation] = useState("all");
   const [selectedSession, setSelectedSession] = useState(sessionId || null);
+  const [selectedStatus, setSelectedStatus] = useState("all");
   const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
@@ -128,6 +129,7 @@ const AssignQuizModal = ({
       setSelectedUsers((prev) => [...new Set([...prev, ...allFiltered])]);
     }
   };
+  // console.log("users: ", users);
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
@@ -138,10 +140,37 @@ const AssignQuizModal = ({
       selectedTeam === "all" || u.controlling_team === selectedTeam;
     const matchesLocation =
       selectedLocation === "all" || u.location === selectedLocation;
-    return matchesSearch && matchesGroup && matchesTeam && matchesLocation;
+    const hasAttended = !!((u.status && u.status === "schedule") || u.score);
+    const matchesStatus =
+      selectedStatus === "all"
+        ? true
+        : selectedStatus === "attended"
+        ? hasAttended
+        : !hasAttended;
+    return (
+      matchesSearch &&
+      matchesGroup &&
+      matchesTeam &&
+      matchesLocation &&
+      matchesStatus
+    );
   });
 
-  console.log("selectedSession: ", selectedSession, typeof selectedSession);
+  const getStatusBadge = (status) => {
+  switch (status?.toLowerCase()) {
+    case "passed":
+      return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400";
+    case "failed":
+      return "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400";
+    case "terminated":
+      return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400";
+    case "scheduled":
+      return "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400";
+    default:
+      return "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400";
+  }
+};
+
 
   if (!open) return null;
 
@@ -315,7 +344,7 @@ const AssignQuizModal = ({
                   <SelectTrigger className="h-9 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none text-gray-900 dark:text-white bg-white dark:bg-slate-900 text-sm">
                     <SelectValue placeholder="All Teams" />
                   </SelectTrigger>
-                  <SelectContent className="dark:bg-slate-900 dark:border-gray-600">
+                  <SelectContent className="">
                     <SelectItem value="all" className="">
                       All Teams
                     </SelectItem>
@@ -335,7 +364,7 @@ const AssignQuizModal = ({
                   <SelectTrigger className="h-9 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none text-gray-900 dark:text-white bg-white dark:bg-slate-900 text-sm">
                     <SelectValue placeholder="Work Location" />
                   </SelectTrigger>
-                  <SelectContent className="dark:bg-slate-900 dark:border-gray-600">
+                  <SelectContent className="">
                     <SelectItem value="all" className="">
                       All Locations
                     </SelectItem>
@@ -347,30 +376,20 @@ const AssignQuizModal = ({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+
                 <Select
-                  value={selectedSession}
-                  onValueChange={(val) => setSelectedSession(val)}
+                  value={selectedStatus}
+                  onValueChange={(val) => setSelectedStatus(val)}
                 >
                   <SelectTrigger className="h-9 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-1 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all outline-none text-gray-900 dark:text-white bg-white dark:bg-slate-900 text-sm">
-                    <SelectValue
-                      placeholder="Select Session"
-                      value={
-                        allSessions.find((s) => s.sessionId === selectedSession)
-                          ?.session_name
-                      }
-                    />
+                    <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
-                  <SelectContent className="dark:bg-slate-900 dark:border-gray-600">
-                    {allSessions
-                      .filter((session) => session.quiz_id === quizId)
-                      .map((session) => (
-                        <SelectItem
-                          key={session.sessionId}
-                          value={session.sessionId}
-                        >
-                          {session.session_name}
-                        </SelectItem>
-                      ))}
+                  <SelectContent className="">
+                    <SelectItem value="all" className="">
+                      All Status
+                    </SelectItem>
+                    <SelectItem value="attended">Attended</SelectItem>
+                    <SelectItem value="un_attended">Un-Attended</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -450,7 +469,11 @@ const AssignQuizModal = ({
                             </div>
                             <div className="flex flex-wrap items-center gap-1">
                               {u.status && (
-                                <span className="px-2 capitalize py-0.5 text-xs font-medium bg-purple-100 dark:bg-green-900/30 text-green-700 dark:text-purple-300 rounded whitespace-nowrap">
+                                <span
+                                  className={`px-2 py-0.5 text-xs font-medium rounded whitespace-nowrap capitalize ${getStatusBadge(
+                                    u.status
+                                  )}`}
+                                >
                                   {u.status}
                                 </span>
                               )}

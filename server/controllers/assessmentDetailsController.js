@@ -155,14 +155,11 @@ exports.exportAssessmentDetails = async (req, res) => {
     });
 
     // ✅ Auto column widths
-    worksheet.columns.forEach((col) => {
-      let maxLength = 0;
-      col.eachCell({ includeEmpty: true }, (cell) => {
-        const v = cell.value ? cell.value.toString() : "";
-        if (v.length > maxLength) maxLength = v.length;
-      });
-      col.width = maxLength < 20 ? 20 : maxLength + 2;
-    });
+    worksheet.columns = [
+      { width: 30 }, // User Name
+      { width: 15 }, // KOC ID
+      ...quizTitles.map(() => ({ width: 25 })), // Each quiz column
+    ];
 
     // ✅ Send file
     res.setHeader(
@@ -188,27 +185,58 @@ exports.exportAssessmentDetails = async (req, res) => {
 
 exports.getQuizSummary = async (req, res) => {
   try {
-    // Query active quizzes with participants & sessions per quiz
     const query = `
-      SELECT 
-        q.id AS quiz_id,
-        q.title,
-        q.description,
-        q.created_at,
-        -- Count total participants from quiz_assignments per quiz
-        (SELECT COUNT(*) FROM quiz_assignments qa WHERE qa.quiz_id = q.id) AS total_participants,
-        -- Count total sessions from quiz_sessions per quiz
-        (SELECT COUNT(*) FROM quiz_sessions qs WHERE qs.quiz_id = q.id) AS total_sessions
-      FROM quizzes q
-      WHERE q.is_active = 1
-      ORDER BY q.created_at DESC
-    `;
+  SELECT 
+    q.id AS quiz_id,
+    q.title,
+    q.description,
+    q.created_at,
+    -- Count total participants per quiz
+    (SELECT COUNT(*) FROM quiz_assignments qa WHERE qa.quiz_id = q.id) AS total_participants,
+    -- Count total sessions per quiz
+    (SELECT COUNT(*) FROM quiz_sessions qs WHERE qs.quiz_id = q.id) AS total_sessions,
+    -- Get all session names as an array
+    (
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'session_id', qs.id,
+      'session_name', qs.session_name,
+      'schedule_start_at', qs.schedule_start_at,
+      'schedule_end_at', qs.schedule_end_at,
+      'participants', (
+        SELECT COUNT(*) 
+        FROM quiz_assignments qa 
+        WHERE qa.quiz_id = q.id AND qa.quiz_session_id = qs.id
+      )
+    )
+  )
+  FROM quiz_sessions qs
+  WHERE qs.quiz_id = q.id
+) AS sessions,
+    -- Count total attended (status = terminated, failed, or passed)
+    (
+      SELECT COUNT(*) 
+      FROM quiz_assignments qa2 
+      WHERE qa2.quiz_id = q.id 
+      AND qa2.status IN ('terminated', 'failed', 'passed')
+    ) AS total_attended
+  FROM quizzes q
+  WHERE q.is_active = 1
+  ORDER BY q.created_at DESC
+`;
+
     const [rows] = await db.query(query);
-    const [totalQuizzesResult] = await db.query(`SELECT COUNT(*) AS total FROM quizzes`);
+    const [totalQuizzesResult] = await db.query(
+      `SELECT COUNT(*) AS total FROM quizzes`
+    );
     const totalAssessment = totalQuizzesResult[0].total;
-    const [totalUsersResult] = await db.query(`SELECT COUNT(*) AS total FROM users`);
+    const [totalUsersResult] = await db.query(
+      `SELECT COUNT(*) AS total FROM users`
+    );
     const totalUsers = totalUsersResult[0].total;
-    const [totalParticipantsResult] = await db.query(`SELECT COUNT(*) AS total FROM quiz_assignments`);
+    const [totalParticipantsResult] = await db.query(
+      `SELECT COUNT(*) AS total FROM quiz_assignments`
+    );
     const totalParticipants = totalParticipantsResult[0].total;
 
     res.status(200).json({

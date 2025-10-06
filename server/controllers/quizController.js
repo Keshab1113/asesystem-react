@@ -682,7 +682,7 @@ exports.getQuizReportDetails = async (req, res) => {
   } = req.query;
 
   try {
-    // Start base query (filtering by session)
+    // Base query with joins
     let query = `
       SELECT 
         qa.id as assignment_id,
@@ -710,17 +710,21 @@ exports.getQuizReportDetails = async (req, res) => {
         u.controlling_team,
         u.location,
         t.name as team_name,
-        g.name as group_name
+        g.name as group_name,
+        q.title as assessmentName,      
+        qs.session_name as sessionName  
       FROM quiz_assignments qa
       JOIN users u ON qa.user_id = u.id
       LEFT JOIN teams t ON qa.team_id = t.id
       LEFT JOIN groups g ON qa.group_id = g.id
+      LEFT JOIN quizzes q ON qa.quiz_id = q.id          
+      LEFT JOIN quiz_sessions qs ON qa.quiz_session_id = qs.id  
       WHERE qa.quiz_session_id = ?
     `;
 
     const params = [session_id];
 
-    // Append filters only when provided (and not 'all')
+    // Filters
     if (group && group !== "all") {
       query += " AND g.name = ?";
       params.push(group);
@@ -744,12 +748,22 @@ exports.getQuizReportDetails = async (req, res) => {
 
     query += " ORDER BY qa.created_at DESC";
 
-    // Execute the fully built query with params
+    // Execute query
     const [rows] = await db.query(query, params);
+
+    // Extract assessmentName and sessionName only once
+    let assessmentName = null;
+    let sessionName = null;
+    if (rows.length > 0) {
+      assessmentName = rows[0].assessmentName; // first row
+      sessionName = rows[0].sessionName;       // first row
+    }
 
     res.json({
       success: true,
-      data: rows,
+      assessmentName,
+      sessionName,
+      data: rows, // all rows
     });
 
     console.log("Assignments for session:", session_id, "count:", rows.length);
@@ -758,7 +772,6 @@ exports.getQuizReportDetails = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 // Delete assigned quiz
 exports.deleteAssignedQuiz = async (req, res) => {
