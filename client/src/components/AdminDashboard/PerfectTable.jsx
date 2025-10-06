@@ -58,6 +58,14 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
             Scheduled
           </span>
         );
+      case "in_progress":
+        return (
+          <span
+            className={`${baseClasses} bg-blue-800 text-gray-100 dark:bg-amber-900/30 dark:text-amber-800`}
+          >
+            In Progress
+          </span>
+        );
       default:
         return (
           <span

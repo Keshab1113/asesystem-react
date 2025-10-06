@@ -376,7 +376,8 @@ export default function DashboardPage() {
                     ? "text-emerald-600 dark:text-emerald-400"
                     : "text-red-600 dark:text-red-400"
                   : "text-slate-400 dark:text-slate-500"
-              }`}>
+              }`}
+            >
               {assessment?.score ? `${assessment.score}%` : "—"}
             </p>
           </div>
@@ -451,10 +452,9 @@ export default function DashboardPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
-          {assessment.status === "scheduled" &&
+          {(assessment.status === "scheduled" || assessment.status === "in_progress" ) &&
             (() => {
-
-               const now = new Date();
+              const now = new Date();
               // Parse UTC dates to user-local Date objects for comparison
               const startDateTime = assessment.schedule_start_at
                 ? new Date(assessment.schedule_start_at + "Z")
@@ -472,31 +472,21 @@ export default function DashboardPage() {
               return (
                 <Button
                   onClick={() => handleStartAssessment(assessment)}
-                  disabled={isNotStartedYet || isExpired} // disable outside start-end range
-                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
+                  disabled={isNotStartedYet || isExpired || assessment.status === "in_progress"} // disable outside start-end range
+                  className="flex-1 text-white dark:text-slate-900 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Play className="w-4 h-4 mr-2" />
                   {isNotStartedYet
                     ? "Scheduled - Not Started"
                     : isExpired
                     ? "Expired"
-                    : "Start Assessment"}
+                    : (assessment.status === "in_progress"?"Started":"Start Assessment")}
                   <ChevronRight className="w-4 h-4 ml-auto" />
                 </Button>
               );
             })()}
 
-          {assessment.status === "in_progress" &&
-            (() => {
-              return (
-                <Button
-                  onClick={handleContinueAssessment(assessment)}
-                  className="flex-1 text-white dark:text-slate-900 shadow-sm">
-                  <Play className="w-4 h-4 mr-2" />
-                  Continue Assessment
-                  <ChevronRight className="w-4 h-4 ml-auto" />
-                </Button>
-              );
-            })()}
+          
 
           {["passed", "failed", "under_review", "terminated"].includes(
             assessment.status
@@ -508,7 +498,8 @@ export default function DashboardPage() {
                   `results?assignmentId=${assessment.assignment_id}&session_id=${assessment.quiz_session_id}`
                 )
               }
-              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800">
+              className="flex-1 border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
               <Eye className="w-4 h-4 mr-2" />
               View Results
               <ChevronRight className="w-4 h-4 ml-auto" />
@@ -593,7 +584,8 @@ export default function DashboardPage() {
           </h2>
           <Badge
             variant="outline"
-            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800">
+            className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+          >
             {scheduled.length}
           </Badge>
         </div>

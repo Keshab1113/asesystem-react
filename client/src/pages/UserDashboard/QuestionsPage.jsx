@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import "./QuestionPage.css";
+// import "./QuestionPage.css";
 
 import {
   Loader2,
@@ -114,20 +114,20 @@ export default function QuestionsPage() {
     window.addEventListener("orientationchange", setViewportHeight);
 
     // Prevent body scroll on mobile only
-    document.body.style.overscrollBehavior = "none";
-    document.body.style.overflow = "hidden";
-    document.body.style.position = "fixed";
-    document.body.style.width = "100%";
-    document.body.style.height = "100%";
+    // document.body.style.overscrollBehavior = "none";
+    // document.body.style.overflow = "hidden";
+    // document.body.style.position = "fixed";
+    // document.body.style.width = "100%";
+    // document.body.style.height = "100%";
 
     return () => {
       window.removeEventListener("resize", setViewportHeight);
       window.removeEventListener("orientationchange", setViewportHeight);
-      document.body.style.overscrollBehavior = "";
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
-      document.body.style.height = "";
+      // document.body.style.overscrollBehavior = "";
+      // document.body.style.overflow = "";
+      // document.body.style.position = "";
+      // document.body.style.width = "";
+      // document.body.style.height = "";
     };
   }, []);
   // ============================================================================
