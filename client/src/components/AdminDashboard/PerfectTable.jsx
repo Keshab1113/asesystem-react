@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import { resetQuiz } from "../../redux/slices/quizSlice";
 import api from "../../api/api";
 import DataTable from "../Table/Table";
+import { formatDateTime } from "../../utils/formatDateTime";
 
 const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
   const dispatch = useDispatch();
@@ -177,7 +178,7 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
     { field: "group_name", headerName: "Group", width: 180 },
     { field: "position", headerName: "Position", width: 180 },
     { field: "location", headerName: "Location", width: 200 },
-    { field: "date_time", headerName: "Date & time", width: 200 },
+    { field: "date_time", headerName: "Date & time", width: 350 },
     { field: "percentage", headerName: "Score", width: 100 },
     { field: "status", headerName: "Status", width: 130, renderCell: (params) => getStatusBadge(params.value), },
     {
@@ -192,7 +193,7 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
     id: index + 1,
     date_time:
       item.user_started_at && item.user_ended_at
-        ? `${item.user_started_at} - ${item.user_ended_at}`
+        ? `${formatDateTime(item.user_started_at,true)} - ${formatDateTime(item.user_ended_at,true)}`
         : item.user_started_at
         ? `${item.user_started_at} -`
         : "—",
