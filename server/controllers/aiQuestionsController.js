@@ -258,7 +258,7 @@ exports.saveQuestions = async (req, res) => {
 const [quizResult] = await connection.execute(
   `INSERT INTO quizzes 
    (title, description, subject_id, company_id, time_limit, passing_score, max_attempts, difficulty_level, used_file_ids, is_active, created_by, created_at, updated_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())`,
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
   [
     title,
     description || "",
@@ -281,7 +281,7 @@ const sessionName = `${title} 1`; // first session named same as quiz with "-1"
 const [sessionResult] = await connection.execute(
   `INSERT INTO quiz_sessions 
    (quiz_id, session_name, time_limit, passing_score, max_attempts, max_questions, created_at, updated_at)
-   VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+   VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())`,
   [
     quizId,
     sessionName,
@@ -299,7 +299,7 @@ const sessionId = sessionResult.insertId;
       for (const q of questions) {
         const [result] = await connection.execute(
           `INSERT INTO questions (quiz_id, question_text, question_type, options, correct_answer, explanation, difficulty_level, is_active, created_by, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), NOW())
+VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, UTC_TIMESTAMP(), UTC_TIMESTAMP())
 
 `,
           [

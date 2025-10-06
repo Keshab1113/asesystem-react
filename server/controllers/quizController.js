@@ -3,6 +3,7 @@ const { Document, Packer, Paragraph, TextRun } = require("docx");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
+const moment = require("moment-timezone");
 
 exports.getAllQuizAttempts = async (req, res) => {
   try {
@@ -894,6 +895,119 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
 
 
 
+// exports.exportQuizReport = async (req, res) => {
+//   try {
+//     const {
+//       session_id,
+//       group = "all",
+//       team = "all",
+//       status = "all",
+//       location = "all",
+//       minScore,
+//     } = req.body;
+
+//     if (!session_id) {
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "quiz_id is required" });
+//     }
+
+//     let query = `
+//       SELECT 
+//         qa.id AS assignment_id,
+//         u.name AS user_name,
+//         u.id AS user_id,
+//         t.name AS team_name,
+//         g.name AS group_name,
+//         qa.time_limit,
+//         qa.score,
+//         qa.status,
+//         u.location,
+//         qa.user_started_at,
+//         qa.user_ended_at,
+//         qa.reassigned
+//       FROM quiz_assignments qa
+//       JOIN users u ON qa.user_id = u.id
+//       LEFT JOIN teams t ON qa.team_id = t.id
+//       LEFT JOIN groups g ON qa.group_id = g.id
+//       WHERE qa.quiz_session_id = ?
+//     `;
+
+//     const params = [session_id];
+
+//     if (group !== "all") {
+//       query += " AND g.name = ?";
+//       params.push(group);
+//     }
+
+//     if (team !== "all") {
+//       query += " AND t.name = ?";
+//       params.push(team);
+//     }
+
+//     if (status !== "all") {
+//       query += " AND qa.status = ?";
+//       params.push(status);
+//     }
+
+//     if (location !== "all") {
+//       query += " AND u.location = ?";
+//       params.push(location);
+//     }
+
+//     if (minScore) {
+//       query += " AND qa.score >= ?";
+//       params.push(parseFloat(minScore));
+//     }
+
+//     query += " ORDER BY u.name ASC";
+
+//     const [rows] = await db.query(query, params);
+
+//     if (!rows.length) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "No records found for this quiz" });
+//     }
+
+//     const workbook = new ExcelJS.Workbook();
+//     const worksheet = workbook.addWorksheet("Quiz Report");
+
+//     worksheet.columns = [
+//       { header: "User Name", key: "user_name", width: 25 },
+//       { header: "User ID", key: "user_id", width: 15 },
+//       { header: "Team Name", key: "team_name", width: 20 },
+//       { header: "Group Name", key: "group_name", width: 20 },
+//       { header: "Time Limit", key: "time_limit", width: 15 },
+//       { header: "Score", key: "score", width: 10 },
+//       { header: "Status", key: "status", width: 15 },
+//       { header: "Location", key: "location", width: 20 },
+//       { header: "User Started At", key: "user_started_at", width: 20 },
+//       { header: "User Ended At", key: "user_ended_at", width: 20 },
+//       { header: "Attempt No", key: "reassigned", width: 15 },
+//     ];
+
+//     rows.forEach((row) => worksheet.addRow(row));
+
+//     res.setHeader(
+//       "Content-Type",
+//       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+//     );
+//     res.setHeader(
+//       "Content-Disposition",
+//       `attachment; filename=Quiz_Report_${session_id}_${Date.now()}.xlsx`
+//     );
+
+//     await workbook.xlsx.write(res);
+//     res.end();
+//   } catch (error) {
+//     console.error("Error exporting quiz report:", error);
+//     res.status(500).json({ success: false, message: "Server error" });
+//   }
+// };
+
+// Update quiz is_active status
+
 exports.exportQuizReport = async (req, res) => {
   try {
     const {
@@ -904,6 +1018,8 @@ exports.exportQuizReport = async (req, res) => {
       location = "all",
       minScore,
     } = req.body;
+
+    console.log("📤 Export request received:", req.body);
 
     if (!session_id) {
       return res
@@ -924,7 +1040,8 @@ exports.exportQuizReport = async (req, res) => {
         u.location,
         qa.user_started_at,
         qa.user_ended_at,
-        qa.reassigned
+        qa.reassigned,
+        qa.user_timezone
       FROM quiz_assignments qa
       JOIN users u ON qa.user_id = u.id
       LEFT JOIN teams t ON qa.team_id = t.id
@@ -963,11 +1080,30 @@ exports.exportQuizReport = async (req, res) => {
 
     const [rows] = await db.query(query, params);
 
+    console.log(`✅ Rows fetched: ${rows.length}`);
+    if (rows[0]) {
+      console.log("🧾 Sample row:", rows[0]);
+    }
+
     if (!rows.length) {
       return res
         .status(404)
         .json({ success: false, message: "No records found for this quiz" });
     }
+
+    // Format start/end times with timezone
+    const formattedRows = rows.map((r) => {
+      const tz = r.user_timezone || "UTC";
+      return {
+        ...r,
+        user_started_at: r.user_started_at
+          ? moment.tz(r.user_started_at + "Z", tz).format("YYYY-MM-DD HH:mm")
+          : "-",
+        user_ended_at: r.user_ended_at
+          ? moment.tz(r.user_ended_at + "Z", tz).format("YYYY-MM-DD HH:mm")
+          : "-",
+      };
+    });
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Quiz Report");
@@ -981,12 +1117,14 @@ exports.exportQuizReport = async (req, res) => {
       { header: "Score", key: "score", width: 10 },
       { header: "Status", key: "status", width: 15 },
       { header: "Location", key: "location", width: 20 },
-      { header: "User Started At", key: "user_started_at", width: 20 },
-      { header: "User Ended At", key: "user_ended_at", width: 20 },
+      { header: "User Started At", key: "user_started_at", width: 22 },
+      { header: "User Ended At", key: "user_ended_at", width: 22 },
       { header: "Attempt No", key: "reassigned", width: 15 },
     ];
 
-    rows.forEach((row) => worksheet.addRow(row));
+    formattedRows.forEach((row) => worksheet.addRow(row));
+
+    console.log("📊 Excel sheet generated with", formattedRows.length, "rows");
 
     res.setHeader(
       "Content-Type",
@@ -999,13 +1137,14 @@ exports.exportQuizReport = async (req, res) => {
 
     await workbook.xlsx.write(res);
     res.end();
+
+    console.log("✅ Excel export completed successfully.");
   } catch (error) {
-    console.error("Error exporting quiz report:", error);
+    console.error("❌ Error exporting quiz report:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// Update quiz is_active status
 exports.updateQuizStatus = async (req, res) => {
   try {
     const { id } = req.params;

@@ -20,6 +20,7 @@ import {
   CalendarRange,
   UserSearch,
 } from "lucide-react";
+import { formatDateTime } from "../../utils/formatDateTime";
 import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
 import { BorderBeam } from "../ui/border-beam";

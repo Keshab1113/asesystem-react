@@ -13,6 +13,8 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { formatDateTime } from "../../utils/formatDateTime";
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -202,28 +204,23 @@ export default function QuizSessionsPage() {
                                   </Badge>
                                 </div>
                               </div>
-                              <p className="text-xs">
-                                Starting:{" "}
-                                {session.schedule_start_at
-                                  ? new Date(
-                                      session.schedule_start_at
-                                    ).toLocaleString()
-                                  : "Not Scheduled"}
-                              </p>
-                              <p className="text-xs">
-                                Ending:{" "}
-                                {session.schedule_end_at
-                                  ? new Date(
-                                      session.schedule_end_at
-                                    ).toLocaleString()
-                                  : "Not Scheduled"}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Created:{" "}
-                                {new Date(
-                                  session.created_at
-                                ).toLocaleDateString()}
-                              </p>
+                             <p className="text-xs">
+  Starting:{" "}
+  {session.schedule_start_at
+    ? formatDateTime(session.schedule_start_at, true)
+    : "Not Scheduled"}
+</p>
+<p className="text-xs">
+  Ending:{" "}
+  {session.schedule_end_at
+    ? formatDateTime(session.schedule_end_at, true)
+    : "Not Scheduled"}
+</p>
+
+                          <p className="text-xs text-muted-foreground">
+  Created: {formatDateTime(session.created_at, true)}
+</p>
+
                             </div>
 
                             {/* Actions */}
