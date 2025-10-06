@@ -536,14 +536,14 @@ export default function DashboardPage() {
       if (a.status !== "scheduled") return false;
 
       if (a.schedule_end_at) {
-        const endDateTime = formatDateTime(a.schedule_end_at);
+        const endDateTime = new Date(a.schedule_end_at);
         return now <= endDateTime;
       }
 
       return true;
     })
     .sort(
-      (a, b) => formatDateTime(b.schedule_start_at) - formatDateTime(a.schedule_start_at)
+      (a, b) => new Date(b.schedule_start_at) - new Date(a.schedule_start_at)
     );
 
   const completed = assignments
