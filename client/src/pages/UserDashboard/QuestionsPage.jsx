@@ -854,9 +854,9 @@ export default function QuestionsPage() {
       }
 
       // Lock scroll position
-      document.body.style.overflow = "hidden";
-      document.body.style.position = "fixed";
-      document.body.style.width = "100%";
+      // document.body.style.overflow = "hidden";
+      // document.body.style.position = "fixed";
+      // document.body.style.width = "100%";
     }
 
     setAcceptedInstructions(true);
@@ -931,9 +931,9 @@ export default function QuestionsPage() {
           "width=device-width, initial-scale=1.0"
         );
       }
-      document.body.style.overflow = "";
-      document.body.style.position = "";
-      document.body.style.width = "";
+      // document.body.style.overflow = "";
+      // document.body.style.position = "";
+      // document.body.style.width = "";
     }
 
     // Get latest answers from Redux
