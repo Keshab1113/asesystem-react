@@ -74,11 +74,11 @@ exports.exportAssessmentDetails = async (req, res) => {
     // ✅ Group by user
     const userMap = {};
     rows.forEach((r) => {
-      const key = `${r.user_employee_id}-${r.user_name}`;
+      const key = `${r.user_email}-${r.user_name}`;
       if (!userMap[key]) {
         userMap[key] = {
           user_name: r.user_name,
-          user_employee_id: r.user_employee_id,
+          user_email: r.user_email,
           assessments: {},
         };
       }
@@ -98,7 +98,7 @@ exports.exportAssessmentDetails = async (req, res) => {
     titleCell.alignment = { vertical: "middle", horizontal: "center" };
 
     // Header row
-    const headerRow = ["User Name", "KOC ID", ...quizTitles];
+    const headerRow = ["User Name", "Email", ...quizTitles];
     worksheet.addRow(headerRow);
 
     // ✅ Style header
@@ -124,7 +124,7 @@ exports.exportAssessmentDetails = async (req, res) => {
 
     // ✅ Data rows
     userAssessments.forEach((user) => {
-      const rowData = [user.user_name, user.user_employee_id];
+      const rowData = [user.user_name, user.user_email];
       quizTitles.forEach((title) => {
         const a = user.assessments[title];
         if (a) {
@@ -135,7 +135,7 @@ exports.exportAssessmentDetails = async (req, res) => {
                 day: "numeric",
               })
             : "-";
-          rowData.push(`${date}\n${a.status || "-"}`);
+          rowData.push(`${date} - ${a.status || "-"}`);
         } else {
           rowData.push("—");
         }
@@ -157,7 +157,7 @@ exports.exportAssessmentDetails = async (req, res) => {
     // ✅ Auto column widths
     worksheet.columns = [
       { width: 30 }, // User Name
-      { width: 15 }, // KOC ID
+      { width: 35 }, // Email
       ...quizTitles.map(() => ({ width: 25 })), // Each quiz column
     ];
 
@@ -235,7 +235,7 @@ exports.getQuizSummary = async (req, res) => {
     );
     const totalUsers = totalUsersResult[0].total;
     const [totalParticipantsResult] = await db.query(
-      `SELECT COUNT(*) AS total FROM quiz_assignments`
+      `SELECT COUNT(*) AS total FROM users where role = 'user'`
     );
     const totalParticipants = totalParticipantsResult[0].total;
 

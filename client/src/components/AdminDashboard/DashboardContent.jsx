@@ -41,6 +41,7 @@ export function DashboardContent() {
   const [quizzes, setQuizzes] = useState([]);
   const [overView, setOverView] = useState(null);
   const [filters, setFilters] = useState(defaultFilters);
+const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -50,7 +51,9 @@ export function DashboardContent() {
         setQuizzes(quizzesRes.data.data);
       } catch (error) {
         console.error("Error fetching reports:", error);
-      }
+       } finally {
+      setLoading(false); // stop loader
+    }
     };
 
     fetchReports();
@@ -126,6 +129,74 @@ export function DashboardContent() {
   console.log("quizzes: ", quizzes);
   console.log("overView: ", overView);
 
+  if (loading) {
+    return (
+      <section className=" ">
+        {/* Dashboard stats skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {[...Array(3)].map((_, index) => (
+            <Card key={index} className="animate-pulse">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="h-4 w-24 bg-gray-300 rounded"></div>
+                <div className="h-4 w-4 bg-gray-300 rounded"></div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-8 w-16 bg-gray-300 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Quiz list skeleton */}
+        <div className="space-y-4">
+          <div className="flex md:items-center md:flex-row flex-col justify-between gap-4 w-full">
+            <div className="h-8 w-48 bg-gray-300 rounded animate-pulse"></div>
+            <div className="h-10 w-40 bg-gray-300 rounded animate-pulse"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, index) => (
+              <Card key={index} className="animate-pulse overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center opacity-20 pointer-events-none z-0">
+                  <div className="h-16 w-16 bg-gray-300 rounded-full"></div>
+                </div>
+
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="h-6 w-32 bg-gray-300 rounded"></div>
+                    </div>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-4 relative h-full">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex items-center">
+                      <div className="h-4 w-4 bg-gray-300 rounded mr-2"></div>
+                      <div className="h-4 w-24 bg-gray-300 rounded"></div>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="h-4 w-4 bg-gray-300 rounded mr-2"></div>
+                      <div className="h-4 w-20 bg-gray-300 rounded"></div>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="h-4 w-4 bg-gray-300 rounded mr-2"></div>
+                      <div className="h-4 w-20 bg-gray-300 rounded"></div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="h-4 w-4 bg-gray-300 rounded mr-2"></div>
+                    <div className="h-4 w-32 bg-gray-300 rounded"></div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className=" ">
       {/* Dashboard stats */}
@@ -161,7 +232,7 @@ export function DashboardContent() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Participants
+              Total Users
             </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>

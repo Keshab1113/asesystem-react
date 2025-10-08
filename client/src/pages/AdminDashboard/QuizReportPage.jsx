@@ -24,6 +24,7 @@ export function QuizReportPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [reports, setReports] = useState([]);
+    const [loading, setLoading] = useState(true); 
   const filteredReports = reports.filter((report) => {
     const matchesSearch = report.quizName
       .toLowerCase()
@@ -78,6 +79,8 @@ export function QuizReportPage() {
         setReports(reportsWithSummary);
       } catch (error) {
         console.error("Error fetching reports:", error);
+      } finally {
+        setLoading(false); // ✅ stop skeleton once loaded
       }
     };
 
@@ -121,63 +124,98 @@ export function QuizReportPage() {
       </div>
 
       {/* Reports Grid */}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredReports.map((report) => (
-          <Card key={report.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex flex-col">
-                  {report.sessionName}
-                  <span className=" text-xs">{report.quizName}</span>
-                </CardTitle>
-                <Badge
-                  variant={
-                    report.status === "Completed" ? "default" : "secondary"
-                  }
-                >
-                  {report.status}
-                </Badge>
+  {loading ? (
+    // ✅ Skeleton Loading State
+    Array.from({ length: 4 }).map((_, i) => (
+      <Card key={i} className="animate-pulse">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="space-y-2 w-full">
+              <div className="h-4 bg-muted rounded w-2/3"></div>
+              <div className="h-3 bg-muted rounded w-1/3"></div>
+            </div>
+            <div className="h-5 w-16 bg-muted rounded"></div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {Array.from({ length: 4 }).map((_, j) => (
+              <div key={j}>
+                <div className="h-3 bg-muted rounded w-3/4 mb-2"></div>
+                <div className="h-4 bg-muted rounded w-1/2"></div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-muted-foreground">
-                    Total Participants:
-                  </span>
-                  <div className="font-semibold">{report.participants}</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Completed:</span>
-                  <div className="font-semibold">{report.completedCount}</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Average Score:</span>
-                  <div className="font-semibold">{report.averageScore}%</div>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Assigned Date:</span>
-                  <div className="font-semibold flex items-center">
-                    <Calendar className="h-3 w-3 mr-1" />
-                     {formatDateTime(report.date, true)} 
-                  </div>
-                </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <div className="h-8 w-24 bg-muted rounded"></div>
+          </div>
+        </CardContent>
+      </Card>
+    ))
+  ) : filteredReports.length > 0 ? (
+    filteredReports.map((report) => (
+      <Card key={report.id}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg flex flex-col">
+              {report.sessionName}
+              <span className="text-xs">{report.quizName}</span>
+            </CardTitle>
+            <Badge
+              variant={
+                report.status === "Completed" ? "default" : "secondary"
+              }
+            >
+              {report.status}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-muted-foreground">
+                Total Participants:
+              </span>
+              <div className="font-semibold">{report.participants}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Completed:</span>
+              <div className="font-semibold">{report.completedCount}</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Average Score:</span>
+              <div className="font-semibold">{report.averageScore}%</div>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Assigned Date:</span>
+              <div className="font-semibold flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                {formatDateTime(report.date, true)}
               </div>
-              <div className="flex gap-2 pt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleViewDetails(report.id)}
-                >
-                  <Eye className="h-3 w-3 mr-1" />
-                  View Details
-                </Button>
-              
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleViewDetails(report.id)}
+            >
+              <Eye className="h-3 w-3 mr-1" />
+              View Details
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    ))
+  ) : (
+    <p className="text-center text-muted-foreground col-span-2">
+      No reports found.
+    </p>
+  )}
+</div>
+
     </div>
   );
 }

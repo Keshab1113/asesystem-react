@@ -399,6 +399,7 @@ const register = async (req, res) => {
       phone,
       team_id,
       group_id,
+      timezone,
     } = req.body;
 
     if (!password) {
@@ -414,8 +415,8 @@ const register = async (req, res) => {
 
     await pool.execute(
       `INSERT INTO users 
-        (name, position, employee_id, email,phone, controlling_team, location, \`group\`, otp, role, is_active, password_hash, group_id, team_id) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', FALSE, ?, ?, ?)`,
+  (name, position, employee_id, email,phone, controlling_team, location, \`group\`, otp, role, is_active, password_hash, group_id, team_id, timezone) 
+ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'user', FALSE, ?, ?, ?, ?)`,
       [
         fullName,
         position,
@@ -429,6 +430,7 @@ const register = async (req, res) => {
         passwordHash,
         group_id,
         team_id,
+        timezone || null,
       ]
     );
 
@@ -548,7 +550,7 @@ const resendOtp = async (req, res) => {
 // Login
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, timezone } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -594,8 +596,8 @@ const login = async (req, res) => {
 
     // ✅ Save sessionId in DB (invalidate old sessions)
     await pool.execute(
-      "UPDATE users SET last_login = NOW(), session_token = ? WHERE id = ?",
-      [sessionId, user.id]
+      "UPDATE users SET last_login = NOW(), session_token = ?, timezone = ? WHERE id = ?",
+      [sessionId, timezone || null, user.id]
     );
 
     const { password_hash, otp, session_token, ...userSafe } = user;

@@ -37,11 +37,11 @@ const AssessmentDetails = () => {
   const userAssessments = useMemo(() => {
     const grouped = {};
     assessments.forEach((assessment) => {
-      const key = `${assessment.user_employee_id}-${assessment.user_name}`;
+      const key = `${assessment.user_email}-${assessment.user_name}`;
       if (!grouped[key]) {
         grouped[key] = {
           user_name: assessment.user_name,
-          user_employee_id: assessment.user_employee_id,
+          user_email: assessment.user_email,
           assessments: {},
         };
       }
@@ -117,7 +117,7 @@ const AssessmentDetails = () => {
   const header = [
     { field: "id", headerName: "S. No.", width: 70 },
     { field: "userName", headerName: "User Name", width: 200 },
-    { field: "koc_ID", headerName: "KOC ID", width: 130 },
+    { field: "Email", headerName: "Email", width: 130 },
   ];
   const quizColumns = quizTitles.map((title, index) => ({
     field: `quiz_${index}`,
@@ -132,7 +132,7 @@ const AssessmentDetails = () => {
     const baseRow = {
       id: index + 1,
       userName: user.user_name,
-      koc_ID: user.user_employee_id,
+      Email: user.user_email,
     };
 
     quizTitles.forEach((quizTitle, i) => {

@@ -58,13 +58,13 @@ export default function LoginPage() {
 
     try {
       dispatch(loginStart());
-
+const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const res = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/login`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, timezone }),
         }
       );
 

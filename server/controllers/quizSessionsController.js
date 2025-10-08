@@ -1,5 +1,6 @@
 const db = require("../config/database");
 const nodemailer = require("nodemailer");
+const moment = require("moment-timezone");
 
 exports.getQuizSessions = async (req, res) => {
   const { quizId } = req.query; // optional query param
@@ -174,12 +175,13 @@ exports.assignSession = async (req, res) => {
     const ended_at = schedule_end_at;
 
     // 2. Fetch users’ team_id & group_id
-    const [userRows] = await db.query(
-      `SELECT id AS user_id, team_id, group_id, email, location, name
-       FROM users 
-       WHERE id IN (?)`,
-      [user_ids]
-    );
+   const [userRows] = await db.query(
+  `SELECT id AS user_id, team_id, group_id, email, location, name, timezone
+   FROM users 
+   WHERE id IN (?)`,
+  [user_ids]
+);
+
 
     if (userRows.length === 0) {
       return res
@@ -294,12 +296,22 @@ exports.assignSession = async (req, res) => {
 
       for (const u of userRows) {
         if (emailsToNotify.includes(u.email)) {
+           const userTz = u.timezone || 'UTC';
+       const startTime = moment.utc(started_at)
+  .tz(userTz)
+  .format('DD MMM YYYY, hh:mm A');
+const endTime = moment.utc(ended_at)
+  .tz(userTz)
+  .format('DD MMM YYYY, hh:mm A');
+
+
           const text = `Hello ${u.name || ""},
 
 You have been assigned for ${title || "a new assessment session "}.
 
-📅 Start: ${started_at}  
-📅 End: ${ended_at}  
+ 📅 Start: ${startTime}  
+ 📅 End: ${endTime} 
+
 
 Please log in to the system to participate.
 
@@ -319,10 +331,10 @@ asesystem Team`;
 
       <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
         <p style="margin: 5px 0; font-size: 15px; color: #333;">
-          <b>📅 Start:</b> ${started_at}
+         <b>📅 Start:</b> ${startTime}
         </p>
         <p style="margin: 5px 0; font-size: 15px; color: #333;">
-          <b>📅 End:</b> ${ended_at}
+         <b>📅 End:</b> ${endTime}
         </p>
       </div>
 
@@ -360,6 +372,14 @@ asesystem Team`;
     for (const u of userRows) {
       if (emailsToNotify.includes(u.email)) {
         const subject = `Reminder: Assessment starting soon`;
+                const userTz = u.timezone || 'UTC';
+        const startTime = moment.utc(started_at)
+  .tz(userTz)
+  .format('DD MMM YYYY, hh:mm A');
+const endTime = moment.utc(ended_at)
+  .tz(userTz)
+  .format('DD MMM YYYY, hh:mm A');
+
         // 🕒 Schedule reminder 15 minutes before start
         const reminderTime = new Date(
           new Date(started_at).getTime() - 15 * 60 * 1000
@@ -383,8 +403,13 @@ asesystem Team`;
           </p>
 
           <div style="background: #f9fafb; padding: 15px; border-radius: 6px; margin: 20px 0;">
-            <p><b>📅 Start:</b> ${started_at}</p>
-            <p><b>📅 End:</b> ${ended_at}</p>
+           <p> <b>📅 Start:</b> ${startTime}</p>
+<p><b>📅 End:</b> ${endTime}</p>
+
+
+ 
+
+
           </div>
 
           <div style="text-align: center; margin: 30px 0;">

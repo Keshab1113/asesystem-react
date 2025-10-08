@@ -141,12 +141,13 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const res = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}/api/auth/register`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(formData),
+          body: JSON.stringify({ ...formData, timezone }),
         }
       );
 

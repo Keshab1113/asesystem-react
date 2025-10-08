@@ -28,6 +28,7 @@ import {
   BookOpen,
   MoreVertical,
   Power,
+  
 } from "lucide-react";
 import { formatDateTime } from "../../utils/formatDateTime";
 import { useNavigate } from "react-router-dom";
@@ -336,7 +337,7 @@ export function SubjectMasterPage() {
                           variant="default"
                           onClick={() => handleCreateSession(subject.id)}
                         >
-                          ➕ Create Session
+                            <Plus className="h-4 w-4" /> Create Session
                         </Button>
 
                         <Button
@@ -380,15 +381,10 @@ export function SubjectMasterPage() {
                             >
                               <Eye className="h-4 w-4 mr-2" /> View
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleEditQuiz(subject)}
+                           <DropdownMenuItem
+                              onClick={() => handleCreateSession(subject.id)}
                             >
-                              <Edit className="h-4 w-4 mr-2" /> Schedule
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleAssignQuiz(subject)}
-                            >
-                              <Users className="h-4 w-4 mr-2" /> Assign
+                                    <Plus className="h-4 w-4 mr-2" /> Create Session
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() =>

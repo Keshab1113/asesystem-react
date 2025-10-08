@@ -113,21 +113,20 @@ export default function QuestionsPage() {
     window.addEventListener("resize", setViewportHeight);
     window.addEventListener("orientationchange", setViewportHeight);
 
-    // Prevent body scroll on mobile only
-    // document.body.style.overscrollBehavior = "none";
-    // document.body.style.overflow = "hidden";
-    // document.body.style.position = "fixed";
-    // document.body.style.width = "100%";
-    // document.body.style.height = "100%";
+     // ADD THIS SECTION HERE ⬇️
+  if (Device.isIOS) {
+    document.body.style.overscrollBehavior = "none";
+    document.documentElement.style.overscrollBehavior = "none";
+  }
+ 
 
     return () => {
       window.removeEventListener("resize", setViewportHeight);
       window.removeEventListener("orientationchange", setViewportHeight);
-      // document.body.style.overscrollBehavior = "";
-      // document.body.style.overflow = "";
-      // document.body.style.position = "";
-      // document.body.style.width = "";
-      // document.body.style.height = "";
+       if (Device.isIOS) {
+      document.body.style.overscrollBehavior = "";
+      document.documentElement.style.overscrollBehavior = "";
+    }
     };
   }, []);
   // ============================================================================
@@ -323,18 +322,31 @@ export default function QuestionsPage() {
       };
 
       // Prevent pull-to-refresh
-      let startY = 0;
-      const onTouchStart = (e) => {
-        startY = e.touches[0].clientY;
-      };
-      const onTouchMove = (e) => {
-        if (window.scrollY <= 0 && e.touches[0].clientY > startY) {
-          e.preventDefault();
-        }
-      };
+      // Prevent pull-to-refresh
+let startY = 0;
+const onTouchStart = (e) => {
+  startY = e.touches[0].clientY;
+};
+const onTouchMove = (e) => {
+  const currentY = e.touches[0].clientY;
+  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+  
+  // Prevent pull down when at top
+  if (scrollTop <= 0 && currentY > startY) {
+    e.preventDefault();
+  }
+  
+  // Prevent pull up when at bottom
+  const scrollHeight = document.documentElement.scrollHeight;
+  const clientHeight = document.documentElement.clientHeight;
+  if (scrollTop + clientHeight >= scrollHeight && currentY < startY) {
+    e.preventDefault();
+  }
+};
 
-      document.addEventListener("touchstart", onTouchStart, { passive: true });
-      document.addEventListener("touchmove", onTouchMove, { passive: false });
+// Change passive to false for touchstart as well
+document.addEventListener("touchstart", onTouchStart, { passive: false });
+document.addEventListener("touchmove", onTouchMove, { passive: false });
       window.addEventListener("beforeunload", handleBeforeUnload);
       window.addEventListener("popstate", handlePopState);
       window.addEventListener("pageshow", handlePageShow);
@@ -364,51 +376,39 @@ export default function QuestionsPage() {
       let backPressCount = 0;
       let backPressTimer = null;
 
-      const handlePopState = (e) => {
-        e.preventDefault();
-        window.history.pushState(null, "", window.location.href);
+    const handlePopState = (e) => {
+  e.preventDefault();
+  window.history.pushState(null, "", window.location.href);
 
-        backPressCount++;
+  backPressCount++;
 
-        if (backPressCount === 1) {
-          // FIRST BACK PRESS: Re-enter fullscreen
-          saveQuizState();
+  if (backPressCount === 1) {
+    // FIRST BACK PRESS: Save state and show warning
+    saveQuizState();
 
-          // Force fullscreen again
-          const el = document.documentElement;
-          if (el.requestFullscreen) {
-            el.requestFullscreen().catch((err) =>
-              console.warn("Fullscreen failed:", err)
-            );
-          } else if (el.webkitRequestFullscreen) {
-            el.webkitRequestFullscreen();
-          } else if (el.mozRequestFullScreen) {
-            el.mozRequestFullScreen();
-          }
+    // Show warning toast (same as iOS)
+    toast({
+      title: "⚠️ Warning #1",
+      description:
+        "Press back again to terminate and submit the assessment.",
+      variant: "warning",
+    });
 
-          // Show warning
-          toast({
-            title: "Warning #1",
-            description:
-              "Press back again to terminate and submit the assessment.",
-            variant: "warning",
-          });
-
-          // Reset counter after 3 seconds
-          if (backPressTimer) clearTimeout(backPressTimer);
-          backPressTimer = setTimeout(() => {
-            backPressCount = 0;
-          }, 3000);
-        } else if (backPressCount >= 2) {
-          // SECOND BACK PRESS: Terminate
-          if (backPressTimer) clearTimeout(backPressTimer);
-          handleSubmit(
-            true,
-            "Back button pressed twice. Assessment terminated.",
-            "terminated"
-          );
-        }
-      };
+    // Reset counter after 3 seconds
+    if (backPressTimer) clearTimeout(backPressTimer);
+    backPressTimer = setTimeout(() => {
+      backPressCount = 0;
+    }, 3000);
+  } else if (backPressCount >= 2) {
+    // SECOND BACK PRESS: Terminate
+    if (backPressTimer) clearTimeout(backPressTimer);
+    handleSubmit(
+      true,
+      "Back button pressed twice. Assessment terminated.",
+      "terminated"
+    );
+  }
+};
 
       const handlePageShow = (e) => {
         if (e.persisted) {
