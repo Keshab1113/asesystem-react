@@ -19,7 +19,10 @@ import {
   Radio,
   CalendarRange,
   UserSearch,
+  Download,
 } from "lucide-react";
+ 
+
 import { formatDateTime } from "../../utils/formatDateTime";
 import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
 import { useDebouncedValue } from "../../hooks/use-debounced-value";
@@ -125,6 +128,37 @@ const [loading, setLoading] = useState(true);
 
     return filtered;
   }, [quizzes, debouncedSearch, filters]);
+
+ const handleDownloadReport = async (quizId) => {
+  console.log("Downloading report for quiz ID:", quizId);
+
+  try {
+    const response = await api.post(
+      "/api/assessment/export-quiz-users",
+      { quiz_id: quizId },
+      { responseType: "blob" } // important for Excel file
+    );
+
+    // Axios already gives you the blob data in response.data
+    const blob = new Blob([response.data]);
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `Quiz_Report_${quizId}_${Date.now()}.xlsx`
+    );
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("❌ Error downloading report:", error);
+    alert("Failed to download report. Please try again.");
+  }
+};
+
+
 
   console.log("quizzes: ", quizzes);
   console.log("overView: ", overView);
@@ -378,6 +412,16 @@ const [loading, setLoading] = useState(true);
                     <CalendarDays className="w-4 h-4 mr-2" />
                     Created: {quiz.created_at}
                   </div>
+                  {/* Download Button */}
+    <div className="mt-4 flex justify-end">
+      <button
+        onClick={() => handleDownloadReport(quiz.quiz_id || quiz.id)}
+        className="px-3 py-1.5 cursor-pointer flex gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-all"
+      >
+          <Download className="w-4 h-4" />
+        Download Report
+      </button>
+    </div>
                 </CardContent>
 
                 <BorderBeam
