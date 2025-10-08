@@ -21,7 +21,6 @@ import {
   UserSearch,
   Download,
 } from "lucide-react";
- 
 
 import { formatDateTime } from "../../utils/formatDateTime";
 import { AdvancedSearchFilters } from "./AdvancedSearchFilters";
@@ -44,7 +43,7 @@ export function DashboardContent() {
   const [quizzes, setQuizzes] = useState([]);
   const [overView, setOverView] = useState(null);
   const [filters, setFilters] = useState(defaultFilters);
-const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchReports = async () => {
@@ -54,9 +53,9 @@ const [loading, setLoading] = useState(true);
         setQuizzes(quizzesRes.data.data);
       } catch (error) {
         console.error("Error fetching reports:", error);
-       } finally {
-      setLoading(false); // stop loader
-    }
+      } finally {
+        setLoading(false); // stop loader
+      }
     };
 
     fetchReports();
@@ -129,36 +128,39 @@ const [loading, setLoading] = useState(true);
     return filtered;
   }, [quizzes, debouncedSearch, filters]);
 
- const handleDownloadReport = async (quizId) => {
-  console.log("Downloading report for quiz ID:", quizId);
+  const handleDownloadReport = async (quizId) => {
+    console.log("Downloading report for quiz ID:", quizId);
 
-  try {
-    const response = await api.post(
-      "/api/assessment/export-quiz-users",
-      { quiz_id: quizId },
-      { responseType: "blob" } // important for Excel file
-    );
+    try {
+      // ✅ 1. Get quiz name from quizzes state
+      const quiz = quizzes.find((q) => q.quiz_id === quizId);
+      const quizName = quiz?.title || "Untitled Quiz";
 
-    // Axios already gives you the blob data in response.data
-    const blob = new Blob([response.data]);
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute(
-      "download",
-      `Quiz_Report_${quizId}_${Date.now()}.xlsx`
-    );
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error("❌ Error downloading report:", error);
-    alert("Failed to download report. Please try again.");
-  }
-};
+      // ✅ 2. Download the report
+      const response = await api.post(
+        "/api/assessment/export-quiz-users",
+        { quiz_id: quizId },
+        { responseType: "blob" } // important for Excel file
+      );
 
-
+      // Axios already gives you the blob data in response.data
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      // Replace special characters to make a safe filename
+      // ✅ 3. Make a safe filename
+      const safeQuizName = quizName.replace(/[^a-zA-Z0-9 ]/g, "");
+      link.setAttribute("download", `Assessment Report - ${safeQuizName}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("❌ Error downloading report:", error);
+      alert("Failed to download report. Please try again.");
+    }
+  };
 
   console.log("quizzes: ", quizzes);
   console.log("overView: ", overView);
@@ -305,7 +307,7 @@ const [loading, setLoading] = useState(true);
             } catch (err) {
               console.error("Invalid session data:", err);
             }
-
+console.log("sessions: ", sessions);  
             return (
               <Card
                 key={quiz.quiz_id || quiz.id || Math.random()}
@@ -405,14 +407,18 @@ const [loading, setLoading] = useState(true);
                       <span className="text-sm">
                         {Number(quiz.total_attended) || 0} Attended
                       </span>
+                      
                     </div>
+                    
                   </div>
 
-                  <div className="text-xs text-muted-foreground flex items-center">
+                  <div className="text-xs text-muted-foreground flex justify-between items-center">
+                   <span className="flex items-center">
+
                     <CalendarDays className="w-4 h-4 mr-2" />
                     Created: {quiz.created_at}
-                  </div>
-                  {/* Download Button */}
+                   </span >
+                        {/* Download Button */}
     <div className="mt-4 flex justify-end">
       <button
         onClick={() => handleDownloadReport(quiz.quiz_id || quiz.id)}
@@ -422,6 +428,8 @@ const [loading, setLoading] = useState(true);
         Download Report
       </button>
     </div>
+                  </div>
+              
                 </CardContent>
 
                 <BorderBeam

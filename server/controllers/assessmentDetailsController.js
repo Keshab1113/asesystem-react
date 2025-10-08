@@ -355,7 +355,7 @@ exports.exportQuizUserData = async (req, res) => {
       { header: "User Started At", key: "user_started_at", width: 22 },
       { header: "User Ended At", key: "user_ended_at", width: 22 },
       { header: "Quiz Name", key: "quiz_name", width: 30 },
-      { header: "Attempt No", key: "attempt_no", width: 15 },
+      { header: "Reassigned", key: "attempt_no", width: 15 },
       { header: "Session Name", key: "session_name", width: 25 },
     ];
 
