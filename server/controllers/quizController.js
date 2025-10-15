@@ -1311,41 +1311,40 @@ exports.getNormalUsersWithAssignments = async (req, res) => {
 
   try {
     const [rows] = await db.execute(
-      `
-      SELECT 
-        u.id, 
-        u.name,
-        u.location,
-        u.employee_id,
-        u.team_id,
-        u.group_id,
-        u.controlling_team,
-        u.\`group\`,
-        u.email,
-        u.role,
-        u.phone,
-        u.position,
-        u.bio,
-        u.is_active,
-        u.profile_pic_url,
-        u.created_at,
-        u.updated_at,
+  `
+  SELECT DISTINCT
+    u.id, 
+    u.name,
+    u.location,
+    u.employee_id,
+    u.team_id,
+    u.group_id,
+    u.controlling_team,
+    u.\`group\`,
+    u.email,
+    u.role,
+    u.phone,
+    u.position,
+    u.bio,
+    u.is_active,
+    u.profile_pic_url,
+    u.created_at,
+    u.updated_at,
+    qa.user_started_at,
+    qa.user_ended_at,
+    qa.reassigned,
+    qa.score,
+    qa.status
+  FROM users u
+  LEFT JOIN quiz_assignments qa
+    ON qa.user_id = u.id
+    AND qa.quiz_id = ?
+  WHERE u.role = 'user'
+  ORDER BY u.created_at DESC
+  `,
+  [quizId]
+);
 
-        qa.user_started_at,
-        qa.user_ended_at,
-        qa.reassigned,
-        qa.score,
-        qa.status
-      FROM users u
-      LEFT JOIN quiz_assignments qa
-        ON qa.user_id = u.id
-        AND qa.quiz_id = ?
-        
-      WHERE u.role = 'user'
-      ORDER BY u.created_at DESC
-      `,
-      [quizId]
-    );
 
     res.json({ success: true, data: rows });
   } catch (error) {
