@@ -1340,11 +1340,11 @@ exports.getNormalUsersWithAssignments = async (req, res) => {
       LEFT JOIN quiz_assignments qa
         ON qa.user_id = u.id
         AND qa.quiz_id = ?
-        AND qa.quiz_session_id = ?
+        
       WHERE u.role = 'user'
       ORDER BY u.created_at DESC
       `,
-      [quizId, sessionId]
+      [quizId]
     );
 
     res.json({ success: true, data: rows });
