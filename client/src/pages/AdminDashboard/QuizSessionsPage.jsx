@@ -4,14 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Pencil,
-  Eye,
+  Clock,
   Edit,
   Users,
   Trash2,
   MoreVertical,
-  Power,
+  Calendar,
   ChevronDown,
   ChevronRight,
+  Award, FileText, Target, PlayCircle
 } from "lucide-react";
 import { formatDateTime } from "../../utils/formatDateTime";
 
@@ -186,105 +187,140 @@ export default function QuizSessionsPage() {
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex flex-col gap-2 mb-2">
-                                <h3 className="font-semibold">
-                                  {session.session_name}
-                                </h3>
-                                <div className="flex flex-wrap gap-2">
-                                  <Badge variant="outline">
-                                    Max Attempts: {session.max_attempts}
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    Time Limit: {session.time_limit} mins
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    Max Questions: {session.max_questions}
-                                  </Badge>
-                                  <Badge variant="outline">
-                                    Passing Score: {session.passing_score}
-                                  </Badge>
+                                <div className=" flex justify-between mb-2">
+                                  <h3 className="font-semibold">
+                                    {session.session_name}
+                                  </h3>
+                                  <div className="flex gap-2">
+                                    <div className="hidden md:flex gap-2">
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleEditSession(session)}
+                                      >
+                                        <Edit className="h-3 w-3" /> Edit
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleAssignClick(session)}
+                                      >
+                                        <Users className="h-3 w-3" /> Assign
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="destructive"
+                                        onClick={() =>
+                                          handleDeleteSession(session.sessionId)
+                                        }
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+
+                                    {/* Mobile Dropdown */}
+                                    <div className="md:hidden">
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button size="sm" variant="outline">
+                                            <MoreVertical className="h-5 w-5" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                          align="end"
+                                          className="w-40"
+                                        >
+                                          <DropdownMenuItem
+                                            onClick={() => handleEditSession(session)}
+                                          >
+                                            <Edit className="h-4 w-4 mr-2" /> Edit
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            onClick={() => handleAssignClick(session)}
+                                          >
+                                            <Users className="h-4 w-4 mr-2" /> Assign
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            className="text-red-600"
+                                            onClick={() =>
+                                              handleDeleteSession(session.sessionId)
+                                            }
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+                                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Target className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                                      <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Attempts</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{session.max_attempts}</p>
+                                  </div>
+
+                                  <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Clock className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                                      <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Duration</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-purple-900 dark:text-purple-100">{session.time_limit}m</p>
+                                  </div>
+
+                                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <FileText className="h-4 w-4 text-green-600 dark:text-green-400" />
+                                      <span className="text-xs font-medium text-green-700 dark:text-green-300">Questions</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-green-900 dark:text-green-100">{session.max_questions}</p>
+                                  </div>
+
+                                  <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <Award className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                      <span className="text-xs font-medium text-orange-700 dark:text-orange-300">Pass Score</span>
+                                    </div>
+                                    <p className="text-lg font-bold text-orange-900 dark:text-orange-100">{session.passing_score}%</p>
+                                  </div>
                                 </div>
                               </div>
-                             <p className="text-xs">
-  Starting:{" "}
-  {session.schedule_start_at
-    ? formatDateTime(session.schedule_start_at, true)
-    : "Not Scheduled"}
-</p>
-<p className="text-xs">
-  Ending:{" "}
-  {session.schedule_end_at
-    ? formatDateTime(session.schedule_end_at, true)
-    : "Not Scheduled"}
-</p>
-
-                          <p className="text-xs text-muted-foreground">
-  Created: {formatDateTime(session.created_at, true)}
-</p>
-
+                              <div className="space-y-2 w-full bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-start gap-2 text-sm">
+                                  <Calendar className="h-4 w-4 text-green-600 dark:text-green-400 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">Start: </span>
+                                    <span className="text-slate-600 dark:text-slate-400">
+                                      {session.schedule_start_at
+                                        ? formatDateTime(session.schedule_start_at, true)
+                                        : 'Not Scheduled'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-start gap-2 text-sm">
+                                  <Calendar className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                                  <div>
+                                    <span className="font-medium text-slate-700 dark:text-slate-300">End: </span>
+                                    <span className="text-slate-600 dark:text-slate-400">
+                                      {session.schedule_end_at
+                                        ? formatDateTime(session.schedule_end_at, true)
+                                        : 'Not Scheduled'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-start gap-2 text-xs pt-2 border-t border-slate-200 dark:border-slate-700">
+                                  <Clock className="h-3 w-3 text-slate-500 dark:text-slate-500 mt-0.5 flex-shrink-0" />
+                                  <span className="text-slate-500 dark:text-slate-500">
+                                    Created: {formatDateTime(session.created_at, true)}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
 
                             {/* Actions */}
-                            <div className="flex gap-2">
-                              <div className="hidden md:flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditSession(session)}
-                                >
-                                  <Edit className="h-3 w-3" /> Edit
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleAssignClick(session)}
-                                >
-                                  <Users className="h-3 w-3" /> Assign
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() =>
-                                    handleDeleteSession(session.sessionId)
-                                  }
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
 
-                              {/* Mobile Dropdown */}
-                              <div className="md:hidden">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button size="sm" variant="outline">
-                                      <MoreVertical className="h-5 w-5" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent
-                                    align="end"
-                                    className="w-40"
-                                  >
-                                    <DropdownMenuItem
-                                      onClick={() => handleEditSession(session)}
-                                    >
-                                      <Edit className="h-4 w-4 mr-2" /> Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      onClick={() => handleAssignClick(session)}
-                                    >
-                                      <Users className="h-4 w-4 mr-2" /> Assign
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className="text-red-600"
-                                      onClick={() =>
-                                        handleDeleteSession(session.sessionId)
-                                      }
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </div>
                           </div>
                         </div>
                       ))}

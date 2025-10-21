@@ -617,8 +617,8 @@ exports.updateQuizQuestionsBulk = async (req, res) => {
         options: Array.isArray(q.options)
           ? q.options
           : q.options
-          ? JSON.parse(q.options)
-          : [],
+            ? JSON.parse(q.options)
+            : [],
         correct_answer: q.correct_answer,
         explanation: q.explanation,
         difficulty_level: q.difficulty_level,
@@ -866,8 +866,8 @@ exports.rescheduleAssignedQuiz = async (req, res) => {
       `,
       [id, quiz_id, user_id]
     );
- // Delete certificate(s) linked to this assignment & session
-        // Delete certificate(s) linked to this assignment & session
+    // Delete certificate(s) linked to this assignment & session
+    // Delete certificate(s) linked to this assignment & session
     await db.query(
       `
       DELETE FROM certificates
@@ -1273,12 +1273,12 @@ exports.downloadQuizQuestions = async (req, res) => {
                   }),
                   q.explanation
                     ? new Paragraph({
-                        children: [
-                          new TextRun({
-                            text: `Explanation: ${q.explanation}`,
-                          }),
-                        ],
-                      })
+                      children: [
+                        new TextRun({
+                          text: `Explanation: ${q.explanation}`,
+                        }),
+                      ],
+                    })
                     : new Paragraph(""),
                   new Paragraph(""),
                 ];
@@ -1311,8 +1311,8 @@ exports.getNormalUsersWithAssignments = async (req, res) => {
 
   try {
     const [rows] = await db.execute(
-  `
-  SELECT DISTINCT
+      `
+  SELECT
     u.id, 
     u.name,
     u.location,
@@ -1337,13 +1337,19 @@ exports.getNormalUsersWithAssignments = async (req, res) => {
     qa.status
   FROM users u
   LEFT JOIN quiz_assignments qa
-    ON qa.user_id = u.id
-    AND qa.quiz_id = ?
+    ON qa.id = (
+      SELECT id FROM quiz_assignments
+      WHERE quiz_assignments.user_id = u.id 
+        AND quiz_assignments.quiz_id = ?
+      ORDER BY quiz_assignments.user_ended_at DESC
+      LIMIT 1
+    )
   WHERE u.role = 'user'
   ORDER BY u.created_at DESC
   `,
-  [quizId]
-);
+      [quizId]
+    );
+
 
 
     res.json({ success: true, data: rows });

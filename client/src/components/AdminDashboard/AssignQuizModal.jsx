@@ -438,20 +438,20 @@ const AssignQuizModal = ({
                         <div className="flex-shrink-0">
                           <input
                             type="checkbox"
-                            // checked={
-                            //   u.score || u.status
-                            //     ? true
-                            //     : selectedUsers.includes(u.id)
-                            // }
-                            checked={selectedUsers.includes(u.id)}
-                            // onChange={() => {
-                            //   if (!(u.score || u.status)) {
-                            //     toggleUser(u.id);
-                            //   }
-                            // }}
+                            checked={
+                              u.score || (u.status && u.status != "scheduled")
+                                ? true
+                                : selectedUsers.includes(u.id)
+                            }
+                            // checked={selectedUsers.includes(u.id)}
                             onChange={() => {
-                              toggleUser(u.id);
+                              if (!(u.score || (u.status && u.status != "scheduled"))) {
+                                toggleUser(u.id);
+                              }
                             }}
+                            // onChange={() => {
+                            //   toggleUser(u.id);
+                            // }}
                             // disabled={u.score || u.status}
                             className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                           />
