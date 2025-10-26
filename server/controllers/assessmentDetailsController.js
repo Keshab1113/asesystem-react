@@ -3,36 +3,107 @@ const { Document, Packer, Paragraph, TextRun } = require("docx");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
- 
-const moment = require("moment-timezone");
- 
 
+const moment = require("moment-timezone");
+
+// exports.getAllAssessmentDetails = async (req, res) => {
+//   try {
+//     const query = `
+//       SELECT
+//         qa.*,
+//         q.id AS quiz_id,
+//         q.title AS quiz_title,
+//         q.description AS quiz_description,
+//         q.passing_score AS quiz_passing_score,
+
+//         u.id AS user_id,
+//         u.name AS user_name,
+//         u.email AS user_email,
+//         u.employee_id AS user_employee_id
+
+//       FROM quiz_assignments qa
+//       LEFT JOIN quizzes q ON qa.quiz_id = q.id
+//       LEFT JOIN users u ON qa.user_id = u.id
+//       ORDER BY qa.created_at DESC
+//     `;
+
+//     const [rows] = await db.query(query);
+//     res.status(200).json({
+//       success: true,
+//       message: "Assessment details fetched successfully",
+//       data: rows,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching assessment details:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//       error: error.message,
+//     });
+//   }
+// };
 
 exports.getAllAssessmentDetails = async (req, res) => {
   try {
     const query = `
-      SELECT 
-        qa.*,
-        q.id AS quiz_id,
-        q.title AS quiz_title,
-        q.description AS quiz_description,
-        q.passing_score AS quiz_passing_score,
+      SELECT *
+      FROM (
+        SELECT
+          qa.id AS assignment_id,
+          qa.quiz_id,
+          qa.quiz_session_id,
+          qa.user_id,
+          qa.team_id,
+          qa.group_id,
+          qa.time_limit,
+          qa.started_at,
+          qa.ended_at,
+          qa.score,
+          qa.status,
+          qa.user_started_at,
+          qa.user_ended_at,
+          qa.reassigned,
+          qa.created_at,
+          qa.updated_at,
+          qa.user_timezone,
 
-        u.id AS user_id,
-        u.name AS user_name,
-        u.email AS user_email,
-        u.employee_id AS user_employee_id
+          q.title AS quiz_title,
+          q.description AS quiz_description,
+          q.passing_score AS quiz_passing_score,
 
-      FROM quiz_assignments qa
-      LEFT JOIN quizzes q ON qa.quiz_id = q.id
-      LEFT JOIN users u ON qa.user_id = u.id
-      ORDER BY qa.created_at DESC
+          qs.id AS quiz_session_id_main,
+          qs.session_name AS quiz_session_name,
+          qs.schedule_start_at AS quiz_session_start,
+          qs.schedule_end_at AS quiz_session_end,
+
+          u.name AS user_name,
+          u.email AS user_email,
+          u.employee_id AS user_employee_id,
+
+          ROW_NUMBER() OVER (
+            PARTITION BY qa.quiz_id, qa.user_id
+            ORDER BY 
+              CASE 
+                WHEN qa.status IN ('in_progress','passed','failed','under_review','terminated') THEN 1
+                WHEN qa.status = 'scheduled' THEN 2
+                ELSE 3
+              END,
+              qa.created_at DESC
+          ) as row_num
+
+        FROM quiz_assignments qa
+        LEFT JOIN quizzes q ON qa.quiz_id = q.id
+        LEFT JOIN quiz_sessions qs ON qa.quiz_session_id = qs.id
+        LEFT JOIN users u ON qa.user_id = u.id
+      ) ranked
+      WHERE row_num = 1
+      ORDER BY ranked.created_at DESC
     `;
 
     const [rows] = await db.query(query);
     res.status(200).json({
       success: true,
-      message: "Assessment details fetched successfully",
+      message: "Filtered assessment details fetched successfully",
       data: rows,
     });
   } catch (error) {
@@ -47,22 +118,58 @@ exports.getAllAssessmentDetails = async (req, res) => {
 
 exports.exportAssessmentDetails = async (req, res) => {
   try {
-    // Fetch all assessments
     const query = `
-      SELECT 
-        qa.*,
-        q.id AS quiz_id,
-        q.title AS quiz_title,
-        q.description AS quiz_description,
-        q.passing_score AS quiz_passing_score,
-        u.id AS user_id,
-        u.name AS user_name,
-        u.email AS user_email,
-        u.employee_id AS user_employee_id
-      FROM quiz_assignments qa
-      LEFT JOIN quizzes q ON qa.quiz_id = q.id
-      LEFT JOIN users u ON qa.user_id = u.id
-      ORDER BY qa.created_at DESC
+      SELECT *
+      FROM (
+        SELECT
+          qa.id AS assignment_id,
+          qa.quiz_id,
+          qa.quiz_session_id,
+          qa.user_id,
+          qa.team_id,
+          qa.group_id,
+          qa.time_limit,
+          qa.started_at,
+          qa.ended_at,
+          qa.score,
+          qa.status,
+          qa.user_started_at,
+          qa.user_ended_at,
+          qa.reassigned,
+          qa.created_at,
+          qa.updated_at,
+          qa.user_timezone,
+
+          q.title AS quiz_title,
+          q.description AS quiz_description,
+          q.passing_score AS quiz_passing_score,
+
+          qs.session_name AS quiz_session_name,
+          qs.schedule_start_at AS quiz_session_start,
+          qs.schedule_end_at AS quiz_session_end,
+
+          u.name AS user_name,
+          u.email AS user_email,
+          u.employee_id AS user_employee_id,
+
+          ROW_NUMBER() OVER (
+            PARTITION BY qa.quiz_id, qa.user_id
+            ORDER BY 
+              CASE 
+                WHEN qa.status IN ('in_progress','passed','failed','under_review','terminated') THEN 1
+                WHEN qa.status = 'scheduled' THEN 2
+                ELSE 3
+              END,
+              qa.created_at DESC
+          ) as row_num
+
+        FROM quiz_assignments qa
+        LEFT JOIN quizzes q ON qa.quiz_id = q.id
+        LEFT JOIN quiz_sessions qs ON qa.quiz_session_id = qs.id
+        LEFT JOIN users u ON qa.user_id = u.id
+      ) ranked
+      WHERE row_num = 1
+      ORDER BY ranked.created_at DESC
     `;
 
     const [rows] = await db.query(query);
@@ -71,6 +178,13 @@ exports.exportAssessmentDetails = async (req, res) => {
         .status(404)
         .json({ success: false, message: "No records found" });
     }
+
+    // ✅ Sort rows by session date
+    rows.sort((a, b) => {
+      const dateA = new Date(a.quiz_session_start || a.created_at);
+      const dateB = new Date(b.quiz_session_start || b.created_at);
+      return dateB - dateA;
+    });
 
     // ✅ Unique quiz titles
     const quizTitles = [...new Set(rows.map((r) => r.quiz_title))];
@@ -88,6 +202,7 @@ exports.exportAssessmentDetails = async (req, res) => {
       }
       userMap[key].assessments[r.quiz_title] = r;
     });
+
     const userAssessments = Object.values(userMap);
 
     // ✅ Create workbook & sheet
@@ -144,6 +259,7 @@ exports.exportAssessmentDetails = async (req, res) => {
           rowData.push("—");
         }
       });
+
       const row = worksheet.addRow(rowData);
 
       // Wrap text for quiz cells
@@ -195,31 +311,33 @@ exports.getQuizSummary = async (req, res) => {
     q.title,
     q.description,
     q.created_at,
-    -- Count total participants per quiz
-    (SELECT COUNT(*) FROM quiz_assignments qa WHERE qa.quiz_id = q.id) AS total_participants,
+    -- ✅ Fix duplicate users by counting distinct user_id
+    (SELECT COUNT(DISTINCT qa.user_id) 
+     FROM quiz_assignments qa 
+     WHERE qa.quiz_id = q.id) AS total_participants,
     -- Count total sessions per quiz
     (SELECT COUNT(*) FROM quiz_sessions qs WHERE qs.quiz_id = q.id) AS total_sessions,
     -- Get all session names as an array
     (
-  SELECT JSON_ARRAYAGG(
-    JSON_OBJECT(
-      'session_id', qs.id,
-      'session_name', qs.session_name,
-      'schedule_start_at', qs.schedule_start_at,
-      'schedule_end_at', qs.schedule_end_at,
-      'participants', (
-        SELECT COUNT(*) 
-        FROM quiz_assignments qa 
-        WHERE qa.quiz_id = q.id AND qa.quiz_session_id = qs.id
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'session_id', qs.id,
+          'session_name', qs.session_name,
+          'schedule_start_at', qs.schedule_start_at,
+          'schedule_end_at', qs.schedule_end_at,
+          'participants', (
+            SELECT COUNT(*) 
+            FROM quiz_assignments qa 
+            WHERE qa.quiz_id = q.id AND qa.quiz_session_id = qs.id
+          )
+        )
       )
-    )
-  )
-  FROM quiz_sessions qs
-  WHERE qs.quiz_id = q.id
-) AS sessions,
+      FROM quiz_sessions qs
+      WHERE qs.quiz_id = q.id
+    ) AS sessions,
     -- Count total attended (status = terminated, failed, or passed)
     (
-      SELECT COUNT(*) 
+      SELECT COUNT(DISTINCT qa2.user_id) 
       FROM quiz_assignments qa2 
       WHERE qa2.quiz_id = q.id 
       AND qa2.status IN ('terminated', 'failed', 'passed')
@@ -262,7 +380,6 @@ exports.getQuizSummary = async (req, res) => {
   }
 };
 
-
 exports.exportQuizUserData = async (req, res) => {
   try {
     const { quiz_id, session_id = "all" } = req.body;
@@ -281,34 +398,64 @@ exports.exportQuizUserData = async (req, res) => {
     const quizName = quizInfo[0]?.title || "Untitled Quiz";
 
     // ✅ 2. Get all user data for the quiz (with session details + email)
+
     let query = `
-      SELECT 
-        qs.session_name,
-        u.name AS user_name,
-        u.email AS user_email,
-        t.name AS team_name,
-        qa.score,
-        qa.status,
-        u.location,
-        qa.user_started_at,
-        qa.user_ended_at,
-        qa.reassigned,
-        qa.user_timezone
-      FROM quiz_assignments qa
-      JOIN users u ON qa.user_id = u.id
-      LEFT JOIN teams t ON qa.team_id = t.id
-      LEFT JOIN quiz_sessions qs ON qa.quiz_session_id = qs.id
-      WHERE qa.quiz_id = ?
-    `;
+  SELECT 
+    ranked.user_id,
+    ranked.user_name,
+    ranked.user_email,
+    ranked.team_name,
+    ranked.score,
+    ranked.status,
+    ranked.location,
+    ranked.user_started_at,
+    ranked.user_ended_at,
+    ranked.reassigned,
+    ranked.user_timezone,
+    ranked.session_name
+  FROM (
+    SELECT 
+      u.id AS user_id,
+      u.name AS user_name,
+      u.email AS user_email,
+      t.name AS team_name,
+      qa.score,
+      qa.status,
+      u.location,
+      qa.user_started_at,
+      qa.user_ended_at,
+      qa.reassigned,
+      qa.user_timezone,
+      qs.session_name,
+      ROW_NUMBER() OVER (
+        PARTITION BY u.id
+        ORDER BY 
+          CASE 
+            WHEN qa.status IN ('passed','failed','terminated') THEN 1
+            WHEN qa.status = 'scheduled' THEN 2
+            ELSE 3
+          END,
+          qa.created_at DESC
+      ) as row_num
+    FROM quiz_assignments qa
+    JOIN users u ON qa.user_id = u.id
+    LEFT JOIN teams t ON qa.team_id = t.id
+    LEFT JOIN quiz_sessions qs ON qa.quiz_session_id = qs.id
+    WHERE qa.quiz_id = ?
+  ) ranked
+  WHERE ranked.row_num = 1
+  ORDER BY ranked.session_name ASC, ranked.user_name ASC
+`;
 
     const params = [quiz_id];
 
     if (session_id !== "all") {
-      query += " AND qa.quiz_session_id = ?";
+      query = query.replace(
+        "WHERE qa.quiz_id = ?",
+        "WHERE qa.quiz_id = ? AND qa.quiz_session_id = ?"
+      );
       params.push(session_id);
     }
-
-    query += " ORDER BY qs.session_name ASC, u.name ASC";
 
     const [rows] = await db.query(query, params);
 
@@ -359,12 +506,10 @@ exports.exportQuizUserData = async (req, res) => {
       { header: "Session Name", key: "session_name", width: 25 },
     ];
 
- 
-worksheet.getRow(1).eachCell((cell) => {
-  cell.font = { bold: true, size: 14 }; // bold + bigger font
-  cell.alignment = { vertical: "middle", horizontal: "center" };
-});
-
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true, size: 14 }; // bold + bigger font
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+    });
 
     // Add rows
     formattedRows.forEach((row) => worksheet.addRow(row));
@@ -382,10 +527,11 @@ worksheet.getRow(1).eachCell((cell) => {
     await workbook.xlsx.write(res);
     res.end();
 
-    console.log(`✅ Export completed. ${formattedRows.length} rows downloaded.`);
+    console.log(
+      `✅ Export completed. ${formattedRows.length} rows downloaded.`
+    );
   } catch (error) {
     console.error("❌ Error exporting quiz user data:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-

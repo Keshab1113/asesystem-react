@@ -18,6 +18,7 @@ const AssessmentDetails = () => {
           `${import.meta.env.VITE_BACKEND_URL}/api/assessment`
         );
         setAssessments(res.data.data);
+        console.log("Fetched assessments:", res.data.data);
       } catch (error) {
         console.error("Error fetching assessments:", error);
       } finally {
@@ -25,6 +26,7 @@ const AssessmentDetails = () => {
       }
     };
     fetchAssessments();
+     
   }, []);
 
   // ✅ Get unique quiz titles
@@ -134,10 +136,10 @@ const AssessmentDetails = () => {
       userName: user.user_name,
       Email: user.user_email,
     };
-
+ 
     quizTitles.forEach((quizTitle, i) => {
       const assessment = user.assessments[quizTitle];
-
+ 
       if (assessment) {
         const endedAt = assessment.ended_at
           ? new Date(assessment.ended_at).toLocaleDateString("en-US", {

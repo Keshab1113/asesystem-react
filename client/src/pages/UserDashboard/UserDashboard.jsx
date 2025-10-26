@@ -85,85 +85,100 @@ export default function DashboardPage() {
     return () => clearInterval(intervalId);
   }, [user?.id]);
 
-  const getStatusBadge = (assessment) => {
-    const now = new Date();
-    const startDateTime = assessment.schedule_start_at
-      ? formatDateTime(assessment.schedule_start_at)
-      : null;
-    const endDateTime = assessment.schedule_end_at
-      ? formatDateTime(assessment.schedule_end_at)
-      : null;
-    const isNotStartedYet = startDateTime ? now < startDateTime : false;
-    const isExpired = endDateTime ? now > endDateTime : false;
+ const getStatusBadge = (assessment) => {
+  const now = new Date();
 
-    switch (assessment.status) {
-      case "scheduled":
-        if (isNotStartedYet) {
-          return (
-            <Badge variant="secondary">
-              <Clock className="w-3 h-3 mr-1" />
-              Scheduled
-            </Badge>
-          );
-        } else if (isExpired) {
-          return (
-            <Badge variant="destructive">
-              <Clock className="w-3 h-3 mr-1" />
-              Closed
-            </Badge>
-          );
-        } else {
-          return (
-            <Badge variant="success">
-              <Clock className="w-3 h-3 mr-1" />
-              Live
-            </Badge>
-          );
-        }
+  // Force UTC interpretation (important if backend sends UTC timestamps)
+  const startDateTime = assessment.schedule_start_at
+    ? new Date(assessment.schedule_start_at + "Z")
+    : null;
+  const endDateTime = assessment.schedule_end_at
+    ? new Date(assessment.schedule_end_at + "Z")
+    : null;
 
-      case "in_progress":
-        return (
-          <Badge variant="secondary">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            In Progress
-          </Badge>
-        );
+  const isNotStartedYet = startDateTime ? now < startDateTime : false;
+  const isExpired = endDateTime ? now > endDateTime : false;
+  const isLive =
+    !isNotStartedYet && !isExpired && assessment.status === "scheduled";
 
-      case "passed":
-        return (
-          <Badge variant="default">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Passed
-          </Badge>
-        );
+  switch (true) {
+    // 🕒 Scheduled (future)
+    case assessment.status === "scheduled" && isNotStartedYet:
+      return (
+        <Badge variant="secondary">
+          <Clock className="w-3 h-3 mr-1" />
+          Scheduled
+        </Badge>
+      );
 
-      case "failed":
-        return (
-          <Badge variant="destructive">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Failed
-          </Badge>
-        );
+    // 🔴 Closed (time passed)
+    case assessment.status === "scheduled" && isExpired:
+      return (
+        <Badge variant="destructive">
+          <Clock className="w-3 h-3 mr-1" />
+          Closed
+        </Badge>
+      );
 
-      case "under_review":
-        return (
-          <Badge variant="outline">
-            <FileText className="w-3 h-3 mr-1" />
-            Under Review
-          </Badge>
-        );
-      case "terminated":
-        return (
-          <Badge variant="destructive">
-            <CheckCircle className="w-3 h-3 mr-1" />
-            Terminated
-          </Badge>
-        );
+    // 🟢 Live (currently active)
+    case isLive:
+      return (
+        <Badge variant="success">
+          <Clock className="w-3 h-3 mr-1" />
+          Live
+        </Badge>
+      );
 
-      default:
-        return null;
-    }
-  };
+    // 🟡 In Progress
+    case assessment.status === "in_progress":
+      return (
+        <Badge variant="secondary">
+          <AlertCircle className="w-3 h-3 mr-1" />
+          In Progress
+        </Badge>
+      );
+
+    // ✅ Passed
+    case assessment.status === "passed":
+      return (
+        <Badge variant="default">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Passed
+        </Badge>
+      );
+
+    // ❌ Failed
+    case assessment.status === "failed":
+      return (
+        <Badge variant="destructive">
+          <AlertCircle className="w-3 h-3 mr-1" />
+          Failed
+        </Badge>
+      );
+
+    // 📄 Under Review
+    case assessment.status === "under_review":
+      return (
+        <Badge variant="outline">
+          <FileText className="w-3 h-3 mr-1" />
+          Under Review
+        </Badge>
+      );
+
+    // ⚠️ Terminated
+    case assessment.status === "terminated":
+      return (
+        <Badge variant="destructive">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Terminated
+        </Badge>
+      );
+
+    default:
+      return null;
+  }
+};
+
 
   const getCategoryIcon = (category) => {
     switch (category?.toLowerCase()) {
@@ -518,46 +533,66 @@ export default function DashboardPage() {
     );
   }
 
-  // 🔹 Separate assignments by status
-  const inProgress = assignments.filter((a) => a.status === "in_progress");
   const now = new Date();
 
-  const scheduled = assignments
-    .filter((a) => {
-      if (a.status !== "scheduled") return false;
+// 🔹 Separate assignments by status
+const inProgress = assignments.filter((a) => a.status === "in_progress");
 
-      if (a.schedule_end_at) {
-        const endDateTime = new Date(a.schedule_end_at);
-        return now <= endDateTime;
-      }
+// ✅ Proper fix for scheduled — comparing *exact date + time* safely
+const scheduled = assignments
+  .filter((a) => {
+    if (a.status !== "scheduled") return false;
 
+    if (a.schedule_end_at) {
+      // Force UTC interpretation if backend stores UTC-like timestamps
+      const endDateTime = new Date(a.schedule_end_at + "Z");
+      if (isNaN(endDateTime)) return false;
+      return now <= endDateTime; // still active (not ended yet)
+    }
+
+    return true;
+  })
+  .sort((a, b) => {
+    const startA = a.schedule_start_at
+      ? new Date(a.schedule_start_at + "Z")
+      : 0;
+    const startB = b.schedule_start_at
+      ? new Date(b.schedule_start_at + "Z")
+      : 0;
+    return startB - startA;
+  });
+
+// ✅ Proper fix for completed — only if *end time has fully passed*
+const completed = assignments
+  .filter((a) => {
+    if (
+      [
+        "passed",
+        "failed",
+        "under_review",
+        "terminated",
+      ].includes(a.status)
+    )
       return true;
-    })
-    .sort(
-      (a, b) => new Date(b.schedule_start_at) - new Date(a.schedule_start_at)
-    );
 
-  const completed = assignments
-    .filter((a) => {
-      if (
-        [
-          "passed",
-          "in_progress",
-          "failed",
-          "under_review",
-          "terminated",
-        ].includes(a.status)
-      )
-        return true;
+    if (a.status === "scheduled" && a.schedule_end_at) {
+      const endDateTime = new Date(a.schedule_end_at + "Z");
+      if (isNaN(endDateTime)) return false;
+      return now > endDateTime; // mark completed only after end time
+    }
 
-      if (a.status === "scheduled" && a.schedule_end_at) {
-        const endDateTime = new Date(a.schedule_end_at);
-        return now > endDateTime;
-      }
+    return false;
+  })
+  .sort((a, b) => {
+    const endA = a.user_ended_at
+      ? new Date(a.user_ended_at + "Z")
+      : 0;
+    const endB = b.user_ended_at
+      ? new Date(b.user_ended_at + "Z")
+      : 0;
+    return endB - endA;
+  });
 
-      return false;
-    })
-    .sort((a, b) => new Date(b.user_ended_at) - new Date(a.user_ended_at));
 
   return (
     <div className="space-y-10">

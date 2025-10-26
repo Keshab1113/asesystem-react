@@ -1351,8 +1351,13 @@ exports.getNormalUsersWithAssignments = async (req, res) => {
     );
 
 
+const [countResult] = await db.execute(
+      `SELECT COUNT(*) AS total_users FROM users WHERE role = 'user'`
+    );
 
-    res.json({ success: true, data: rows });
+    const totalUsers = countResult[0].total_users;
+
+    res.json({ success: true,  totalUsers, data: rows });
   } catch (error) {
     console.error("Get normal users with assignments error:", error);
     res.status(500).json({ success: false, message: "Server error" });

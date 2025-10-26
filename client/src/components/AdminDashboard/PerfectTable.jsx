@@ -203,7 +203,7 @@ const PerfectTable = ({ filtered, onDelete, onUpdate }) => {
       item.user_started_at && item.user_ended_at
         ? `${formatDateTime(item.user_started_at,true)} - ${formatDateTime(item.user_ended_at,true)}`
         : item.user_started_at
-        ? `${item.user_started_at} -`
+        ? `${formatDateTime(item.user_started_at,true)} -`
         : "—",
     percentage: item.score ? `${item.score}%` : "—",
     action: (
