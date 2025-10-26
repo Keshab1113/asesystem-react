@@ -3,15 +3,13 @@ const { Document, Packer, Paragraph, TextRun } = require("docx");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
- 
-const moment = require("moment-timezone");
- 
 
+const moment = require("moment-timezone");
 
 // exports.getAllAssessmentDetails = async (req, res) => {
 //   try {
 //     const query = `
-//       SELECT 
+//       SELECT
 //         qa.*,
 //         q.id AS quiz_id,
 //         q.title AS quiz_title,
@@ -118,10 +116,6 @@ exports.getAllAssessmentDetails = async (req, res) => {
   }
 };
 
-  
-
- 
-
 exports.exportAssessmentDetails = async (req, res) => {
   try {
     const query = `
@@ -185,13 +179,12 @@ exports.exportAssessmentDetails = async (req, res) => {
         .json({ success: false, message: "No records found" });
     }
 
-    
-// ✅ Sort rows by session date
-rows.sort((a, b) => {
-  const dateA = new Date(a.quiz_session_start || a.created_at);
-  const dateB = new Date(b.quiz_session_start || b.created_at);
-  return dateB - dateA;
-});
+    // ✅ Sort rows by session date
+    rows.sort((a, b) => {
+      const dateA = new Date(a.quiz_session_start || a.created_at);
+      const dateB = new Date(b.quiz_session_start || b.created_at);
+      return dateB - dateA;
+    });
 
     // ✅ Unique quiz titles
     const quizTitles = [...new Set(rows.map((r) => r.quiz_title))];
@@ -310,50 +303,9 @@ rows.sort((a, b) => {
   }
 };
 
-
 exports.getQuizSummary = async (req, res) => {
   try {
-//     const query = `
-//   SELECT 
-//     q.id AS quiz_id,
-//     q.title,
-//     q.description,
-//     q.created_at,
-//     -- Count total participants per quiz
-//     (SELECT COUNT(*) FROM quiz_assignments qa WHERE qa.quiz_id = q.id) AS total_participants,
-//     -- Count total sessions per quiz
-//     (SELECT COUNT(*) FROM quiz_sessions qs WHERE qs.quiz_id = q.id) AS total_sessions,
-//     -- Get all session names as an array
-//     (
-//   SELECT JSON_ARRAYAGG(
-//     JSON_OBJECT(
-//       'session_id', qs.id,
-//       'session_name', qs.session_name,
-//       'schedule_start_at', qs.schedule_start_at,
-//       'schedule_end_at', qs.schedule_end_at,
-//       'participants', (
-//         SELECT COUNT(*) 
-//         FROM quiz_assignments qa 
-//         WHERE qa.quiz_id = q.id AND qa.quiz_session_id = qs.id
-//       )
-//     )
-//   )
-//   FROM quiz_sessions qs
-//   WHERE qs.quiz_id = q.id
-// ) AS sessions,
-//     -- Count total attended (status = terminated, failed, or passed)
-//     (
-//       SELECT COUNT(*) 
-//       FROM quiz_assignments qa2 
-//       WHERE qa2.quiz_id = q.id 
-//       AND qa2.status IN ('terminated', 'failed', 'passed')
-//     ) AS total_attended
-//   FROM quizzes q
-//   WHERE q.is_active = 1
-//   ORDER BY q.created_at DESC
-// `;
-
-const query = `
+    const query = `
   SELECT 
     q.id AS quiz_id,
     q.title,
@@ -428,7 +380,6 @@ const query = `
   }
 };
 
-
 exports.exportQuizUserData = async (req, res) => {
   try {
     const { quiz_id, session_id = "all" } = req.body;
@@ -447,9 +398,8 @@ exports.exportQuizUserData = async (req, res) => {
     const quizName = quizInfo[0]?.title || "Untitled Quiz";
 
     // ✅ 2. Get all user data for the quiz (with session details + email)
-   
 
-  let query = `
+    let query = `
   SELECT 
     ranked.user_id,
     ranked.user_name,
@@ -497,19 +447,15 @@ exports.exportQuizUserData = async (req, res) => {
   ORDER BY ranked.session_name ASC, ranked.user_name ASC
 `;
 
-
-
-
     const params = [quiz_id];
 
     if (session_id !== "all") {
-  query = query.replace(
-    "WHERE qa.quiz_id = ?",
-    "WHERE qa.quiz_id = ? AND qa.quiz_session_id = ?"
-  );
-  params.push(session_id);
-}
-
+      query = query.replace(
+        "WHERE qa.quiz_id = ?",
+        "WHERE qa.quiz_id = ? AND qa.quiz_session_id = ?"
+      );
+      params.push(session_id);
+    }
 
     const [rows] = await db.query(query, params);
 
@@ -560,12 +506,10 @@ exports.exportQuizUserData = async (req, res) => {
       { header: "Session Name", key: "session_name", width: 25 },
     ];
 
- 
-worksheet.getRow(1).eachCell((cell) => {
-  cell.font = { bold: true, size: 14 }; // bold + bigger font
-  cell.alignment = { vertical: "middle", horizontal: "center" };
-});
-
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true, size: 14 }; // bold + bigger font
+      cell.alignment = { vertical: "middle", horizontal: "center" };
+    });
 
     // Add rows
     formattedRows.forEach((row) => worksheet.addRow(row));
@@ -583,10 +527,11 @@ worksheet.getRow(1).eachCell((cell) => {
     await workbook.xlsx.write(res);
     res.end();
 
-    console.log(`✅ Export completed. ${formattedRows.length} rows downloaded.`);
+    console.log(
+      `✅ Export completed. ${formattedRows.length} rows downloaded.`
+    );
   } catch (error) {
     console.error("❌ Error exporting quiz user data:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-

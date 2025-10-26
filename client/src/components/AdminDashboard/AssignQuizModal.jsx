@@ -9,6 +9,7 @@ import {
 } from "../ui/select";
 import { Input } from "../ui/input";
 import api from "../../api/api";
+import { resetQuiz } from "../../redux/slices/quizSlice";
 
 const AssignQuizModal = ({
   sessionId,
@@ -22,6 +23,7 @@ const AssignQuizModal = ({
 }) => {
   const { toast } = useToast();
   const [users, setUsers] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [groups, setGroups] = useState([]);
@@ -50,10 +52,10 @@ const AssignQuizModal = ({
           sessionId: selectedSession,
         },
       });
-
+      console.log("Fetched users for assignment:", res);
       const data = res.data.data || [];
       setUsers(data);
-
+setTotalUsers(res.data.totalUsers);
       // extract unique teams & groups
       const uniqueGroups = [
         ...new Set(data.map((u) => u.group).filter(Boolean)),
@@ -155,7 +157,7 @@ const AssignQuizModal = ({
       matchesStatus
     );
   });
-
+console.log("totalUsers: ", filteredUsers);
   const getStatusBadge = (status) => {
   switch (status?.toLowerCase()) {
     case "passed":
