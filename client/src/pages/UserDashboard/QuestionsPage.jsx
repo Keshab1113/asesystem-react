@@ -129,8 +129,8 @@ export default function QuestionsPage() {
     };
   }, []);
 
-  // ============================================================================
-// ADD THIS NEW USEEFFECT - HEARTBEAT SYSTEM (Simplified)
+ // ============================================================================
+// HEARTBEAT SYSTEM - Simple version that doesn't interfere
 // Place this AFTER the "FIX MOBILE SCROLL" useEffect
 // ============================================================================
 useEffect(() => {
@@ -146,8 +146,8 @@ useEffect(() => {
         assignment_id: assignmentId,
       });
 
+      // Only check for backend termination, don't do anything else
       if (response.data.success && response.data.status === "terminated") {
-        // Backend detected termination
         clearInterval(heartbeatInterval);
         handleSubmit(true, "Assessment terminated.", "terminated");
       }
@@ -157,7 +157,7 @@ useEffect(() => {
   };
 
   // Send heartbeat every 5 seconds
-  sendHeartbeat(); // Initial heartbeat
+  sendHeartbeat();
   heartbeatInterval = setInterval(sendHeartbeat, 5000);
 
   return () => {
@@ -165,47 +165,6 @@ useEffect(() => {
   };
 }, [acceptedInstructions, showInstructions, quizSessionId, user.id, assignmentId]);
 
-// ============================================================================
-// ENHANCED PAGEHIDE EVENT - Catches tab close/browser close
-// Place this AFTER the heartbeat useEffect
-// ============================================================================
-useEffect(() => {
-  if (!acceptedInstructions || showInstructions) return;
-
-  const handlePageHide = () => {
-    if (isSubmitting) return; // Don't send if already submitting
-
-    // Mark as terminated in localStorage
-    localStorage.setItem(`quiz_${quizSessionId}_terminated`, "true");
-    
-    // Use sendBeacon for guaranteed delivery
-    const terminationData = JSON.stringify({
-      quiz_session_id: quizSessionId,
-      user_id: user.id,
-      assignment_id: assignmentId,
-    });
-
-    navigator.sendBeacon(
-      `${import.meta.env.VITE_BACKEND_URL}/api/quiz-assignments/terminate`,
-      terminationData
-    );
-  };
-
-  window.addEventListener("pagehide", handlePageHide);
-  window.addEventListener("beforeunload", handlePageHide);
-
-  // Check on mount if previous session was terminated
-  const wasTerminated = localStorage.getItem(`quiz_${quizSessionId}_terminated`);
-  if (wasTerminated === "true") {
-    localStorage.removeItem(`quiz_${quizSessionId}_terminated`);
-    handleSubmit(true, "Previous session ended abruptly.", "terminated");
-  }
-
-  return () => {
-    window.removeEventListener("pagehide", handlePageHide);
-    window.removeEventListener("beforeunload", handlePageHide);
-  };
-}, [acceptedInstructions, showInstructions, isSubmitting, quizSessionId, user.id, assignmentId]);
 
   // ============================================================================
   // 1. INITIAL SETUP - Fetch Questions & Auto-Fullscreen
