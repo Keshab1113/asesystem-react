@@ -73,26 +73,72 @@ exports.getAssignmentById = async (req, res) => {
   }
 };
 
+// exports.startAssessment = async (req, res) => {
+//   try {
+//     const { quiz_id, user_id, assignment_id, quiz_session_id,user_started_at, user_timezone } = req.body;
+//     console.log(req.body);
+
+//     if (!quiz_id || !user_id || !assignment_id || !quiz_session_id) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "quiz_id, user_id, assignment_id, and quiz_session_id required",
+//       });
+//     }
+
+// const utcDate = new Date(user_started_at); 
+ 
+//     // Update the quiz_assignments table
+//     await db.query(
+//       `UPDATE quiz_assignments 
+//    SET user_started_at = ?,user_timezone = ?,status = ? 
+//    WHERE id = ? AND quiz_id = ? AND quiz_session_id = ? AND user_id = ?`,
+//       [
+//         utcDate.toISOString().slice(0, 19).replace("T", " "),
+//         user_timezone || 'UTC',
+//         "in_progress",
+//         assignment_id,
+//         quiz_id,
+//         quiz_session_id,
+//         user_id,
+//       ]
+//     );
+
+//     return res.json({
+//       success: true,
+//       message: "Assessment started",
+//       user_started_at: utcDate.toISOString(),
+//     });
+//   } catch (error) {
+//     console.error("Error in startAssessment:", error);
+//     return res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
+
+
 exports.startAssessment = async (req, res) => {
   try {
-    const { quiz_id, user_id, assignment_id, quiz_session_id,user_started_at, user_timezone } = req.body;
-    console.log(req.body);
+    const { quiz_id, user_id, assignment_id, quiz_session_id, user_started_at, user_timezone } = req.body;
 
     if (!quiz_id || !user_id || !assignment_id || !quiz_session_id) {
       return res.status(400).json({
         success: false,
-        message:
-          "quiz_id, user_id, assignment_id, and quiz_session_id required",
+        message: "quiz_id, user_id, assignment_id, and quiz_session_id required",
       });
     }
 
-const utcDate = new Date(user_started_at); 
- 
-    // Update the quiz_assignments table
+    const utcDate = new Date(user_started_at);
+
+    // Update quiz_assignments with heartbeat tracking enabled
     await db.query(
       `UPDATE quiz_assignments 
-   SET user_started_at = ?,user_timezone = ?,status = ? 
-   WHERE id = ? AND quiz_id = ? AND quiz_session_id = ? AND user_id = ?`,
+       SET user_started_at = ?, 
+           user_timezone = ?, 
+           status = ?,
+           last_heartbeat = NOW(),
+           heartbeat_active = 1
+       WHERE id = ? AND quiz_id = ? AND quiz_session_id = ? AND user_id = ?`,
       [
         utcDate.toISOString().slice(0, 19).replace("T", " "),
         user_timezone || 'UTC',
@@ -115,6 +161,95 @@ const utcDate = new Date(user_started_at);
   }
 };
 
+exports.heartbeatCheck = async (req, res) => {
+  try {
+    const { quiz_session_id, user_id, assignment_id } = req.body;
+
+    if (!quiz_session_id || !user_id || !assignment_id) {
+      return res.status(400).json({
+        success: false,
+        message: "quiz_session_id, user_id, and assignment_id required",
+      });
+    }
+
+    // Check current status
+    const [rows] = await db.query(
+      `SELECT status, heartbeat_active 
+       FROM quiz_assignments 
+       WHERE id = ? AND user_id = ? AND quiz_session_id = ?`,
+      [assignment_id, user_id, quiz_session_id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "Assignment not found" });
+    }
+
+    const currentStatus = rows[0].status;
+    const heartbeatActive = rows[0].heartbeat_active;
+
+    // If already terminated, inform frontend
+    if (currentStatus === "terminated" || !heartbeatActive) {
+      return res.json({ 
+        success: true, 
+        status: "terminated",
+        message: "Assessment has been terminated"
+      });
+    }
+
+    // Update last_heartbeat timestamp
+    await db.query(
+      `UPDATE quiz_assignments 
+       SET last_heartbeat = NOW() 
+       WHERE id = ? AND user_id = ? AND quiz_session_id = ?`,
+      [assignment_id, user_id, quiz_session_id]
+    );
+
+    return res.json({ 
+      success: true, 
+      status: currentStatus 
+    });
+
+  } catch (error) {
+    console.error("Error in heartbeatCheck:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ============================================================================
+// NEW TERMINATE ENDPOINT (for sendBeacon)
+// ============================================================================
+exports.terminateAssessment = async (req, res) => {
+  try {
+    const { quiz_session_id, user_id, assignment_id } = req.body;
+
+    if (!quiz_session_id || !user_id || !assignment_id) {
+      return res.status(400).json({
+        success: false,
+        message: "quiz_session_id, user_id, and assignment_id required",
+      });
+    }
+
+    // Terminate the assessment
+    await db.query(
+      `UPDATE quiz_assignments 
+       SET status = 'terminated', 
+           user_ended_at = NOW(),
+           heartbeat_active = 0
+       WHERE id = ? AND user_id = ? AND quiz_session_id = ? AND status = 'in_progress'`,
+      [assignment_id, user_id, quiz_session_id]
+    );
+
+    return res.json({ success: true });
+
+  } catch (error) {
+    console.error("Error in terminateAssessment:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+// ============================================================================
+// MODIFIED endAssessment - Disable heartbeat on completion
+// ============================================================================
 exports.endAssessment = async (req, res) => {
   try {
     const {
@@ -124,52 +259,50 @@ exports.endAssessment = async (req, res) => {
       passing_score,
       answers,
       quiz_session_id,
-       user_ended_at, 
+      user_ended_at,
+      status: requestStatus, // NEW: Accept status from frontend
     } = req.body;
-console.log(req.body);
+
     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
       return res.status(400).json({
         success: false,
         message: "quiz_id, user_id, assignment_id, and answers required",
       });
     }
-  // 🔹 Convert frontend local time to UTC
+
     const utcEndDate = new Date(user_ended_at);
 
-    // 🔹 Get current reassigned cycle
+    // Get current reassigned cycle
     const [qaRows] = await db.query(
       `SELECT reassigned 
        FROM quiz_assignments 
        WHERE id = ? AND user_id = ? AND quiz_session_id = ?`,
       [assignment_id, user_id, quiz_session_id]
     );
+
     if (!qaRows.length) {
       return res.status(404).json({ success: false, message: "Assignment not found" });
     }
-    const reassignedCycle = qaRows[0].reassigned;
 
+    const reassignedCycle = qaRows[0].reassigned;
     let score = 0;
 
-    // 🔹 Insert/update each answer
+    // Insert/update each answer
     for (const { question_id: assigned_question_id, answer } of answers) {
-
-      // Ensure this is a valid assigned question for this cycle
-    const [aqRows] = await db.query(
-  `SELECT id, question_id 
-   FROM assigned_questions 
-   WHERE id = ? 
-     AND assignment_id = ? 
-     AND quiz_session_id = ? 
-     AND user_id = ? 
-     AND reassigned = ?`,
-  [assigned_question_id, assignment_id, quiz_session_id, user_id, reassignedCycle]
-);
-
+      const [aqRows] = await db.query(
+        `SELECT id, question_id 
+         FROM assigned_questions 
+         WHERE id = ? 
+           AND assignment_id = ? 
+           AND quiz_session_id = ? 
+           AND user_id = ? 
+           AND reassigned = ?`,
+        [assigned_question_id, assignment_id, quiz_session_id, user_id, reassignedCycle]
+      );
 
       if (!aqRows.length) continue;
       const real_question_id = aqRows[0].question_id;
 
-      // Get correct answer
       const [qRows] = await db.query(
         "SELECT correct_answer FROM questions WHERE id = ?",
         [real_question_id]
@@ -178,77 +311,44 @@ console.log(req.body);
 
       const correct_answer = qRows[0].correct_answer;
       const trimmedAnswer = answer ? answer.trim() : "";
-const is_correct = trimmedAnswer === correct_answer.trim() ? 1 : 0;
+      const is_correct = trimmedAnswer === correct_answer.trim() ? 1 : 0;
 
-
-      // ✅ Insert/update into answers table WITH quiz_session_id + reassigned
       await db.query(
-  `INSERT INTO answers 
-(quiz_id, quiz_session_id, question_id, user_id, assignment_id, answer, is_correct, attempt_number, answered_at) 
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-ON DUPLICATE KEY UPDATE 
-  answer = VALUES(answer),
-  is_correct = VALUES(is_correct),
-  attempt_number = VALUES(attempt_number),
-  answered_at = NOW()
-`,
-  [
-    quiz_id,
-     quiz_session_id,
-    real_question_id,
-    user_id,
-    assignment_id,
-    answer ?? null,
-    is_correct,
-    reassignedCycle,
-  ]
-);
+        `INSERT INTO answers 
+         (quiz_id, quiz_session_id, question_id, user_id, assignment_id, answer, is_correct, attempt_number, answered_at) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+         ON DUPLICATE KEY UPDATE 
+           answer = VALUES(answer),
+           is_correct = VALUES(is_correct),
+           attempt_number = VALUES(attempt_number),
+           answered_at = NOW()`,
+        [quiz_id, quiz_session_id, real_question_id, user_id, assignment_id, answer ?? null, is_correct, reassignedCycle]
+      );
 
-// ✅ Get the answer_id reliably
-const [[existingAnswer]] = await db.query(
-  `SELECT id FROM answers 
-WHERE quiz_id = ? AND quiz_session_id = ? AND question_id = ? AND user_id = ? AND assignment_id = ?
-`,
-  [quiz_id, quiz_session_id, real_question_id, user_id, assignment_id]
+      const [[existingAnswer]] = await db.query(
+        `SELECT id FROM answers 
+         WHERE quiz_id = ? AND quiz_session_id = ? AND question_id = ? AND user_id = ? AND assignment_id = ?`,
+        [quiz_id, quiz_session_id, real_question_id, user_id, assignment_id]
+      );
+      const answer_id = existingAnswer?.id || null;
 
-);
-const answer_id = existingAnswer?.id || null;
-
-
-
-     
-
-      // ✅ Update assigned_questions row with same filters
-     if (trimmedAnswer !== "") {
-  await db.query(
-    `UPDATE assigned_questions 
-     SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
-     WHERE id = ? 
-       AND assignment_id = ? 
-       AND user_id = ? 
-       AND quiz_session_id = ? 
-       AND reassigned = ?`,
-    [
-      answer_id,
-      is_correct,
-      correct_answer,
-      is_correct,
-      assigned_question_id,
-      assignment_id,
-      user_id,
-      quiz_session_id,
-      reassignedCycle,
-    ]
-  );
-}
-
-
-
+      if (trimmedAnswer !== "") {
+        await db.query(
+          `UPDATE assigned_questions 
+           SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+           WHERE id = ? 
+             AND assignment_id = ? 
+             AND user_id = ? 
+             AND quiz_session_id = ? 
+             AND reassigned = ?`,
+          [answer_id, is_correct, correct_answer, is_correct, assigned_question_id, assignment_id, user_id, quiz_session_id, reassignedCycle]
+        );
+      }
 
       if (is_correct) score++;
     }
 
-    // 🔹 Total assigned questions (filtered by cycle + session)
+    // Total assigned questions
     const [assignedCountRows] = await db.query(
       `SELECT COUNT(*) as totalAssigned 
        FROM assigned_questions 
@@ -260,39 +360,42 @@ const answer_id = existingAnswer?.id || null;
     );
     const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
 
-    // 🔹 Count answered
+    // Count answered
     const [answeredCountRows] = await db.query(
-  `SELECT COUNT(*) as totalAnswered 
-   FROM assigned_questions aq
-   JOIN answers a ON a.id = aq.answer_id
-   WHERE aq.assignment_id = ? 
-     AND aq.user_id = ? 
-     AND aq.quiz_session_id = ? 
-     AND aq.reassigned = ? 
-     AND a.answer IS NOT NULL 
-     AND a.answer != ''`,
-  [assignment_id, user_id, quiz_session_id, reassignedCycle]
-);
-
+      `SELECT COUNT(*) as totalAnswered 
+       FROM assigned_questions aq
+       JOIN answers a ON a.id = aq.answer_id
+       WHERE aq.assignment_id = ? 
+         AND aq.user_id = ? 
+         AND aq.quiz_session_id = ? 
+         AND aq.reassigned = ? 
+         AND a.answer IS NOT NULL 
+         AND a.answer != ''`,
+      [assignment_id, user_id, quiz_session_id, reassignedCycle]
+    );
     const totalAnswered = answeredCountRows[0]?.totalAnswered || 0;
 
-    let status = "terminated";
+    // Determine final status
+    let status = requestStatus || "terminated"; // Use frontend status if provided
     let percentage = 0;
 
-    if (totalAnswered === totalAssigned) {
+    if (totalAnswered === totalAssigned && status !== "terminated") {
       percentage = (score / totalAssigned) * 100;
       status = percentage >= passing_score ? "passed" : "failed";
     }
 
-    // 🔹 Update quiz_assignments
+    // Update quiz_assignments - DISABLE HEARTBEAT
     await db.query(
       `UPDATE quiz_assignments 
-       SET user_ended_at = ?, status = ?, score = ? 
+       SET user_ended_at = ?, 
+           status = ?, 
+           score = ?,
+           heartbeat_active = 0
        WHERE id = ? AND quiz_session_id = ? AND user_id = ?`,
       [utcEndDate.toISOString().slice(0, 19).replace("T", " "), status, percentage, assignment_id, quiz_session_id, user_id]
     );
 
-    // 🔹 Fetch wrong/unanswered (filtered by reassigned + session)
+    // Fetch wrong/unanswered
     const [wrongAnswers] = await db.query(
       `SELECT 
           aq.id, 
@@ -303,13 +406,11 @@ const answer_id = existingAnswer?.id || null;
        FROM assigned_questions aq
        JOIN questions q ON aq.question_id = q.id
        LEFT JOIN answers a 
-   ON a.quiz_id = aq.quiz_id 
-   AND a.assignment_id = aq.assignment_id 
-   AND a.question_id = aq.question_id 
-   AND a.user_id = aq.user_id 
-   AND a.attempt_number = aq.reassigned
-
-
+         ON a.quiz_id = aq.quiz_id 
+         AND a.assignment_id = aq.assignment_id 
+         AND a.question_id = aq.question_id 
+         AND a.user_id = aq.user_id 
+         AND a.attempt_number = aq.reassigned
        WHERE aq.assignment_id = ? 
          AND aq.user_id = ? 
          AND aq.quiz_session_id = ? 
@@ -325,7 +426,7 @@ const answer_id = existingAnswer?.id || null;
       percentage,
       status,
       wrongAnswers,
-        user_ended_at: utcEndDate.toISOString(),
+      user_ended_at: utcEndDate.toISOString(),
     });
 
   } catch (error) {
@@ -333,6 +434,228 @@ const answer_id = existingAnswer?.id || null;
     return res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
+
+// exports.endAssessment = async (req, res) => {
+//   try {
+//     const {
+//       quiz_id,
+//       user_id,
+//       assignment_id,
+//       passing_score,
+//       answers,
+//       quiz_session_id,
+//        user_ended_at, 
+//     } = req.body;
+// console.log(req.body);
+//     if (!quiz_id || !user_id || !assignment_id || !Array.isArray(answers)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "quiz_id, user_id, assignment_id, and answers required",
+//       });
+//     }
+//   // 🔹 Convert frontend local time to UTC
+//     const utcEndDate = new Date(user_ended_at);
+
+//     // 🔹 Get current reassigned cycle
+//     const [qaRows] = await db.query(
+//       `SELECT reassigned 
+//        FROM quiz_assignments 
+//        WHERE id = ? AND user_id = ? AND quiz_session_id = ?`,
+//       [assignment_id, user_id, quiz_session_id]
+//     );
+//     if (!qaRows.length) {
+//       return res.status(404).json({ success: false, message: "Assignment not found" });
+//     }
+//     const reassignedCycle = qaRows[0].reassigned;
+
+//     let score = 0;
+
+//     // 🔹 Insert/update each answer
+//     for (const { question_id: assigned_question_id, answer } of answers) {
+
+//       // Ensure this is a valid assigned question for this cycle
+//     const [aqRows] = await db.query(
+//   `SELECT id, question_id 
+//    FROM assigned_questions 
+//    WHERE id = ? 
+//      AND assignment_id = ? 
+//      AND quiz_session_id = ? 
+//      AND user_id = ? 
+//      AND reassigned = ?`,
+//   [assigned_question_id, assignment_id, quiz_session_id, user_id, reassignedCycle]
+// );
+
+
+//       if (!aqRows.length) continue;
+//       const real_question_id = aqRows[0].question_id;
+
+//       // Get correct answer
+//       const [qRows] = await db.query(
+//         "SELECT correct_answer FROM questions WHERE id = ?",
+//         [real_question_id]
+//       );
+//       if (!qRows.length) continue;
+
+//       const correct_answer = qRows[0].correct_answer;
+//       const trimmedAnswer = answer ? answer.trim() : "";
+// const is_correct = trimmedAnswer === correct_answer.trim() ? 1 : 0;
+
+
+//       // ✅ Insert/update into answers table WITH quiz_session_id + reassigned
+//       await db.query(
+//   `INSERT INTO answers 
+// (quiz_id, quiz_session_id, question_id, user_id, assignment_id, answer, is_correct, attempt_number, answered_at) 
+// VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
+// ON DUPLICATE KEY UPDATE 
+//   answer = VALUES(answer),
+//   is_correct = VALUES(is_correct),
+//   attempt_number = VALUES(attempt_number),
+//   answered_at = NOW()
+// `,
+//   [
+//     quiz_id,
+//      quiz_session_id,
+//     real_question_id,
+//     user_id,
+//     assignment_id,
+//     answer ?? null,
+//     is_correct,
+//     reassignedCycle,
+//   ]
+// );
+
+// // ✅ Get the answer_id reliably
+// const [[existingAnswer]] = await db.query(
+//   `SELECT id FROM answers 
+// WHERE quiz_id = ? AND quiz_session_id = ? AND question_id = ? AND user_id = ? AND assignment_id = ?
+// `,
+//   [quiz_id, quiz_session_id, real_question_id, user_id, assignment_id]
+
+// );
+// const answer_id = existingAnswer?.id || null;
+
+
+
+     
+
+//       // ✅ Update assigned_questions row with same filters
+//      if (trimmedAnswer !== "") {
+//   await db.query(
+//     `UPDATE assigned_questions 
+//      SET answer_id = ?, is_correct = ?, correct_answers = ?, score = ? 
+//      WHERE id = ? 
+//        AND assignment_id = ? 
+//        AND user_id = ? 
+//        AND quiz_session_id = ? 
+//        AND reassigned = ?`,
+//     [
+//       answer_id,
+//       is_correct,
+//       correct_answer,
+//       is_correct,
+//       assigned_question_id,
+//       assignment_id,
+//       user_id,
+//       quiz_session_id,
+//       reassignedCycle,
+//     ]
+//   );
+// }
+
+
+
+
+//       if (is_correct) score++;
+//     }
+
+//     // 🔹 Total assigned questions (filtered by cycle + session)
+//     const [assignedCountRows] = await db.query(
+//       `SELECT COUNT(*) as totalAssigned 
+//        FROM assigned_questions 
+//        WHERE assignment_id = ? 
+//          AND user_id = ? 
+//          AND quiz_session_id = ? 
+//          AND reassigned = ?`,
+//       [assignment_id, user_id, quiz_session_id, reassignedCycle]
+//     );
+//     const totalAssigned = assignedCountRows[0]?.totalAssigned || 1;
+
+//     // 🔹 Count answered
+//     const [answeredCountRows] = await db.query(
+//   `SELECT COUNT(*) as totalAnswered 
+//    FROM assigned_questions aq
+//    JOIN answers a ON a.id = aq.answer_id
+//    WHERE aq.assignment_id = ? 
+//      AND aq.user_id = ? 
+//      AND aq.quiz_session_id = ? 
+//      AND aq.reassigned = ? 
+//      AND a.answer IS NOT NULL 
+//      AND a.answer != ''`,
+//   [assignment_id, user_id, quiz_session_id, reassignedCycle]
+// );
+
+//     const totalAnswered = answeredCountRows[0]?.totalAnswered || 0;
+
+//     let status = "terminated";
+//     let percentage = 0;
+
+//     if (totalAnswered === totalAssigned) {
+//       percentage = (score / totalAssigned) * 100;
+//       status = percentage >= passing_score ? "passed" : "failed";
+//     }
+
+//     // 🔹 Update quiz_assignments
+//     await db.query(
+//       `UPDATE quiz_assignments 
+//        SET user_ended_at = ?, status = ?, score = ? 
+//        WHERE id = ? AND quiz_session_id = ? AND user_id = ?`,
+//       [utcEndDate.toISOString().slice(0, 19).replace("T", " "), status, percentage, assignment_id, quiz_session_id, user_id]
+//     );
+
+//     // 🔹 Fetch wrong/unanswered (filtered by reassigned + session)
+//     const [wrongAnswers] = await db.query(
+//       `SELECT 
+//           aq.id, 
+//           q.question_text AS question, 
+//           q.options, 
+//           q.correct_answer AS correctAnswer, 
+//           a.answer AS userAnswer
+//        FROM assigned_questions aq
+//        JOIN questions q ON aq.question_id = q.id
+//        LEFT JOIN answers a 
+//    ON a.quiz_id = aq.quiz_id 
+//    AND a.assignment_id = aq.assignment_id 
+//    AND a.question_id = aq.question_id 
+//    AND a.user_id = aq.user_id 
+//    AND a.attempt_number = aq.reassigned
+
+
+//        WHERE aq.assignment_id = ? 
+//          AND aq.user_id = ? 
+//          AND aq.quiz_session_id = ? 
+//          AND aq.reassigned = ? 
+//          AND (aq.is_correct = 0 OR aq.answer_id IS NULL)`,
+//       [assignment_id, user_id, quiz_session_id, reassignedCycle]
+//     );
+
+//     return res.json({
+//       success: true,
+//       message: "Assessment ended",
+//       score,
+//       percentage,
+//       status,
+//       wrongAnswers,
+//         user_ended_at: utcEndDate.toISOString(),
+//     });
+
+//   } catch (error) {
+//     console.error("Error in endAssessment:", error);
+//     return res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
+
 
 exports.assignRandomQuestions = async (req, res) => {
   const { quizSessionId, quizId, userId, assignmentId } = req.body;
@@ -467,3 +790,31 @@ const [rows] = await db.query(
     return res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// ============================================================================
+// BACKGROUND JOB - Check stale sessions every 30 seconds
+// ADD THIS TO YOUR SERVER STARTUP FILE (e.g., server.js or app.js)
+// ============================================================================
+exports.startHeartbeatMonitor = () => {
+  setInterval(async () => {
+    try {
+      // Terminate sessions with no heartbeat in last 20 seconds
+      await db.query(
+        `UPDATE quiz_assignments 
+         SET status = 'terminated', 
+             user_ended_at = NOW(),
+             heartbeat_active = 0
+         WHERE status = 'in_progress' 
+           AND heartbeat_active = 1
+           AND last_heartbeat < DATE_SUB(NOW(), INTERVAL 20 SECOND)`
+      );
+    } catch (error) {
+      console.error("Heartbeat monitor error:", error);
+    }
+  }, 30000); // Check every 30 seconds
+};
+
+// Call this when server starts
+// startHeartbeatMonitor();
+
+ 

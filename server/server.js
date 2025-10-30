@@ -21,7 +21,7 @@ const resultRoutes = require("./routes/resultRoutes");
 const userDownloadRoutes = require("./routes/userDownloadRoutes");
 const quizSessionsRoutes = require("./routes/quizSessionsRoutes");
 const assessmentDetailsRoutes = require("./routes/assessmentDetailsRoutes");
- 
+ const { startHeartbeatMonitor } = require('./controllers/quizAssignmentsController');
 // Middleware
 
 
@@ -108,4 +108,9 @@ app.use((error, req, res, next) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+
+    // Start heartbeat monitoring
+  startHeartbeatMonitor();
+  console.log('Heartbeat monitor started');
 });
+ 

@@ -113,22 +113,55 @@ export default function QuestionsPage() {
     window.addEventListener("resize", setViewportHeight);
     window.addEventListener("orientationchange", setViewportHeight);
 
-     // ADD THIS SECTION HERE ⬇️
-  if (Device.isIOS) {
-    document.body.style.overscrollBehavior = "none";
-    document.documentElement.style.overscrollBehavior = "none";
-  }
- 
+    // ADD THIS SECTION HERE ⬇️
+    if (Device.isIOS) {
+      document.body.style.overscrollBehavior = "none";
+      document.documentElement.style.overscrollBehavior = "none";
+    }
 
     return () => {
       window.removeEventListener("resize", setViewportHeight);
       window.removeEventListener("orientationchange", setViewportHeight);
-       if (Device.isIOS) {
-      document.body.style.overscrollBehavior = "";
-      document.documentElement.style.overscrollBehavior = "";
-    }
+      if (Device.isIOS) {
+        document.body.style.overscrollBehavior = "";
+        document.documentElement.style.overscrollBehavior = "";
+      }
     };
   }, []);
+
+ // ============================================================================
+// HEARTBEAT SYSTEM - Simple version that doesn't interfere
+// Place this AFTER the "FIX MOBILE SCROLL" useEffect
+// ============================================================================
+useEffect(() => {
+  if (!acceptedInstructions || showInstructions) return;
+
+  let heartbeatInterval = null;
+
+  const sendHeartbeat = async () => {
+    try {
+      await api.post("/api/quiz-assignments/heartbeat", {
+        quiz_session_id: quizSessionId,
+        user_id: user.id,
+        assignment_id: assignmentId,
+      });
+      
+      // Don't check response status - just send the ping
+      // Your existing handlers (visibilitychange, etc.) handle termination
+    } catch (error) {
+      // Silently fail - network issues shouldn't terminate the quiz
+      console.warn("Heartbeat failed:", error);
+    }
+  };
+
+  // Send heartbeat every 10 seconds (increased from 5)
+  sendHeartbeat();
+  heartbeatInterval = setInterval(sendHeartbeat, 10000);
+
+  return () => {
+    if (heartbeatInterval) clearInterval(heartbeatInterval);
+  };
+}, [acceptedInstructions, showInstructions, quizSessionId, user.id, assignmentId]);
   // ============================================================================
   // 1. INITIAL SETUP - Fetch Questions & Auto-Fullscreen
   // ============================================================================
@@ -323,30 +356,31 @@ export default function QuestionsPage() {
 
       // Prevent pull-to-refresh
       // Prevent pull-to-refresh
-let startY = 0;
-const onTouchStart = (e) => {
-  startY = e.touches[0].clientY;
-};
-const onTouchMove = (e) => {
-  const currentY = e.touches[0].clientY;
-  const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
-  
-  // Prevent pull down when at top
-  if (scrollTop <= 0 && currentY > startY) {
-    e.preventDefault();
-  }
-  
-  // Prevent pull up when at bottom
-  const scrollHeight = document.documentElement.scrollHeight;
-  const clientHeight = document.documentElement.clientHeight;
-  if (scrollTop + clientHeight >= scrollHeight && currentY < startY) {
-    e.preventDefault();
-  }
-};
+      let startY = 0;
+      const onTouchStart = (e) => {
+        startY = e.touches[0].clientY;
+      };
+      const onTouchMove = (e) => {
+        const currentY = e.touches[0].clientY;
+        const scrollTop =
+          document.documentElement.scrollTop || document.body.scrollTop;
 
-// Change passive to false for touchstart as well
-document.addEventListener("touchstart", onTouchStart, { passive: false });
-document.addEventListener("touchmove", onTouchMove, { passive: false });
+        // Prevent pull down when at top
+        if (scrollTop <= 0 && currentY > startY) {
+          e.preventDefault();
+        }
+
+        // Prevent pull up when at bottom
+        const scrollHeight = document.documentElement.scrollHeight;
+        const clientHeight = document.documentElement.clientHeight;
+        if (scrollTop + clientHeight >= scrollHeight && currentY < startY) {
+          e.preventDefault();
+        }
+      };
+
+      // Change passive to false for touchstart as well
+      document.addEventListener("touchstart", onTouchStart, { passive: false });
+      document.addEventListener("touchmove", onTouchMove, { passive: false });
       window.addEventListener("beforeunload", handleBeforeUnload);
       window.addEventListener("popstate", handlePopState);
       window.addEventListener("pageshow", handlePageShow);
@@ -376,39 +410,39 @@ document.addEventListener("touchmove", onTouchMove, { passive: false });
       let backPressCount = 0;
       let backPressTimer = null;
 
-    const handlePopState = (e) => {
-  e.preventDefault();
-  window.history.pushState(null, "", window.location.href);
+      const handlePopState = (e) => {
+        e.preventDefault();
+        window.history.pushState(null, "", window.location.href);
 
-  backPressCount++;
+        backPressCount++;
 
-  if (backPressCount === 1) {
-    // FIRST BACK PRESS: Save state and show warning
-    saveQuizState();
+        if (backPressCount === 1) {
+          // FIRST BACK PRESS: Save state and show warning
+          saveQuizState();
 
-    // Show warning toast (same as iOS)
-    toast({
-      title: "⚠️ Warning #1",
-      description:
-        "Press back again to terminate and submit the assessment.",
-      variant: "warning",
-    });
+          // Show warning toast (same as iOS)
+          toast({
+            title: "⚠️ Warning #1",
+            description:
+              "Press back again to terminate and submit the assessment.",
+            variant: "warning",
+          });
 
-    // Reset counter after 3 seconds
-    if (backPressTimer) clearTimeout(backPressTimer);
-    backPressTimer = setTimeout(() => {
-      backPressCount = 0;
-    }, 3000);
-  } else if (backPressCount >= 2) {
-    // SECOND BACK PRESS: Terminate
-    if (backPressTimer) clearTimeout(backPressTimer);
-    handleSubmit(
-      true,
-      "Back button pressed twice. Assessment terminated.",
-      "terminated"
-    );
-  }
-};
+          // Reset counter after 3 seconds
+          if (backPressTimer) clearTimeout(backPressTimer);
+          backPressTimer = setTimeout(() => {
+            backPressCount = 0;
+          }, 3000);
+        } else if (backPressCount >= 2) {
+          // SECOND BACK PRESS: Terminate
+          if (backPressTimer) clearTimeout(backPressTimer);
+          handleSubmit(
+            true,
+            "Back button pressed twice. Assessment terminated.",
+            "terminated"
+          );
+        }
+      };
 
       const handlePageShow = (e) => {
         if (e.persisted) {
@@ -878,7 +912,7 @@ document.addEventListener("touchmove", onTouchMove, { passive: false });
         assignment_id: assignmentId,
         quiz_session_id: quizSessionId,
         user_started_at: userLocalTime,
-        user_timezone: userTimeZone
+        user_timezone: userTimeZone,
       });
 
       if (!startRes.data.success) {
@@ -969,7 +1003,7 @@ document.addEventListener("touchmove", onTouchMove, { passive: false });
 
     try {
       console.log("Calling API to end assessment with status:", status);
-const userLocalEndTime = new Date();
+      const userLocalEndTime = new Date();
       const response = await api.post("/api/quiz-assignments/end", {
         quiz_id: quizId,
         user_id: user.id,
