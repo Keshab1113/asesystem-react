@@ -140,32 +140,28 @@ useEffect(() => {
 
   const sendHeartbeat = async () => {
     try {
-      const response = await api.post("/api/quiz-assignments/heartbeat", {
+      await api.post("/api/quiz-assignments/heartbeat", {
         quiz_session_id: quizSessionId,
         user_id: user.id,
         assignment_id: assignmentId,
       });
-
-      // Only check for backend termination, don't do anything else
-      if (response.data.success && response.data.status === "terminated") {
-        clearInterval(heartbeatInterval);
-        handleSubmit(true, "Assessment terminated.", "terminated");
-      }
+      
+      // Don't check response status - just send the ping
+      // Your existing handlers (visibilitychange, etc.) handle termination
     } catch (error) {
+      // Silently fail - network issues shouldn't terminate the quiz
       console.warn("Heartbeat failed:", error);
     }
   };
 
-  // Send heartbeat every 5 seconds
+  // Send heartbeat every 10 seconds (increased from 5)
   sendHeartbeat();
-  heartbeatInterval = setInterval(sendHeartbeat, 5000);
+  heartbeatInterval = setInterval(sendHeartbeat, 10000);
 
   return () => {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
   };
 }, [acceptedInstructions, showInstructions, quizSessionId, user.id, assignmentId]);
-
-
   // ============================================================================
   // 1. INITIAL SETUP - Fetch Questions & Auto-Fullscreen
   // ============================================================================
